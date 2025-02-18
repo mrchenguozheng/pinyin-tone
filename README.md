@@ -58,7 +58,7 @@ console.log(pinyin_v2('huar1 wei4 shen2 me zhe4 yang4 hong2')); // --> 'huār w�
 
 ## Changelog
 
-* 更新日志 see [changelog here](https://github.com/issiki/pinyin-tone/blob/master/CHANGELOG.md).
+* 更新日志 see [changelog here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
 
 ## Tests
 
@@ -68,8 +68,8 @@ see `test/test.js`.
 
 ## Issues
 
-* submit any [bugs/issues about this package here](https://github.com/issiki/pinyin-tone/issues). Thank you!
-* 有任何与此包相关的疑问或者<ruby><rb>缺陷</rb><rp>(</rp><rt>BUGs</rt><rp>)</rp></ruby>请[在这里提交](https://github.com/issiki/pinyin-tone/issues)。感谢！
+* submit any [bugs/issues about this package here](https://github.com/mrchenguozheng/pinyin-tone/issues). Thank you!
+* 有任何与此包相关的疑问或者<ruby><rb>缺陷</rb><rp>(</rp><rt>BUGs</rt><rp>)</rp></ruby>请[在这里提交](https://github.com/mrchenguozheng/pinyin-tone/issues)。感谢！
 
 ## License
 
