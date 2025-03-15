@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## [2.3.0]
+
+- BREAKING: Convert this package from a CommonJS package to an ES Module
+
+## [2.2.7]
+
+- revert the changes: liou -> liou, yuen -> yuen
+
+## [2.2.6] - deprecated, but the fixes was preseved in [2.2.7]
+
+- Fixed: strings that match the regex rule but are not present in pinyin_dict_v2 result in pinyin_dict_v2[match.groups.abc] being undefined.
+- Fixed: 修复了匹配正则表达式的字符串但不在 pinyin_dict_v2 中的问题，导致 pinyin_dict_v2[match.groups.abc] 未定义。
+- Change: liou -> liu, yuen -> yun
+
 ## [2.2.2-2.2.5] 2025-02-18
 
 * Bumps the npm_and_yarn group with 2 updates: [serialize-javascript](https://github.com/yahoo/serialize-javascript) and [mocha](https://github.com/mochajs/mocha).
