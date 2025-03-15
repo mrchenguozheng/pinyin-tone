@@ -1,6 +1,13 @@
-/**
- * Converts the given string to Pinyin.
- * @param param - The string to be converted.
- * @returns The converted Pinyin string.
- */
-export default function Pinyin(param: string): string;
+// index.d.ts
+
+declare module './v1/index.js' {
+    export default function toPinyinTones(input: string): string;
+}
+
+declare module './v2/index.js' {
+    export default function v2(input: string): string;
+}
+
+declare module './workaround/index.js' {
+    export default function markSinglePinyinVowel(input: string): string;
+}
