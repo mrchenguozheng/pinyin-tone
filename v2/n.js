@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     na: ['na', 'nā', 'ná', 'nǎ', 'nà'], // a
     no: ['no', 'nō', 'nó', 'nǒ', 'nò'], // o
     ne: ['ne', 'nē', 'né', 'ně', 'nè'], // e

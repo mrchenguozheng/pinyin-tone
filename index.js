@@ -1,5 +1,12 @@
 'use strict';
 
-const pinyin_v1 = require('./v1/index');
+import toPinyinTones from './v1/index.js';
+import { default as v2 } from './v2/index.js';
+import markSinglePinyinVowel from './workaround/index.js'
 
-module.exports = pinyin_v1;
+export default toPinyinTones;
+
+export {
+    v2,
+    markSinglePinyinVowel,
+}

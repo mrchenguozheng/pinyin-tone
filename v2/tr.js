@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     tar: ['tar', 'tār', 'tár', 'tǎr', 'tàr'], // a
     tor: ['tor', 'tōr', 'tór', 'tǒr', 'tòr'], // o
     ter: ['ter', 'tēr', 'tér', 'těr', 'tèr'], // e

@@ -21,28 +21,29 @@ npm install pinyin-tone
 
 ```javascript
 // this module exports a function, name it as `pinyin` or what you like.
-var pinyin_v1 = require('pinyin-tone');
+var toPinyinTones = require('pinyin-tone'); // CommonJS usage, up to version 2.2.7
+import toPinyinTones from 'pinyin-tone';    // ES Module usage, BREAKING CHANGE from version 2.3.0
 
 // call the function
-var hatsune_miku = pinyin_v1('chu1 yin1 wei4 lai2'); // ---> 'chū yīn wèi lái'
-var megurine_luka = pinyin_v1("xun2 yin1 liu2 ge1"); // ---> 'xún yīn liú gē'
-var han = pinyin_v1("han4 yu3 pin1 yin1 fang1 an4"); // ---> 'hàn yǔ pīn yīn fāng àn'
+var hatsune_miku = toPinyinTones('chu1 yin1 wei4 lai2'); // ---> 'chū yīn wèi lái'
+var megurine_luka = toPinyinTones("xun2 yin1 liu2 ge1"); // ---> 'xún yīn liú gē'
+var han = toPinyinTones("han4 yu3 pin1 yin1 fang1 an4"); // ---> 'hàn yǔ pīn yīn fāng àn'
 
 // 儿化音(ér huà yīn)
-var huar = pinyin_v1("huar1 renr2 shuir3 yuer4"); // ---> 'huār rénr shuǐr yuèr'
+var huar = toPinyinTones("huar1 renr2 shuir3 yuer4"); // ---> 'huār rénr shuǐr yuèr'
 
 // 声母(shēng mǔ)
-var bpmf = pinyin_v1("b p m f"); // ---> 'b p m f'
+var bpmf = toPinyinTones("b p m f"); // ---> 'b p m f'
 
 // 韵母(yùn mǔ)
-var yun = pinyin_v1("an1 vn2 ong3 uen4"); // ---> 'ān ǘn ǒng uèn'
+var yun = toPinyinTones("an1 vn2 ong3 uen4"); // ---> 'ān ǘn ǒng uèn'
 
 // special
-var liuyun = pinyin_v1("liou2 yuen2"); // ---> 'liú yún' // use in reality
-var iou_uen = pinyin_v1("iou1 uen4"); // ---> 'iōu uèn' // only yùn mǔ
+var liuyun = toPinyinTones("liou2 yuen2"); // ---> 'liú yún' // use in reality
+var iou_uen = toPinyinTones("iou1 uen4"); // ---> 'iōu uèn' // only yùn mǔ
 
 // or some pinyin that not used in reality.
-var fantastic = pinyin_v1("bong1 tv2 pe3 wir4"); // ---> 'bōng tǘ pě wìr'
+var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // ---> 'bōng tǘ pě wìr'
 ```
 
 ## Usage v2 (exprimental)
@@ -50,26 +51,27 @@ var fantastic = pinyin_v1("bong1 tv2 pe3 wir4"); // ---> 'bōng tǘ pě wìr'
 As a result, there is ONE difference between `v1` and `v2`. `v2` does NOT support 儿化音 like `hua1r` (format: `pinyin-number-r`), it only supports the format `pinyin-r-number` like `huar1`.
 
 ```javascript
-var pinyin_v2 = require('pinyin-tone/v2');
+var anotherPinyinTones = require('pinyin-tone/v2'); // CommonJS usage, up to version 2.2.7
+import anotherPinyinTones from 'pinyin-tone/v2';    // ES Module usage, BREAKING CHANGE from version 2.3.0
 
-console.log(pinyin_v2('qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men')); // --> 'qǐ lái bú yuàn zuò nú lì de rén men'
-console.log(pinyin_v2('huar1 wei4 shen2 me zhe4 yang4 hong2')); // --> 'huār wèi shén me zhè yàng hóng'
+console.log(anotherPinyinTones('qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men')); // --> 'qǐ lái bú yuàn zuò nú lì de rén men'
+console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2')); // --> 'huār wèi shén me zhè yàng hóng'
 ```
 
 ## Changelog
 
-* 更新日志 see [changelog here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
+* 更新日志 see [CHANGELOG here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
 
 ## Tests
 
 see `test/test.js`.
 
-* 重写了测试 Rewrite tests. 2020-11-11
+* 重写了测试 Rewrite tests. 2025-03-16
 
 ## Issues
 
-* submit any [bugs/issues about this package here](https://github.com/mrchenguozheng/pinyin-tone/issues). Thank you!
-* 有任何与此包相关的疑问或者<ruby><rb>缺陷</rb><rp>(</rp><rt>BUGs</rt><rp>)</rp></ruby>请[在这里提交](https://github.com/mrchenguozheng/pinyin-tone/issues)。感谢！
+* submit any [bugs/glitches/issues about this package here](https://github.com/mrchenguozheng/pinyin-tone/issues). Thank you!
+* 有任何与此包相关的疑问或者代码缺陷请[在这里提交](https://github.com/mrchenguozheng/pinyin-tone/issues)。感谢！
 
 ## License
 
@@ -77,6 +79,6 @@ see `test/test.js`.
 
 ## About 汉语拼音方案(hàn yǔ pīn yīn fāng àn)
 
-You can find [汉语拼音方案.pdf] from <http://www.moe.gov.cn/jyb_sjzl/ziliao/A19/195802/t19580201_186000.html>
+You can find [汉语拼音方案.pdf] in <http://www.moe.gov.cn/jyb_sjzl/ziliao/A19/195802/t19580201_186000.html>
 
 [汉语拼音方案.pdf]:http://www.moe.gov.cn/ewebeditor/uploadfile/2015/03/02/20150302165814246.pdf

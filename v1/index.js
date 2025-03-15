@@ -1,5 +1,4 @@
 'use strict';
-// const assert = require("assert");
 
 // 汉语拼音方案
 // http://www.moe.gov.cn/jyb_sjzl/ziliao/A19/195802/t19580201_186000.html
@@ -63,7 +62,7 @@ const _韵母表 = {
 const r = "r";
 
 /**
- * 将“字母+数字”转换成“拼音声调”
+ * Convert "letter + number" to "Pinyin tone"
  * @param {string} args like "ma1 ma2 ma3 ma4 ma"
  * @return {string} like "mā má mǎ mà ma"
  */
@@ -304,4 +303,4 @@ function alter(_儿化音和声调, _韵母) {
     }
 }
 
-module.exports = pinyin_v1;
+export default pinyin_v1;

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     par: ['par', 'pār', 'pár', 'pǎr', 'pàr'], // a
     por: ['por', 'pōr', 'pór', 'pǒr', 'pòr'], // o
     per: ['per', 'pēr', 'pér', 'pěr', 'pèr'], // e

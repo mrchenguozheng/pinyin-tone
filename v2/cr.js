@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     car: ['car', 'cār', 'cár', 'cǎr', 'càr'], // a
     cor: ['cor', 'cōr', 'cór', 'cǒr', 'còr'], // o
     cer: ['cer', 'cēr', 'cér', 'cěr', 'cèr'], // e

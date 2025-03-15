@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     qar: ['qar', 'qār', 'qár', 'qǎr', 'qàr'], // a
     qor: ['qor', 'qōr', 'qór', 'qǒr', 'qòr'], // o
     qer: ['qer', 'qēr', 'qér', 'qěr', 'qèr'], // e

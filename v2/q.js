@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     qa: ['qa', 'qā', 'qá', 'qǎ', 'qà'], // a
     qo: ['qo', 'qō', 'qó', 'qǒ', 'qò'], // o
     qe: ['qe', 'qē', 'qé', 'qě', 'qè'], // e

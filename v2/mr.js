@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     mar: ['mar', 'mār', 'már', 'mǎr', 'màr'], // a
     mor: ['mor', 'mōr', 'mór', 'mǒr', 'mòr'], // o
     mer: ['mer', 'mēr', 'mér', 'měr', 'mèr'], // e

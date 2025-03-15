@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     char: ['char', 'chār', 'chár', 'chǎr', 'chàr'], // a
     chor: ['chor', 'chōr', 'chór', 'chǒr', 'chòr'], // o
     cher: ['cher', 'chēr', 'chér', 'chěr', 'chèr'], // e
