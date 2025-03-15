@@ -62,7 +62,7 @@ const _韵母表 = {
 const r = "r";
 
 /**
- * 将"字母+数字"转换成"拼音声调"
+ * Convert "letter + number" to "Pinyin tone"
  * @param {string} args like "ma1 ma2 ma3 ma4 ma"
  * @return {string} like "mā má mǎ mà ma"
  */
