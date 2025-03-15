@@ -59,30 +59,20 @@ const regex = /(?<abc>[a-z]+)(?<num>[01234^]?)/;
 
 /**
  * 
- * @param {string} param
+ * @longStr {string} longString
  * @return {string}
  */
-function pinyin_v2(param) {
-    const arr = param.trim().split(' ');
+function toPinyinTones(longString) {
+    const stringArray = longString.trim().split(' ');
 
-    const ret = [];
-
-    arr.forEach((key) => {
-        const match = regex.exec(key);
-
-        // console.log(key,match)
-
-        if (match) {
-            // console.log(pinyin_dict_v2['chu']);
-            // console.log(match.abc)
-            // console.log(pinyin_dict_v2[match.abc]);
-            ret.push(pinyin_dict_v2[match.groups.abc][parseInt(match.groups.num) || 0]); // is pinyin
-        } else {
-            ret.push(key); // is NOT pinyin
+    return stringArray.map((str) => {
+        const match = regex.exec(str);
+        // if match and not undefined
+        if (match && pinyin_dict_v2[match.groups.abc]) {
+            return pinyin_dict_v2[match.groups.abc][parseInt(match.groups.num) || 0]; // is pinyin
         }
-    });
-
-    return ret.join(' ');
+        return str; // is NOT pinyin
+    }).join(' ');
 }
 
-module.exports = pinyin_v2;
+module.exports = toPinyinTones;

@@ -17,7 +17,8 @@ module.exports = {
 
     lie: ['lie', 'liē', 'lié', 'liě', 'liè'],
     liao: ['liao', 'liāo', 'liáo', 'liǎo', 'liào'],
-    liou: ['liou', 'liōu', 'lióu', 'liǒu', 'liòu'],
+    // liou: ['liou', 'liōu', 'lióu', 'liǒu', 'liòu'],
+    liou: ['liu', 'liū', 'liú', 'liǔ', 'liù'],
     liu: ['liu', 'liū', 'liú', 'liǔ', 'liù'],
     lian: ['lian', 'liān', 'lián', 'liǎn', 'liàn'],
     lin: ['lin', 'līn', 'lín', 'lǐn', 'lìn'],
