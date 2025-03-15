@@ -5,7 +5,7 @@ const VersionOne = require('../v1')
 
 describe('toPinyinTones v2', () => {
     const toPinyinTones = versionTwo
-    it('example: should convert Chinese characters to pinyin with tones', () => {
+    it('example: should convert characters to pinyin with tones', () => {
         expect(toPinyinTones('chu1 yin1 wei4 lai2')).to.equal('chū yīn wèi lái');
         expect(toPinyinTones('xun2 yin1 liu2 ge1')).to.equal('xún yīn liú gē')
         expect(toPinyinTones('huar1 renr2 shuir3 yuer4')).to.equal('huār rénr shuǐr yuèr')
@@ -17,7 +17,7 @@ describe('toPinyinTones v2', () => {
     });
 
     // 添加更多测试用例
-    it('issue #8: should convert Chinese characters to pinyin with tones', () => {
+    it('issue #8: should convert characters to pinyin with tones', () => {
         expect(toPinyinTones('makkai')).to.equal('makkai'); // 根据实际期望值进行调整
     });
 });
