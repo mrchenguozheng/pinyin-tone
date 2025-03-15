@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     pa: ['pa', 'pā', 'pá', 'pǎ', 'pà'], // a
     po: ['po', 'pō', 'pó', 'pǒ', 'pò'], // o
     pe: ['pe', 'pē', 'pé', 'pě', 'pè'], // e

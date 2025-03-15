@@ -1,5 +1,5 @@
 'use strict';
 
-const pinyin_v1 = require('./v1/index');
+import pinyin_v1 from './v1/index.js';
 
-module.exports = pinyin_v1;
+export default pinyin_v1;

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     zar: ['zar', 'zār', 'zár', 'zǎr', 'zàr'], // a
     zor: ['zor', 'zōr', 'zór', 'zǒr', 'zòr'], // o
     zer: ['zer', 'zēr', 'zér', 'zěr', 'zèr'], // e

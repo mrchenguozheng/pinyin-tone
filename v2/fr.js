@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     far: ['far', 'fār', 'fár', 'fǎr', 'fàr'], // a
     for: ['for', 'fōr', 'fór', 'fǒr', 'fòr'], // o
     fer: ['fer', 'fēr', 'fér', 'fěr', 'fèr'], // e

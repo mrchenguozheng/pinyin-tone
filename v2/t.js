@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     ta: ['ta', 'tā', 'tá', 'tǎ', 'tà'], // a
     to: ['to', 'tō', 'tó', 'tǒ', 'tò'], // o
     te: ['te', 'tē', 'té', 'tě', 'tè'], // e

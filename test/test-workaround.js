@@ -1,5 +1,5 @@
-const _ = require('../workaround')
-const { expect } = require('chai'); // 导入 Chai 的 expect
+import _ from '../workaround/index.js'; // 使用 ES 模块导入
+import { expect } from 'chai'; // 导入 Chai 的 expect
 
 describe('markTheVowel', () => {
 

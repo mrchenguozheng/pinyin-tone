@@ -1,10 +1,10 @@
 // test/test-example.js
-const { expect } = require('chai'); // 导入 Chai 的 expect
-const versionTwo = require('../v2'); // 确保路径正确
-const VersionOne = require('../v1')
+import { expect } from 'chai'; // 导入 Chai 的 expect
+import toPinyinTones from '../v2/index.js'; // 确保路径正确
+import VersionOne from '../v1/index.js';
 
 describe('toPinyinTones v2', () => {
-    const toPinyinTones = versionTwo
+    // const toPinyinTones = toPinyinTones
     it('example: should convert Chinese characters to pinyin with tones', () => {
         expect(toPinyinTones('chu1 yin1 wei4 lai2')).to.equal('chū yīn wèi lái');
         expect(toPinyinTones('xun2 yin1 liu2 ge1')).to.equal('xún yīn liú gē')

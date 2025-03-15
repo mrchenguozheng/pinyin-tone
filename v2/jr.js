@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     jar: ['jar', 'jār', 'jár', 'jǎr', 'jàr'], // a
     jor: ['jor', 'jōr', 'jór', 'jǒr', 'jòr'], // o
     jer: ['jer', 'jēr', 'jér', 'jěr', 'jèr'], // e

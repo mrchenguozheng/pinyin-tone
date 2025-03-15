@@ -54,4 +54,4 @@ function markSinglePinyinVowel(vowelChar) {
     return SinglePinyinVowelDict[vowelChar] || vowelChar // Return the vowel from the dictionary or the original vowel
 }
 
-module.exports = markSinglePinyinVowel // Export the function
+export default markSinglePinyinVowel; // 导出函数

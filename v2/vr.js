@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     var: ['var', 'vār', 'vár', 'vǎr', 'vàr'], // a
     vor: ['vor', 'vōr', 'vór', 'vǒr', 'vòr'], // o
     ver: ['ver', 'vēr', 'vér', 'věr', 'vèr'], // e

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     sa: ['sa', 'sā', 'sá', 'sǎ', 'sà'], // a
     so: ['so', 'sō', 'só', 'sǒ', 'sò'], // o
     se: ['se', 'sē', 'sé', 'sě', 'sè'], // e

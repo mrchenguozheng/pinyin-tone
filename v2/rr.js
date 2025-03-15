@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     rar: ['rar', 'rār', 'rár', 'rǎr', 'ràr'], // a
     ror: ['ror', 'rōr', 'rór', 'rǒr', 'ròr'], // o
     rer: ['rer', 'rēr', 'rér', 'rěr', 'rèr'], // e

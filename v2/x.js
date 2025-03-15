@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     xa: ['xa', 'xā', 'xá', 'xǎ', 'xà'], // a
     xo: ['xo', 'xō', 'xó', 'xǒ', 'xò'], // o
     xe: ['xe', 'xē', 'xé', 'xě', 'xè'], // e

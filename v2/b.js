@@ -1,5 +1,5 @@
 'use strict';
-module.exports= {
+export default {
     ba: ['ba', 'bā', 'bá', 'bǎ', 'bà'], // a
     bo: ['bo', 'bō', 'bó', 'bǒ', 'bò'], // o
     be: ['be', 'bē', 'bé', 'bě', 'bè'], // e
