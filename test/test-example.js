@@ -11,7 +11,10 @@ describe('toPinyinTones v2', () => {
         expect(toPinyinTones('huar1 renr2 shuir3 yuer4')).to.equal('huār rénr shuǐr yuèr')
         expect(toPinyinTones('b p m f')).to.equal('b p m f')
         expect(toPinyinTones('an1 vn2 ong3 uen4')).to.equal('ān ǘn ǒng uèn')
-        expect(toPinyinTones('liou2 yuen2')).to.equal('liú yún')
+
+        // the output is different from v1
+        expect(toPinyinTones('liou2 yuen2')).to.equal('lióu yuén')
+
         expect(toPinyinTones('iou1 uen4')).to.equal('iōu uèn')
         expect(toPinyinTones('bong1 tv2 pe3 wir4')).to.equal('bōng tǘ pě wìr')
     });
@@ -30,7 +33,10 @@ describe('toPinyinTones v1', () => {
         expect(toPinyinTones('huar1 renr2 shuir3 yuer4')).to.equal('huār rénr shuǐr yuèr')
         expect(toPinyinTones('b p m f')).to.equal('b p m f')
         expect(toPinyinTones('an1 vn2 ong3 uen4')).to.equal('ān ǘn ǒng uèn')
+
+        // the output is different from v2
         expect(toPinyinTones('liou2 yuen2')).to.equal('liú yún')
+
         expect(toPinyinTones('iou1 uen4')).to.equal('iōu uèn')
         expect(toPinyinTones('bong1 tv2 pe3 wir4')).to.equal('bōng tǘ pě wìr')
     });
