@@ -75,6 +75,14 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 // -> 'huār wèi shén me zhè yàng hóng'
 ```
 
+## Contributors
+
+![Contributors](CONTRIBUTORS.svg "Contributors")
+
+## Contributing
+
+If you find any bugs, glitches, or have feature requests, please [submit them here](https://github.com/mrchenguozheng/pinyin-tone/issues). Thank you!
+
 ## Changelog
 
 For update history, see the [CHANGELOG here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
@@ -84,10 +92,6 @@ For update history, see the [CHANGELOG here](https://github.com/mrchenguozheng/p
 see `test/*.js`.
 
 Tests have been rewritten. — 2025-03-16
-
-## Contributing
-
-If you find any bugs, glitches, or have feature requests, please [submit them here](https://github.com/mrchenguozheng/pinyin-tone/issues). Thank you!
 
 ## License
 
