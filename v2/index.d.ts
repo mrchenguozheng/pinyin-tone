@@ -1,3 +1,3 @@
 // v2/index.d.ts
 
-export function toPinyinTones(longString: string): string;
+export default function toPinyinTones(longString: string): string;
