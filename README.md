@@ -1,12 +1,8 @@
 # pinyin-tone
 
-A tool to convert "Hanyu Pinyin Tone Numbers" to "Tone Marks".
+A lightweight library to algorithmically convert numerical tone notation (e.g., hao3) to standard Pinyin diacritical marks (e.g., hǎo).
 
-We assume you already know what [拼音(Pinyin)](https://en.wikipedia.org/wiki/Pinyin) is and how to write it correctly.
-
-一个将“汉语拼音声调数字”转换为“声调符号”的工具库。
-
-假设您已经了解[拼音(Pinyin)](https://en.wikipedia.org/wiki/Pinyin)的基本规则，并能写正确书写拼音。
+Designed for developers and learners who need accurate tone mark formatting in language apps, input methods, or educational tools.
 
 ## Setup
 
