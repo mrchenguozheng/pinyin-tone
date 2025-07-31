@@ -8,66 +8,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
-## [2.3.3]
+## v2.3.5
+
+2025-7-31
+
+- chore: add sideEffects false to package.json
+- updated: add test/ & tests/ to `.npmignore`
+
+## v2.3.3
 
 - Fixed: TypeScript type error TS2306
 - Updated: add contributors in README.md
 
-## [2.3.0]
+## v2.3.0
 
 - BREAKING: Convert this package from a CommonJS package to an ES Module
 
-## [2.2.7]
+## v2.2.7
 
 - revert the changes: liou -> liou, yuen -> yuen
 
-## [2.2.6] - deprecated, but the fixes was preseved in [2.2.7]
+## v2.2.6 - deprecated, but the fixes was preseved in v2.2.7
 
 - Fixed: strings that match the regex rule but are not present in pinyin_dict_v2 result in pinyin_dict_v2[match.groups.abc] being undefined.
 - Fixed: 修复了匹配正则表达式的字符串但不在 pinyin_dict_v2 中的问题，导致 pinyin_dict_v2[match.groups.abc] 未定义。
-- Change: liou -> liu, yuen -> yun
+- ~~Change: liou -> liu, yuen -> yun~~
 
-## [2.2.2-2.2.5] 2025-02-18
+## v2.2.2 - v2.2.5
+
+2025-02-18
 
 * Bumps the npm_and_yarn group with 2 updates: [serialize-javascript](https://github.com/yahoo/serialize-javascript) and [mocha](https://github.com/mochajs/mocha).
 * Remove personal website link from `README.MD`.
 * Change username of author's account on GitHub and update links.
 
-## [2.2.1] 2024-04-04
+## v2.2.1
+
+2024-04-04
 
 * Modify `README.md`.
 
-## [2.2.0] 2023-04-23
+## v2.2.0
 
-### Patched
+2023-04-23
 
-* npm audit fix
+- Patched: npm audit fix
+- Feature: Add a `v2` version.
 
-### Feature
+## v2.1.2
 
-* Add a `v2` version.
+2022-01-26
 
-## [2.1.2] 2022-01-26
-
-### Patched
-
-* bump `nanoid` from `3.1.25` to `3.2.0`
+- Patched: bump `nanoid` from `3.1.25` to `3.2.0`
 ```
 nanoid  <3.1.31
 Severity: moderate
 Exposure of Sensitive Information to an Unauthorized Actor in nanoid - https://github.com/advisories/GHSA-qrpm-p2h7-hrv2
 ```
 
-## [2.1.0] 2021-11-02
+## v2.1.0
+
+2021-11-02
 
 * add support for tone mark 5.
 * update devDependencies: `mocha` ^7.2.0 ->^9.1.3
 
-## [2.0.7] 2021-08-13
+## v2.0.7
 
-### Patched
+2021-08-13
 
-* `node_modules/glob-parent` 5.1.1 -> 5.1.2
+- Patched: `node_modules/glob-parent` 5.1.1 -> 5.1.2
 
 ```
 glob-parent  <5.1.2
@@ -75,95 +85,94 @@ Severity: moderate
 Regular expression denial of service - https://npmjs.com/advisories/1751
 ```
 
-## [2.0.6] 2021-05-21
+## v2.0.6
 
-### Added
+2021-05-21
 
-* `index.d.ts`: built-in TypeScript declaration.
+- Added: `index.d.ts`: built-in TypeScript declaration.
+- Patched
+    - `node_modules/lodash`: `4.17.20` -> `4.17.21`
+    - modify repository url in `package.json`.
 
-### Patched
+## v2.0.4
 
-* `node_modules/lodash`: `4.17.20` -> `4.17.21`
-* repository url in `package.json`.
+2021-03-30
 
-## [2.0.4] 2021-03-30
+- Fixed
+    * Upgrade `y18n` to v4.0.1 because the npm package `y18n` before version 3.2.2, 4.0.1, and 5.0.5 is vulnerable to Prototype Pollution.
+    * 将`y18n`升级到v4.0.1因为3.2.2、4.0.1和5.0.5之前的版本易受原型污染。
+- Upgrade
+    * Upgrade `chai` to v4.3.4.
+    * 将`chai`升级到v4.3.4。
 
-### Fixed
-* Upgrade `y18n` to v4.0.1 because the npm package `y18n` before version 3.2.2, 4.0.1, and 5.0.5 is vulnerable to Prototype Pollution.
-* 将`y18n`升级到v4.0.1因为3.2.2、4.0.1和5.0.5之前的版本易受原型污染。
+## v2.0.0
 
-### Upgrade
-* Upgrade `chai` to v4.3.4.
-* 将`chai`升级到v4.3.4。
+2020-11-11
 
-## [2.0.0] 2020-11-11
+- Changed
+    * Rewrite main code.
+    * 重写了主要代码
+    * Rewrite test.
+    * 重写了测试。
+- Fixed
+    * Add /`ui`/.
+    * 补上了/`ui`/。
 
-### Changed
+## v1.2.2
 
-* Rewrite main code.
-* 重写了主要代码
-* Rewrite test.
-* 重写了测试。
+- Changed
+    * update dependencies to fix security alerts
+    * 更新依赖，修复安全警告
 
-### Fixed
+## v1.2.0
 
-* Add /`ui`/.
-* 补上了/`ui`/。
+- Changed
+    * more tests.
+    * 更多的测试。
 
-## [1.2.2]
+## v1.1.0
 
-### Changed
+2019-03-05
 
-* update dependencies to fix security alerts
-* 更新依赖，修复安全警告
+- Changed
+    * add vowels `ü`/`ün`/`üe`/`üan` for mocha test.
+    * 为mocha测试增加了`ü`/`ün`/`üe`/`üan`。
+    * tone number allows `0` now.
+    * 声调数字可以为`0`了。
+- Added
+    * add mocha test.
+    * 增加了mocha测试。
 
-## [1.2.0]
+## v1.0.0
 
-### Changed
+2019-03-05
 
-* more tests.
-* 更多的测试。
+- Changed
+    * repository changed.
+    * update README.md
 
-## [1.1.0] - 2019-03-05
+## v0.1.4
 
-### Changed
+2019-02-27
 
-* add vowels `ü`/`ün`/`üe`/`üan` for mocha test.
-* 为mocha测试增加了`ü`/`ün`/`üe`/`üan`。
-* tone number allows `0` now.
-* 声调数字可以为`0`了。
+- Fixed
+    * update README.md. correct spellings.
+    * 更新README.md。修正拼写。
+    * add description in Simplified Chinese.
+    * 增加简体中文描述。
 
-### Added
+## v0.1.3
 
-* add mocha test.
-* 增加了mocha测试。
+2019-02-20
 
-## [1.0.0] - 2019-03-05
+- Fixed
+    * update README.md. correct spellings and urls.
+    * 更新README.md。修正拼写和链接。
 
-### Changed
+## v0.1.1
 
-* repository changed.
-* update README.md
+2019-02-18
 
-## [0.1.4] - 2019-02-27
-
-### Fixed
-
-* update README.md. correct spellings.
-* 更新README.md。修正拼写。
-* add description in Simplified Chinese.
-* 增加简体中文描述。
-
-## [0.1.3] - 2019-02-20
-
-### Fixed
-
-* update README.md. correct spellings and urls.
-* 更新README.md。修正拼写和链接。
-
-## [0.1.1] - 2019-02-18
-
-### Fixed
-
-* missing `y` and `w`.
-* 缺少`y`和`w`
+- Fixed
+    * missing `y` and `w`.
+    * 缺少`y`和`w`
