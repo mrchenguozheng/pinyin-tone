@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.4.0
+
+2025-10-30
+
+- Added: New function `convertUnspacedPinyin` to process unspaced pinyin strings into toned unspaced format.
+
 ## v2.3.5
 
 2025-7-31

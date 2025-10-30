@@ -58,8 +58,8 @@ const pinyin_dict_v2 = Object.assign({}, b, br, c, ch, chr, cr, d, dr, f, fr, g,
 const regex = /(?<abc>[a-z]+)(?<num>[01234^]?)/;
 
 /**
- * 
- * @longStr {string} longString
+ *
+ * @param {string} longString
  * @return {string}
  */
 function toPinyinTones(longString) {
@@ -75,4 +75,27 @@ function toPinyinTones(longString) {
     }).join(' ');
 }
 
+/**
+ * split syllables string by number
+ * @param {string} text
+ * @returns {string}
+ */
+function splitUnspacedSyllables(text){
+    // insert a separator between each number
+    return text.replace(/(\d)/g, '$1 ') // add space after each number
+    .replace(/\s+/g, ' ') // remove multiple spaces
+    .trim() // remove leading and trailing spaces
+}
+
+/**
+ * output pinyin string without space like "hànyǔpīnyīn"
+ * @param {string} unspacedSyllables unspaced pinyin string like "han4yu3pin1yin1"
+ * @returns {string}
+ */
+function convertUnspacedPinyin(unspacedSyllables){
+    return toPinyinTones(splitUnspacedSyllables(unspacedSyllables)).split(' ').join('')
+}
+
 export default toPinyinTones;
+export {splitUnspacedSyllables};
+export {convertUnspacedPinyin};
