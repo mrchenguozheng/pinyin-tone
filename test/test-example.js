@@ -68,5 +68,6 @@ describe('issue #16: allow pinyin without spaces', () => {
         expect(convertUnspacedPinyin('han0   yur3  pin1yin1')).to.equal('hanyǔrpīnyīn')
         // mixed
         expect(convertUnspacedPinyin('han yu3pin1yin1')).to.equal('hanyǔpīnyīn')
+        expect(convertUnspacedPinyin('hanyu3pin1yin1')).to.equal('hanyu3pīnyīn')
     })
 })
