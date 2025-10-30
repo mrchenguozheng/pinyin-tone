@@ -79,6 +79,13 @@ import { convertUnspacedPinyin } from 'pinyin-tone/v2'; // since v2.4.0
 console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3  pin1   yin1')); // hànyǔpīnyīn
+
+// always add a space or a `0` between two syllables if the first syllable does not end with a tone number
+console.log(convertUnspacedPinyin('hanyu3pin1yin1')); // hanyu3pīnyīn
+// like this
+console.log(convertUnspacedPinyin('han yu3pin1yin1')); // hanyǔpīnyīn
+// or this
+console.log(convertUnspacedPinyin('han0yu3pin1yin1')); // hanyǔpīnyīn
 ```
 
 ## Contributors
