@@ -71,6 +71,16 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 // -> 'huār wèi shén me zhè yàng hóng'
 ```
 
+## Usage: convert unspaced syllables string to unspaced pinyin string (since v2.4.0)
+
+```javascript
+import { convertUnspacedPinyin } from 'pinyin-tone/v2'; // since v2.4.0
+
+console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
+console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn
+console.log(convertUnspacedPinyin('han4 yu3  pin1   yin1')); // hànyǔpīnyīn
+```
+
 ## Contributors
 
 ![Contributors](CONTRIBUTORS.svg "Contributors")
