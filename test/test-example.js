@@ -1,6 +1,6 @@
 // test/test-example.js
 import { expect } from 'chai'; // 导入 Chai 的 expect
-import toPinyinTones from '../v2/index.js'; // 确保路径正确
+import toPinyinTones, { splitUnspacedSyllables, convertUnspacedPinyin } from '../v2/index.js'; // 确保路径正确
 import VersionOne from '../v1/index.js';
 
 describe('toPinyinTones v2', () => {
@@ -46,3 +46,27 @@ describe('toPinyinTones v1', () => {
         expect(toPinyinTones('makkai')).to.equal('makkai'); // 根据实际期望值进行调整
     });
 });
+
+describe('issue #16: allow pinyin without spaces', () => {
+    it('should split unspaced syllables into spaced syllables', () => {
+        // standard
+        expect(splitUnspacedSyllables('han4yu3pin1yin1')).to.equal('han4 yu3 pin1 yin1')
+        // multiple spaces
+        expect(splitUnspacedSyllables('han4yu3  pin1yin1')).to.equal('han4 yu3 pin1 yin1')
+        // mixed
+        expect(splitUnspacedSyllables('han yu3  pin1yin1')).to.equal('han yu3 pin1 yin1')
+        expect(splitUnspacedSyllables('han0  yu3  pin1yin1  ')).to.equal('han0 yu3 pin1 yin1')
+    })
+
+    it('should convert unspaced syllables string into toned pinyin string',()=>{
+        // standard
+        expect(convertUnspacedPinyin('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn')
+        // multiple spaces
+        expect(convertUnspacedPinyin('han4 yu3  pin1   yin1')).to.equal('hànyǔpīnyīn')
+        expect(convertUnspacedPinyin('han0yu3  pin1yin1')).to.equal('hanyǔpīnyīn')
+        // er
+        expect(convertUnspacedPinyin('han0   yur3  pin1yin1')).to.equal('hanyǔrpīnyīn')
+        // mixed
+        expect(convertUnspacedPinyin('han yu3pin1yin1')).to.equal('hanyǔpīnyīn')
+    })
+})
