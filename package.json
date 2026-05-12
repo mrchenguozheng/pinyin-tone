@@ -29,7 +29,7 @@
     "url": "https://github.com/mrchenguozheng/pinyin-tone/issues"
   },
   "devDependencies": {
-    "chai": "^4.3.4",
+    "chai": "^6.2.2",
     "mocha": "^11.7.5",
     "typescript": "^5.8.3"
   }
