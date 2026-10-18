@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   其余子路径将解析失败。这同时意味着以后内部文件结构调整不会再意外破坏使用方，
   但任何新增子路径都需要同步声明。
   `main` / `types` 也一并指向 `lib/index.js` / `lib/index.d.ts`，根目录不再有转发文件。
+- Changed: 包里不再包含 `CHANGELOG.md`。它 22.2KB（gzip 后 10.5KB），是包内 gzip 后第二大的文件，
+  而 npm 页面不渲染它、这份文件在仓库里随时可查。`files` 因此只剩 `lib`，
+  tarball 39.9KB → **30.9KB**（解包 104.3KB → 82.1KB，8 文件 → 7 文件）。
+  `pack:check` 把 `CHANGELOG.md` 加进 FORBIDDEN，防止它被顺手带回来。
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 

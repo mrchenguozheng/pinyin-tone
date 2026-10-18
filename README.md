@@ -330,6 +330,8 @@ If you find any bugs, glitches, or have feature requests, please [submit them he
 ## Changelog
 
 For update history, see the [CHANGELOG here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
+It is not shipped in the npm package — 22KB of prose that npm does not render — so read it in the
+repository.
 
 ## Tests
 

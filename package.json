@@ -14,8 +14,7 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib",
-    "CHANGELOG.md"
+    "lib"
   ],
   "scripts": {
     "test": "mocha && tsc --noEmit",

@@ -16,6 +16,7 @@ const FORBIDDEN = [
     ['scripts/', '守卫脚本自身不进包'],
     ['.travis.yml', '已废弃的 CI 配置'],
     ['tsconfig.json', '类型检查配置，运行时不读'],
+    ['CHANGELOG.md', '更新日志只在 GitHub 上看 —— 22KB，占 tarball 近四分之一'],
     ['v1/', 'v1 实现已在 3.0 删除'],
     ['legacy/', 'v1 实现已在 3.0 删除'],
     ['v2/', '目录已改名 lib/，旧名字不应回来'],
