@@ -95,6 +95,12 @@ describe('v2 混排：toPinyinTonesInline', () => {
             expect(toPinyinTonesInline('jv1和ju:1')).to.equal('jū和jǖ');
         });
 
+        it('冒号前的 v 与 u 等价', () => {
+            expect(toPinyinTonesInline('jv:1')).to.equal('jǖ');
+            expect(toPinyinTonesInline('jv:1和ju:1')).to.equal('jǖ和jǖ');
+            expect(toPinyinTonesInline('jvan:1')).to.equal('jüān');
+        });
+
         it('音节里没有 u 时不猜，原样返回', () => {
             expect(toPinyinTonesInline('ji:1')).to.equal('ji:1');
             expect(toPinyinTonesInline('ma:1')).to.equal('ma:1');

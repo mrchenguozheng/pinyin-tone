@@ -114,6 +114,7 @@ two dots themselves:
 
 ```javascript
 toPinyinTones('ju1 ju:1');   // 'jū jǖ'   — both spellings in one line
+toPinyinTones('jv:1');       // 'jǖ'      — same as 'ju:1', v is ü in ASCII
 toPinyinTones('juan:1');     // 'jüān'
 ```
 
@@ -129,9 +130,10 @@ toPinyinTonesVariants('jv1 nv3');
 ```
 
 The colon only applies where `ü` can actually occur (`n`, `l`, `j`, `q`, `x`, `y`, and the bare
-`u:` for the character itself), and only to the canonical spelling that contains a `u`:
-`gu:1`, `shui:3`, `ji:1` and `jv:1` are returned unchanged rather than turned into syllables
-that do not exist.
+`u:` for the character itself): `gu:1`, `shui:3` and `ji:1` are returned unchanged rather than
+turned into syllables that do not exist. Either letter may stand before the colon — `jv:1` is
+read exactly like `ju:1`, since `v` is the ASCII spelling of `ü` and the colon settles which
+sound was meant.
 
 `n`/`l` never take part in this projection: there `u` and `ü` are distinct sounds, so `nv3` is
 `nǚ` and `nu3` is `nǔ` — the spelling you type is the sound you get. `nu:3` also gives `nǚ`, but
@@ -158,9 +160,10 @@ toPinyinTonesInline('ju是规范写法，而ju:1是不规范写法，因为u:1�
 
 Bare tokens follow the same default as `toPinyinTones` — the standard spelling, so `ju1` and
 `jv1` both give `jū`. To ask for the literal form at one particular place, put a colon right
-after the `u`: `ju:1` gives `jǖ`, `juan:1` gives `jüān`, `jun:4` gives `jǜn`. The colon stands
-for the two dots above `ü`, so the whole sentence can be typed on a US keyboard — every
-non-ASCII character is produced by the converter, none has to be typed.
+after the `u` (or after the `v`, which means the same): `ju:1` gives `jǖ`, `jv:1` gives `jǖ`,
+`juan:1` gives `jüān`, `jun:4` gives `jǜn`. The colon stands for the two dots above `ü`, so the
+whole sentence can be typed on a US keyboard — every non-ASCII character is produced by the
+converter, none has to be typed.
 
 Note that the bare `ju` in that sentence stays `ju`: it is not a syllable with a tone number, so
 it is left as written. Add a tone number (`ju1`) if you want it converted.

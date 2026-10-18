@@ -8,6 +8,7 @@ const regex = /^(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)$/;
 
 // u: 里的冒号代表 ü 上面的两点：ju:1 读作 jü + 第一声，输出 jǖ。
 // 这是给美式键盘准备的 —— 不离开 ASCII 就能写出保留两点的形式。
+// 冒号前的 u 与 v 等价：jv:1 同义（v 本来就是 ü 的 ASCII 写法）。
 
 // ---------------------------------------------------------------- ü 的两种写法
 //
@@ -96,33 +97,38 @@ function renderSyllable(abc, num, literal) {
 }
 
 /**
- * 把 ju:1 里的冒号还原成两点：找到音节里的第一个 u，换成 ü，再用词表的 v 键。
- *   ju:1 -> jü -> jv      juan:1 -> jüan -> jvan
- *   nu:3 -> nü -> nv      u:1    -> ü    -> v
+ * 把 ju:1 里的冒号还原成两点：找到音节里代表 ü 的那个字母，投影到词表的 v 键。
+ *   ju:1   -> jü -> jv      juan:1 -> jüan -> jvan
+ *   jv:1   -> jv            v 本来就是 ü 的 ASCII 写法，冒号只是把话说死
+ *   nu:3   -> nü -> nv      u:1    -> ü    -> v
+ *
+ * u 和 v 都算「带两点的那个字母」：输入只能用美式键盘，v 是 ü 的常规替代写法，
+ * 又明确写了冒号，说明这里确实要两点，把它当成 u: 的笔误即可，不必报错。
  *
  * 只允许 ü 真正能出现的声母（n/l/j/q/x/y 与零声母）。词表是按「声母 × 韵母」
  * 笛卡尔积生成的，里面还有 gv、shv 这类 217 个虚构键，不挡的话 gu:1 会输出
- * 一个不存在的 gǖ。音节里没有 u（ji:1、ma:1）时同理返回 null，调用方原样返回。
+ * 一个不存在的 gǖ。零声母里只有单个 u / v 有意义（vai、uang 之类不是音节）。
+ * 音节里没有 u / v（ji:1、ma:1）时同样返回 null，调用方原样返回。
  * @param {string} abc
  * @returns {string|null}
  */
 function dottedKey(abc) {
-    const i = abc.indexOf('u');
+    const i = abc.search(/[uv]/);
     if (i === -1) return null;
 
     const head = abc.slice(0, i);
     if (head === '') {
-        // 零声母里只有单个 u 有意义（u: -> ü）；uang/uer 之类不是音节
-        if (abc !== 'u') return null;
+        if (abc !== 'u' && abc !== 'v') return null;
     } else if (!'nljqxy'.includes(head)) {
         return null;
     }
 
-    return (abc.slice(0, i) + 'ü' + abc.slice(i + 1)).replace('ü', 'v');
+    // v 已经是词表里的写法，直接用；只有 u 需要换成 v
+    return abc[i] === 'v' ? abc : abc.slice(0, i) + 'v' + abc.slice(i + 1);
 }
 
 /**
- * 冒号标记优先于默认拼写：写了 ju:1 就是要 jǖ，与上下文无关。
+ * 冒号标记优先于默认拼写：写了 ju:1 / jv:1 就是要 jǖ，与上下文无关。
  * @param {string} abc
  * @param {string} mark
  * @param {string} num

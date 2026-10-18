@@ -3,7 +3,7 @@
 //
 // 核心约定：
 //   只有一种默认输出 —— 国标规范形式，j/q/x/y 后的 ü 省两点（jv1 -> jū）。
-//   字面形式不做成全局选项，只在写了冒号的那一处出现（ju:1 -> jǖ）。
+//   字面形式不做成全局选项，只在写了冒号的那一处出现（ju:1 / jv:1 -> jǖ）。
 //   于是「同一行里并排两种写法」不需要任何额外开关。
 //
 // 方法：实现层用「换查表键」做投影，测试层用「字符级替换」独立算出期望值。
@@ -113,11 +113,38 @@ describe('v2 两种拼写：冒号表示 u 上的两点', () => {
         }
     });
 
-    it('冒号只加在规范拼写的 u 上，字面拼写里没有 u 可用', () => {
-        // jv 里根本没有 u，冒号无处可落，整串原样返回而不是猜
+    it('冒号前的 v 与 u 等价（32 键 × 5 声调）', () => {
+        // v 本来就是 ü 的 ASCII 写法，又写了冒号，当作 u: 的笔误即可
         for (const literal of LITERAL_KEYS) {
-            expect(toPinyinTones(literal + ':1')).to.equal(literal + ':1');
+            const canonical = literal.replace('v', 'u');
+            for (const tone of TONES) {
+                const viaU = toPinyinTones(canonical + ':' + tone);
+                const viaV = toPinyinTones(literal + ':' + tone);
+                expect(viaV, literal + ':' + tone).to.equal(viaU);
+                expect(viaV).to.equal(dict[literal][tone]);
+            }
         }
+    });
+
+    it('n/l 的 v: 与 u: 也等价', () => {
+        expect(toPinyinTones('nv:3')).to.equal('nǚ');
+        expect(toPinyinTones('nu:3')).to.equal('nǚ');
+        expect(toPinyinTones('lv:4')).to.equal('lǜ');
+        expect(toPinyinTones('nv:3 nvn:4')).to.equal('nǚ nǜn');
+    });
+
+    it('零声母 v: 就是 u:', () => {
+        expect(toPinyinTones('v:')).to.equal('ü');
+        expect(toPinyinTones('u:')).to.equal('ü');
+        expect(toPinyinTones('v:1')).to.equal('ǖ');
+        expect(toPinyinTones('v:4')).to.equal('ǜ');
+    });
+
+    it('v: 同样不能越过白名单', () => {
+        expect(toPinyinTones('gv:1')).to.equal('gv:1');
+        expect(toPinyinTones('shv:3')).to.equal('shv:3');
+        expect(toPinyinTones('vai:1')).to.equal('vai:1');
+        expect(toPinyinTones('vv:1')).to.equal('vv:1');
     });
 
     it('冒号与规范值的差别恰好是两点', () => {
