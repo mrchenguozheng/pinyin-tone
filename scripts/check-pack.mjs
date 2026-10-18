@@ -20,7 +20,7 @@ const FORBIDDEN = [
     ['v1/', 'v1 实现已在 3.0 删除'],
     ['legacy/', 'v1 实现已在 3.0 删除'],
     ['v2/', '目录已改名 lib/，旧名字不应回来'],
-    ['workaround/', '单字母查表子路径已在 3.0 删除，被 toToneMarks 覆盖'],
+    ['workaround/', '单字母查表子路径已在 3.0 删除，被 markTones 覆盖'],
 ];
 
 // 包里必须有的文件：少一个就说明 files 白名单写漏了

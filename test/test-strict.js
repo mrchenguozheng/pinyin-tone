@@ -2,7 +2,7 @@
 // 严格模式：只认普通话的 426 个音节（+ 418 条儿化），其余整串原样。
 // 默认模式不受影响 —— 词表还是那 1952 个键，一个都没挡。
 import {assert} from 'chai';
-import toToneMarks, { toToneMarksInText } from '../lib/index.js';
+import markTones, { markTonesInText } from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 
@@ -17,7 +17,7 @@ describe('严格模式', () => {
 
         EXTENDED.forEach((input, i) => {
             it(`${input} -> ${EXPECTED[i]}`, () => {
-                assert.equal(toToneMarks(input), EXPECTED[i]);
+                assert.equal(markTones(input), EXPECTED[i]);
             });
         });
     });
@@ -32,7 +32,7 @@ describe('严格模式', () => {
 
         CORE.forEach(([input, expected]) => {
             it(`${input} -> ${expected}`, () => {
-                assert.equal(toToneMarks(input, {strict: true}), expected);
+                assert.equal(markTones(input, {strict: true}), expected);
             });
         });
 
@@ -42,7 +42,7 @@ describe('严格模式', () => {
 
         EXTENDED.forEach((input) => {
             it(`${input} 原样返回`, () => {
-                assert.equal(toToneMarks(input, {strict: true}), input);
+                assert.equal(markTones(input, {strict: true}), input);
             });
         });
     });
@@ -58,7 +58,7 @@ describe('严格模式', () => {
 
         LISTED.forEach(([input, expected]) => {
             it(`${input} -> ${expected}`, () => {
-                assert.equal(toToneMarks(input), expected);
+                assert.equal(markTones(input), expected);
             });
         });
 
@@ -75,7 +75,7 @@ describe('严格模式', () => {
 
         DERIVED.forEach(([input, expected]) => {
             it(`${input} -> ${expected}`, () => {
-                assert.equal(toToneMarks(input), expected);
+                assert.equal(markTones(input), expected);
             });
         });
 
@@ -97,59 +97,59 @@ describe('严格模式', () => {
 
         it('轻声不受影响：无调形式就是音节本身', () => {
             ['m', 'n', 'ng', 'hm', 'hng'].forEach((key) => {
-                assert.equal(toToneMarks(key), key);
-                assert.equal(toToneMarks(key + '5'), key);
-                assert.equal(toToneMarks(key + '0'), key);
+                assert.equal(markTones(key), key);
+                assert.equal(markTones(key + '5'), key);
+                assert.equal(markTones(key + '0'), key);
             });
         });
 
         it('m̄ 与 m̀ 是「字母 + 组合符」两个码位', () => {
             // 这两个没有预组合字符，必须靠 U+0304 / U+0300 叠上去
-            assert.deepEqual([...toToneMarks('m1')].map((c) => c.codePointAt(0)), [0x6D, 0x304]);
-            assert.deepEqual([...toToneMarks('m4')].map((c) => c.codePointAt(0)), [0x6D, 0x300]);
+            assert.deepEqual([...markTones('m1')].map((c) => c.codePointAt(0)), [0x6D, 0x304]);
+            assert.deepEqual([...markTones('m4')].map((c) => c.codePointAt(0)), [0x6D, 0x300]);
             // ḿ / ń 有预组合字符，是单个码位
-            assert.equal(toToneMarks('m2').length, 1);
-            assert.equal(toToneMarks('n2').length, 1);
+            assert.equal(markTones('m2').length, 1);
+            assert.equal(markTones('n2').length, 1);
             // m̌ 同样没有预组合字符
-            assert.deepEqual([...toToneMarks('m3')].map((c) => c.codePointAt(0)), [0x6D, 0x30C]);
+            assert.deepEqual([...markTones('m3')].map((c) => c.codePointAt(0)), [0x6D, 0x30C]);
         });
     });
 
     describe('儿化由基底决定', () => {
         it('基底是音节就通过', () => {
-            assert.equal(toToneMarks('huar1', {strict: true}), 'huār');
-            assert.equal(toToneMarks('nar3', {strict: true}), 'nǎr');
-            assert.equal(toToneMarks('dianr3', {strict: true}), 'diǎnr');
+            assert.equal(markTones('huar1', {strict: true}), 'huār');
+            assert.equal(markTones('nar3', {strict: true}), 'nǎr');
+            assert.equal(markTones('dianr3', {strict: true}), 'diǎnr');
         });
 
         it('基底不是音节就落空', () => {
-            assert.equal(toToneMarks('juir1', {strict: true}), 'juir1');
-            assert.equal(toToneMarks('buair1', {strict: true}), 'buair1');
+            assert.equal(markTones('juir1', {strict: true}), 'juir1');
+            assert.equal(markTones('buair1', {strict: true}), 'buair1');
         });
 
         it('er 是音节，不按「e + r」拆', () => {
-            assert.equal(toToneMarks('er2', {strict: true}), 'ér');
-            assert.equal(toToneMarks('er0', {strict: true}), 'er');
+            assert.equal(markTones('er2', {strict: true}), 'ér');
+            assert.equal(markTones('er0', {strict: true}), 'er');
         });
     });
 
     describe('字面拼写不绕过白名单', () => {
         // jv / jve / jvan / jvn 与 ju 同一音位，投影后照样要过 core
         it('jv1 与 ju1 同样通过', () => {
-            assert.equal(toToneMarks('jv1', {strict: true}), 'jū');
-            assert.equal(toToneMarks('jve2', {strict: true}), 'jué');
+            assert.equal(markTones('jv1', {strict: true}), 'jū');
+            assert.equal(markTones('jve2', {strict: true}), 'jué');
         });
 
         it('投影后仍不是音节的落空', () => {
-            assert.equal(toToneMarks('jvi1', {strict: true}), 'jvi1');
-            assert.equal(toToneMarks('jvangr1', {strict: true}), 'jvangr1');
+            assert.equal(markTones('jvi1', {strict: true}), 'jvi1');
+            assert.equal(markTones('jvangr1', {strict: true}), 'jvangr1');
         });
 
         it('冒号要的 ü 也要落在音节上', () => {
-            assert.equal(toToneMarks('ju:1', {strict: true}), 'jǖ');
+            assert.equal(markTones('ju:1', {strict: true}), 'jǖ');
             // g 不接 ü，gǖ 不是音节 —— 默认模式照给，严格模式拒绝
-            assert.equal(toToneMarks('gu:1', {strict: true}), 'gu:1');
-            assert.equal(toToneMarks('gu:1'), 'gǖ');
+            assert.equal(markTones('gu:1', {strict: true}), 'gu:1');
+            assert.equal(markTones('gu:1'), 'gǖ');
         });
     });
 
@@ -158,7 +158,7 @@ describe('严格模式', () => {
         // 四个声调里任何一个能出字，就算这个键在严格模式下立得住。
         // 不能只看第一声 —— 词典里 n 与 ng 没有第一声（那格由规则外推）。
         const passes = (key) => [1, 2, 3, 4].some(
-            (tone) => toToneMarks(key + tone, {strict: true}) !== key + tone,
+            (tone) => markTones(key + tone, {strict: true}) !== key + tone,
         );
 
         // 词表 1952 个键，严格模式放行 876、挡掉 1076。
@@ -201,41 +201,41 @@ describe('严格模式', () => {
 
     describe('选项只在 strict 上生效', () => {
         it('空对象 / undefined / null 都是默认模式', () => {
-            assert.equal(toToneMarks('jui1', {}), 'juī');
-            assert.equal(toToneMarks('jui1', undefined), 'juī');
-            assert.equal(toToneMarks('jui1', null), 'juī');
+            assert.equal(markTones('jui1', {}), 'juī');
+            assert.equal(markTones('jui1', undefined), 'juī');
+            assert.equal(markTones('jui1', null), 'juī');
         });
 
         it('真值才算严格模式', () => {
-            assert.equal(toToneMarks('jui1', {strict: 1}), 'jui1');
-            assert.equal(toToneMarks('jui1', {strict: 'no'}), 'jui1');
-            assert.equal(toToneMarks('jui1', {strict: false}), 'juī');
+            assert.equal(markTones('jui1', {strict: 1}), 'jui1');
+            assert.equal(markTones('jui1', {strict: 'no'}), 'jui1');
+            assert.equal(markTones('jui1', {strict: false}), 'juī');
         });
 
         it('未知字段被忽略', () => {
             // strictMode 从来不是选项名（选项就叫 strict）：认不出来就当没写
-            assert.equal(toToneMarks('jui1', {strictMode: true}), 'juī');
+            assert.equal(markTones('jui1', {strictMode: true}), 'juī');
         });
     });
 
     describe('其他入口同样生效', () => {
-        it('toToneMarksInText', () => {
+        it('markTonesInText', () => {
             assert.equal(
-                toToneMarksInText('你好 ni3hao3 和 jui1', {strict: true}),
+                markTonesInText('你好 ni3hao3 和 jui1', {strict: true}),
                 '你好 nǐhǎo 和 jui1',
             );
             assert.equal(
-                toToneMarksInText('你好 ni3hao3 和 jui1'),
+                markTonesInText('你好 ni3hao3 和 jui1'),
                 '你好 nǐhǎo 和 juī',
             );
         });
 
         it('冒号形式的严格模式：先投影到规范拼写再查白名单', () => {
-            assert.equal(toToneMarks('ju:1', {strict: true}), 'jǖ');
+            assert.equal(markTones('ju:1', {strict: true}), 'jǖ');
             // 冒号只认 u/ue/uan/un 这几个韵母；jui 不在闭集里，
             // 两种模式下都无处落点，整串原样 —— 严格模式没有额外放宽或收紧。
-            assert.equal(toToneMarks('jui:1', {strict: true}), 'jui:1');
-            assert.equal(toToneMarks('jui:1'), 'jui:1');
+            assert.equal(markTones('jui:1', {strict: true}), 'jui:1');
+            assert.equal(markTones('jui:1'), 'jui:1');
         });
     });
 });
