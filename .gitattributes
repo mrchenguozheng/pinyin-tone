@@ -1,0 +1,7 @@
+# 一律按 LF 存、按 LF 取出。
+#
+# 起因：仓库没有这个文件，而 `core.autocrlf=true` 会把工作区全部检出成 CRLF，
+# 于是 `npm pack` 打进去的也是 CRLF —— 同一个 commit 在不同平台上打出的 tarball
+# 字节不一样，shasum 也对不上。这不是体积问题（gzip 对 \r 几乎不花钱），
+# 是「同一份源码应当只有一个字节形态」的问题。
+* text=auto eol=lf
