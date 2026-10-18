@@ -17,6 +17,11 @@ const FORBIDDEN = [
     ['.travis.yml', '已废弃的 CI 配置'],
     ['tsconfig.json', '类型检查配置，运行时不读'],
     ['CHANGELOG.md', '更新日志只在 GitHub 上看 —— 22KB，占 tarball 近四分之一'],
+    // 唯一发出去的说明文件是根目录 README.md。中文版放在 docs/ 下就是因为
+    // 这个：npm 会无条件收下仓库根目录所有 `README*`，优先级高于 files 与
+    // .npmignore（实测：`README.zh.md` 无论怎么排都在包里），所以中文版不能
+    // 叫 `README.*`，也不能待在根目录。
+    ['docs/', '细节文档只在仓库里，含中英两份；中文 README 也在这里'],
     ['v1/', 'v1 实现已在 3.0 删除'],
     ['legacy/', 'v1 实现已在 3.0 删除'],
     ['v2/', '目录已改名 lib/，旧名字不应回来'],
@@ -35,7 +40,7 @@ const REQUIRED = [
     'package.json',
 ];
 
-// 上限按当前实测值留出余量（实测 tarball 约 57KB、单文件最大 dist/index.cjs 约 74KB）。
+// 上限按当前实测值留出余量（实测 tarball 约 52KB、单文件最大 dist/index.cjs 约 74KB）。
 // 触顶说明有东西被误打包，或词表真的长大了 —— 两种都该有人看一眼。
 const MAX_TARBALL = 96 * 1024;
 const MAX_FILE = 96 * 1024;
