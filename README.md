@@ -16,6 +16,12 @@ Designed for developers and learners who need accurate tone mark formatting in l
 npm install pinyin-tone
 ```
 
+Requires Node.js 14 or later (`package.json` → `engines`). The package is ESM-only
+(`"type": "module"`), with no CommonJS build.
+
+需要 Node.js 14 及以上（见 `package.json` 的 `engines`）；包只提供 ESM 入口（`"type": "module"`），
+没有 CommonJS 版本。
+
 ## Public API (公开接口)
 
 Only the entry point declared in `package.json` → `exports` is supported public API:

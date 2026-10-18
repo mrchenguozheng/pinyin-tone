@@ -34,7 +34,7 @@ const REQUIRED = [
     'package.json',
 ];
 
-// 上限按当前实测值留出余量（实测 tarball 约 46KB、单文件最大 dict.js 约 39KB）。
+// 上限按当前实测值留出余量（实测 tarball 约 31KB、单文件最大 dict.js 约 38KB）。
 // 触顶说明有东西被误打包，或词表真的长大了 —— 两种都该有人看一眼。
 const MAX_TARBALL = 80 * 1024;
 const MAX_FILE = 60 * 1024;
