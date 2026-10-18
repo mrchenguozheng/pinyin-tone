@@ -150,11 +150,27 @@ describe('两种拼写：冒号表示 u 上的两点', () => {
         expect(toPinyinTones('u:e1')).to.equal('üē');
     });
 
-    it('词表这一格没把 v 当 ü 时仍然不转', () => {
-        // vai / vv / vu 的值是 vāi / vü / vu，输出里会留着辅音字母 v
+    it('冒号落点上没有 ü 可给时原样返回，而同一格裸写照样能转', () => {
+        // 三格的词表值是 v-a-i / v-ü / v-u，第一个 v 都不是 ü。
+        // 冒号要求的是「落点变成 ü」，不是「这个词能不能转」——
+        // 所以同一格裸写有输出、加冒号反而原样。
+        expect(toPinyinTones('vai1')).to.equal('vāi');
+        expect(toPinyinTones('vv1')).to.equal('vǖ');
+        expect(toPinyinTones('vu1')).to.equal('vū');
+
         expect(toPinyinTones('vai:1')).to.equal('vai:1');
         expect(toPinyinTones('vv:1')).to.equal('vv:1');
         expect(toPinyinTones('vu:1')).to.equal('vu:1');
+    });
+
+    it('值里只剩半个 ü 也不算落点成功（vv 开头八格）', () => {
+        // 这八格的值是 vü / vüe / vüan / vün …：第二个 v 已经转成 ü，
+        // 第一个仍是辅音。守门看的是「输出里还有没有 ASCII v」，
+        // 而不是「里面出现过 ü」，因此它们与 vai 同样原样返回。
+        const halfDotted = ['vv', 'vve', 'vvan', 'vvn', 'vvr', 'vver', 'vvanr', 'vvnr'];
+        for (const key of halfDotted) {
+            expect(toPinyinTones(key + ':1'), key).to.equal(key + ':1');
+        }
     });
 
     it('冒号与规范值的差别恰好是两点', () => {
