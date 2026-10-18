@@ -2,7 +2,7 @@
 // 这里用的是「包自引用」（self-reference）：import 的说明符是包名，
 // 所以必须靠 exports 字段才能解析成功。
 import {markTones} from 'pinyin-tone';
-import type { MarkTonesOptions } from 'pinyin-tone';
+import type { MarkTonesOptions, SkipContext, SkipSpec } from 'pinyin-tone';
 
 const a: string = markTones('ni3 hao3');
 
@@ -12,16 +12,32 @@ const i: string = markTones('ju1 ju:1');
 // 混排文本走同一个入口，不需要换函数
 const mixed: string = markTones('ju是规范写法，而ju:1不是');
 
-// 第二参数是可选的 options，只认 strict
+// 第二参数是可选的 options，只认 strict 与 skip
 const strictOn: string = markTones('jui1', {strict: true});
 const options: MarkTonesOptions = {strict: true};
 const strictTyped: string = markTones('jui1', options);
 const strictMixed: string = markTones('你好 jui1', {strict: false});
 
-// @ts-expect-error options 只有 strict 一个字段
+// skip 的四种写法都要能通过类型检查
+const skipOne: string = markTones('M2 hao3', {skip: 'M2'});
+const skipMany: string = markTones('M2 A4', {skip: ['M2', 'A4']});
+const skipRegex: string = markTones('M2 A4', {skip: /^[A-Z]\d$/});
+const skipFn: string = markTones('M2 hao3', {
+    skip: (run: string, context: SkipContext) => run === 'M2' && context.before === '',
+});
+const skipSpec: SkipSpec = (run, {offset, before, after, text}) =>
+    before === '' && after !== '' && offset < text.length && run.length > 0;
+const skipTyped: string = markTones('M2 hao3', {skip: skipSpec});
+const bothOptions: string = markTones('jui1 M2', {strict: true, skip: 'M2'});
+
+// @ts-expect-error options 只有 strict 与 skip 两个字段
 markTones('jv1', {literal: true});
 // @ts-expect-error strict 必须是 boolean
 markTones('ju1', {strict: 'yes'});
+// @ts-expect-error skip 不收 boolean
+markTones('M2', {skip: true});
+// @ts-expect-error skip 的数组只能放字符串
+markTones('M2', {skip: ['M2', 42]});
 // @ts-expect-error 第二参数必须是对象
 markTones('jv1', true);
 
@@ -68,4 +84,4 @@ import { toToneMarksInText } from 'pinyin-tone';
 // @ts-expect-error 3.0 起没有默认导出，取 markTones 得用具名导入
 import defaultExport from 'pinyin-tone';
 
-export { a, i, mixed, strictOn, strictTyped, strictMixed };
+export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipRegex, skipFn, skipTyped, bothOptions };
