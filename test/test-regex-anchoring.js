@@ -1,20 +1,24 @@
 // test/test-regex-anchoring.js
-// 针对未锚定正则导致的「静默截断 / 大写错位」问题的回归测试。
+// Regression tests for the silent truncation and capitalisation drift that unanchored regular
+// expressions caused.
 //
-// 核心约定：单个音节整串匹配（大小写三种形态都收，音节内混用除外）；
-// 一个 token 可以切成若干音节，但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
+// The agreement: one syllable is matched as a whole (all three casing forms are accepted,
+// except mixed case inside a syllable); a token may be cut into several syllables, but if any
+// part of it cannot be resolved the whole run comes back as written — never half a result.
 import { expect } from 'chai';
 import {markTones} from '../lib/index.js';
 
-// ---------------------------------------------------------------- 测试数据
+// ---------------------------------------------------------------- test data
 
-// 切得开但中间有不认识的片段（b / c 不是当前实现认识的音节），整串放弃
+// Slices cleanly, but has a piece in the middle that is not recognised (b / c are not
+// syllables the current implementation knows): the whole run is abandoned
 const UNSPACED_MIXED = [
     'a1b2c3',
     'a1b2c3d4',
 ];
 
-// 不支持「音节+声调+r」，必须原样返回而不是把 r 吞掉
+// "syllable + tone + r" is not supported; the run must come back as written rather than
+// swallowing the r
 const LEGACY_ERHUA = [
     'hua1r',
     'wan2r',
@@ -23,9 +27,9 @@ const LEGACY_ERHUA = [
     'hua1r5',
 ];
 
-// 非法声调：旧实现会把 6 之后的数字直接丢掉
-// `ma3.5` 不在这里：3 是合法声调，`.` 后的 5 是非拼音文本 —— 按片段各自处理，
-// 现在输出 `mǎ.5`（见下面 conversions 里的说明）。
+// Invalid tones: the old implementation dropped any digit from 6 upwards.
+// `ma3.5` is not in here: 3 is a valid tone and the 5 after the `.` is non-pinyin text, so
+// each run is handled on its own and the output is `mǎ.5` (see the note in conversions).
 const INVALID_TONE = [
     'ma6',
     'ma7',
@@ -35,8 +39,9 @@ const INVALID_TONE = [
     'ma-3',
 ];
 
-// 大小写：三种合法形态（全小写 / 首字母大写 / 全大写）都转换，形态带到输出。
-// 依据是《汉语拼音正词法基本规则》§6.3，它自己的全大写例子就带调号（BĚIJĪNG）。
+// Casing: the three legal forms (lowercase, initial capital, all caps) all convert, and the
+// form carries over to the output. The basis is 汉语拼音正词法基本规则 §6.3, whose own
+// all-caps examples keep their tone marks (BĚIJĪNG).
 const CASE_FORMS = [
     ['Hao3', 'Hǎo'],
     ['Ni3 Hao3', 'Nǐ Hǎo'],
@@ -46,23 +51,25 @@ const CASE_FORMS = [
     ['Ni3hao3', 'Nǐhǎo'],
 ];
 
-// 音节内部混用大小写：标准里没有这种写法（hAo3 既不是全小写也不是首字母大写），
-// 当认不全处理。旧正则在这里会跳过大写字母、从中间开始匹配（Hao3 -> ǎo）。
+// Casing mixed inside one syllable: the standard has no such form (hAo3 is neither lowercase
+// nor initial-capital), so it counts as unresolved. The old regex skipped the capitals and
+// started matching in the middle here (Hao3 -> ǎo).
 const CASE_MIXED = [
     'hAo3',
     'HaO3',
     'ZHong1guo2',
 ];
 
-// 标点旁边的符号类：不是拼音，也不该被吃掉
+// Symbols next to punctuation: not pinyin, and must not be swallowed
 const SYMBOLS = [
     '/',
     '--',
     '...',
 ];
 
-// 冒号落不了点：音节里根本没有 u/v 可承载两点（ma:1、ha:o3、ji:1），
-// 以及词表那一格没把 v 当 ü（shui:3 -> shvi，输出会留着辅音 v）
+// The colon has nowhere to land: there is no u/v in the syllable to carry the two dots
+// (ma:1, ha:o3, ji:1), or the dictionary entry does not read its v as ü (shui:3 -> shvi,
+// which would output the consonant v)
 const COLON_NO_LANDING = [
     'ma:1',
     'ha:o3',
@@ -70,7 +77,8 @@ const COLON_NO_LANDING = [
     'shui:3',
 ];
 
-// 冒号写在哪儿就是要哪儿的 ü，不看声母允不允许 —— 不规范音节照样输出
+// The colon asks for ü wherever it is written, regardless of whether the initial allows it —
+// non-standard syllables are output all the same
 const COLON_ANY_INITIAL = [
     ['gu:1', 'gǖ'],
     ['shv:3', 'shǚ'],
@@ -78,8 +86,8 @@ const COLON_ANY_INITIAL = [
     ['ku:2', 'kǘ'],
 ];
 
-// 连写：声调数字本身就是可靠的分隔符，现在能切开。
-// 输出保持输入的分隔方式 —— 连写的音节之间不补空格。
+// Unspaced input: the tone digit is a reliable separator, so it can be cut now.
+// The output keeps the input's separation — no spaces are inserted between joined syllables.
 const SEGMENTED = [
     ['ni3hao3', 'nǐhǎo'],
     ['hao3hao3', 'hǎohǎo'],
@@ -90,7 +98,7 @@ const SEGMENTED = [
     ['xian4dai4hua4', 'xiàndàihuà'],
 ];
 
-// 冒号后面还能接字母：lu:e4 是一个音节 lüe + 第四声，不是 lü + é
+// Letters may follow the colon: lu:e4 is one syllable lüe plus the fourth tone, not lü + é
 const COLON_MID_FINAL = [
     ['lu:e4', 'lüè'],
     ['nu:e4', 'nüè'],
@@ -98,7 +106,7 @@ const COLON_MID_FINAL = [
     ['jue2 jve:2 lve4', 'jué jüé lüè'],
 ];
 
-// 标点不再阻断转换，留在原位
+// Punctuation no longer blocks conversion; it stays where it is
 const PUNCT_BOUND = [
     ['hao3!', 'hǎo!'],
     ['ni3,', 'nǐ,'],
@@ -116,22 +124,23 @@ const PUNCT_BOUND = [
     ['na3-li3', 'nǎ-lǐ'],
 ];
 
-// 完全不是拼音的输入
+// Input that is not pinyin at all
 const NOT_PINYIN = [
     '123',
     '1',
     '😀3',
     'Ω1',
-    'ａ1',        // 全角字母
-    '我3',        // 汉字混排
+    'ａ1',        // full-width letter
+    '我3',        // Chinese character mixed in
     '日本語',
     'bpmf',
     'r',
     'ü',
-    'nǐ hǎo',     // 已经是带调拼音
+    'nǐ hǎo',     // already toned
 ];
 
-// 空白：token 内部的空白现在也能跨过，音节之间不加空格（原有空白已经隔开）
+// Whitespace: whitespace inside a token can now be crossed too, and no space is added between
+// syllables (the existing whitespace already separates them)
 const WHITESPACE = [
     ['ni3\nhao3', 'nǐ\nhǎo'],
     ['ni3\thao3', 'nǐ\thǎo'],
@@ -139,7 +148,7 @@ const WHITESPACE = [
 ];
 
 const passThrough = [
-    // 没有声调数字做锚点，切不开：hanyu 中间没有任何分隔信息
+    // No tone digit to cut at: there is no separation information inside hanyu
     ['hanyu3pin1yin1', 'unspaced'],
     ...UNSPACED_MIXED.map((s) => [s, 'unspaced mixed']),
     ...LEGACY_ERHUA.map((s) => [s, 'legacy erhua']),
@@ -150,11 +159,11 @@ const passThrough = [
     ...NOT_PINYIN.map((s) => [s, 'not pinyin']),
 ];
 
-// 合法输入必须保持正确转换（防止修正则时改坏）
+// Legal input must keep converting correctly (so that fixing the regex does not break it)
 const conversions = [
-    // 大小写
+    // casing
     ...CASE_FORMS,
-    // 基础
+    // basics
     ['ni3 hao3', 'nǐ hǎo'],
     ['chu1 yin1 wei4 lai2', 'chū yīn wèi lái'],
     ['xun2 yin1 liu2 ge1', 'xún yīn liú gē'],
@@ -163,14 +172,14 @@ const conversions = [
     ['wo3 ai4 ni3', 'wǒ ài nǐ'],
     ['zhe4 yang4', 'zhè yàng'],
     ['zhong1 guo2 ren2', 'zhōng guó rén'],
-    // 声母 / 韵母单列
+    // initials / finals on their own
     ['b p m f', 'b p m f'],
     ['zh ch sh r', 'zh ch sh r'],
     ['an1 vn2 ong3 uen4', 'ān ǘn ǒng uèn'],
     ['iou1 uen4', 'iōu uèn'],
     ['v', 'ü'],
     ['ng', 'ng'],
-    // 儿化
+    // erhua
     ['huar1', 'huār'],
     ['renr2', 'rénr'],
     ['shuir3', 'shuǐr'],
@@ -194,7 +203,7 @@ const conversions = [
     ['jun1', 'jūn'],
     ['qun2', 'qún'],
     ['xun4', 'xùn'],
-    // 轻声 / 无声调
+    // neutral tone / no tone
     ['ma', 'ma'],
     ['ma0', 'ma'],
     ['ma5', 'ma'],
@@ -204,11 +213,11 @@ const conversions = [
     ['er', 'er'],
     ['er2', 'ér'],
     ['er4', 'èr'],
-    // 四声
+    // the four tones
     ['ma1', 'mā'],
     ['ma2', 'má'],
     ['ma3', 'mǎ'],
-    // 其他
+    // others
     ['shui3', 'shuǐ'],
     ['dui4', 'duì'],
     ['gun3', 'gǔn'],
@@ -223,16 +232,18 @@ const conversions = [
     ['xiong2', 'xióng'],
     ['jiong3', 'jiǒng'],
     ['yo1', 'yō'],
-    ['bong1 tv2 pe3 wir4', 'bōng tǘ pě wìr'],   // 词表里的非标准组合
-    ['liou2 yuen2', 'lióu yuén'],                // 与 2.x（v1 实现）的既定差异
-    // 首尾空白不再被裁掉：转换只改字母和声调，排版归调用方
+    ['bong1 tv2 pe3 wir4', 'bōng tǘ pě wìr'],   // non-standard combinations in the dictionary
+    ['liou2 yuen2', 'lióu yuén'],                // a deliberate difference from 2.x (the v1 implementation)
+    // leading and trailing whitespace is no longer trimmed: conversion only touches letters
+    // and tone marks, layout is the caller's business
     ['  ni3 hao3  ', '  nǐ hǎo  '],
     ['ni3 hao3 ', 'nǐ hǎo '],
     ['ni3  hao3', 'nǐ  hǎo'],
     ['', ''],
-    // 片段各自处理：ma3 是完整音节，`.5` 是非拼音文本，只转前者
+    // each run on its own: ma3 is a complete syllable and `.5` is non-pinyin text, so only
+    // the former converts
     ['ma3.5', 'mǎ.5'],
-    // 连写、标点、空白
+    // unspaced, punctuation, whitespace
     ...SEGMENTED,
     ...COLON_MID_FINAL,
     ...COLON_ANY_INITIAL,
@@ -240,8 +251,9 @@ const conversions = [
     ...WHITESPACE,
 ];
 
-// 混合句：合法的要转，不合法的要一动不动
-// 标点紧贴拼音不再阻断转换，但标点本身原样保留（不再被吞掉）。
+// Mixed sentences: the legal parts convert, the illegal ones do not move at all.
+// Punctuation touching pinyin no longer blocks conversion, but the punctuation itself is kept
+// as written (it is no longer swallowed).
 const mixedSentences = [
     ['ni3 hao3! wo3', 'nǐ hǎo! wǒ'],
     ['wo3 ai4 ni3!', 'wǒ ài nǐ!'],
@@ -254,7 +266,7 @@ const mixedSentences = [
     ['ni3我', 'nǐ我'],
 ];
 
-// 全表扫描用的声母 / 韵母
+// Initials and finals used by the full-table sweep
 const SWEEP_INITIALS = ['', 'b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h',
     'j', 'q', 'x', 'zh', 'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w'];
 const SWEEP_FINALS = ['a', 'o', 'e', 'ai', 'ei', 'ao', 'ou', 'an', 'en', 'ang', 'eng', 'ong',
@@ -263,11 +275,11 @@ const SWEEP_FINALS = ['a', 'o', 'e', 'ai', 'ei', 'ao', 'ou', 'an', 'en', 'ang', 
     'v', 've', 'van', 'vn', 'er'];
 const SWEEP_TONES = ['', '0', '1', '2', '3', '4', '5'];
 
-// ---------------------------------------------------------------- 工具
+// ---------------------------------------------------------------- helpers
 
 const TONE_MARKS = '\u0304\u0301\u030C\u0300';
 
-/** 去掉声调符号、数字、标点、大小写、v/u 差异之后剩下的字母序列 */
+/** The letter sequence left after dropping tone marks, digits, punctuation, casing and the v/u difference */
 function lettersOf(s) {
     return s
         .normalize('NFD')
@@ -278,23 +290,24 @@ function lettersOf(s) {
 }
 
 /**
- * 断言转换没有丢东西：输入里出现的每个字母，都必须按原顺序出现在输出里。
- * 两类差异忽略：声调数字会被消费掉（它已经变成符号），v 与 u 是 ü 的两种 ASCII 写法。
+ * Assert that conversion lost nothing: every letter in the input must appear in the output,
+ * in the same order. Two differences are ignored: tone digits are consumed (they became
+ * marks), and v and u are the two ASCII spellings of ü.
  *
- * 这一条同时排除了「半截转换」：ni3hao3 变成 nǐ 会让 hao 三个字母消失，
- * 而错误地多切一刀会让字母顺序对不上 —— 现在 lu:e4 -> lüè，
- * 冒号后的字母属于同一音节。
+ * This also rules out a half-conversion: ni3hao3 -> nǐ would make the three letters of hao
+ * disappear, and cutting one time too many would put the letters out of order — as it stands
+ * lu:e4 -> lüè, where the letters after the colon are part of the same syllable.
  */
 function expectNoLoss(input, output, label) {
-    expect(lettersOf(output), `${label}: 字母丢失或顺序变化`).to.equal(lettersOf(input));
+    expect(lettersOf(output), `${label}: letters lost or reordered`).to.equal(lettersOf(input));
 }
 
-/** 统计 token 中的声调符号数量 */
+/** Count the tone marks in a token */
 function toneMarkCount(token) {
     return [...token.normalize('NFD')].filter((c) => TONE_MARKS.includes(c)).length;
 }
 
-/** 固定种子的伪随机，保证 fuzz 可复现 */
+/** Deterministic pseudo-random, so fuzz runs are reproducible */
 function makeRandom(seed) {
     let s = seed >>> 0;
     return () => {
@@ -305,15 +318,16 @@ function makeRandom(seed) {
     };
 }
 
-// ---------------------------------------------------------------- 用例
+// ---------------------------------------------------------------- cases
 
-// passThrough 里的 35 条按「为什么不能转」分成两类。两类的断言是同一句
-// （输出 === 输入），但原因不同：这一组是「切了会丢字母」，下一组是「根本不是拼音」。
-// 合在一起跑两遍只会让人以为有 82 个独立用例，其实是同一批数据各跑一遍（35 × 2）。
+// The 35 entries in passThrough are split into two groups by why they cannot convert. Both
+// groups assert the same thing (output === input) but for different reasons: this group would
+// lose letters if cut, the next one is not pinyin at all. Running them together twice would
+// look like 82 separate cases when it is really the same data twice (35 x 2).
 const TRUNCATION_KINDS = new Set(['unspaced', 'unspaced mixed', 'legacy erhua', 'invalid tone']);
 const NOT_PINYIN_KINDS = new Set(['mixed case', 'symbols', 'colon has no landing', 'not pinyin']);
 
-describe('regex anchoring: 切开会丢字母的输入，整串原样', () => {
+describe('regex anchoring: input that would lose letters if cut comes back as written', () => {
     for (const [input, kind] of passThrough.filter(([, k]) => TRUNCATION_KINDS.has(k))) {
         it(`[${kind}] ${JSON.stringify(input)}`, () => {
             expect(markTones(input)).to.equal(input);
@@ -321,22 +335,23 @@ describe('regex anchoring: 切开会丢字母的输入，整串原样', () => {
     }
 });
 
-describe('regex anchoring: 标点不再阻断转换', () => {
-    // 旧行为是「吞掉标点后照样转换」（'hao3!' -> 'hǎo'），代价是信息丢失。
-    // 更早一版改成了「有标点就整词不动」，代价是 'ni3,hao3' 这种整段失效。
-    // 现在标点只当作音节边界，自己原样留在原位。
-    it('尾随标点的 token 转换后标点原样保留', () => {
+describe('regex anchoring: punctuation no longer blocks conversion', () => {
+    // The old behaviour swallowed the punctuation and converted anyway ('hao3!' -> 'hǎo'),
+    // at the cost of losing information. An earlier version then refused to touch any token
+    // with punctuation in it, which broke 'ni3,hao3' as a whole. Now punctuation is only a
+    // syllable boundary and stays where it is.
+    it('a token with trailing punctuation converts and keeps its punctuation', () => {
         expect(markTones('hao3!')).to.equal('hǎo!');
         expect(markTones('ni3, hao3')).to.equal('nǐ, hǎo');
         expect(markTones('hao3. hao3')).to.equal('hǎo. hǎo');
     });
 
-    it('标点单独成 token 时不受影响', () => {
+    it('punctuation on its own as a token is unaffected', () => {
         expect(markTones('ni3 hao3 !')).to.equal('nǐ hǎo !');
     });
 });
 
-describe('regex anchoring: 合法拼音仍能正常转换', () => {
+describe('regex anchoring: legal pinyin still converts', () => {
     for (const [input, expected] of conversions) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
             expect(markTones(input)).to.equal(expected);
@@ -344,7 +359,7 @@ describe('regex anchoring: 合法拼音仍能正常转换', () => {
     }
 });
 
-describe('regex anchoring: 合法与非法 token 混在一句里', () => {
+describe('regex anchoring: legal and illegal tokens in one sentence', () => {
     for (const [input, expected] of mixedSentences) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
             expect(markTones(input)).to.equal(expected);
@@ -352,17 +367,17 @@ describe('regex anchoring: 合法与非法 token 混在一句里', () => {
     }
 });
 
-describe('regex anchoring: 根本不是拼音的输入，逐字不动', () => {
+describe('regex anchoring: input that is not pinyin does not move', () => {
     for (const [input, kind] of passThrough.filter(([, k]) => NOT_PINYIN_KINDS.has(k))) {
         it(`[${kind}] ${JSON.stringify(input)}`, () => {
             expect(markTones(input)).to.equal(input);
         });
     }
 
-    // 上面两个 describe 靠 kind 标签筛选。新加一条数据却忘了归类时，
-    // 它会在两个 describe 里都不出现；归错类则会两边都跑一遍。
-    // 这条断言把这两种情况都挡住。
-    it('两类标签互斥，且覆盖 passThrough 的每一条数据', () => {
+    // The two describes above select by kind label. A new entry added without a label would
+    // appear in neither of them; an entry filed wrongly would run twice.
+    // This assertion catches both.
+    it('the two label sets are disjoint and cover every entry in passThrough', () => {
         const both = passThrough.filter(
             ([, kind]) => TRUNCATION_KINDS.has(kind) && NOT_PINYIN_KINDS.has(kind),
         );
@@ -375,7 +390,7 @@ describe('regex anchoring: 根本不是拼音的输入，逐字不动', () => {
     });
 });
 
-describe('regex anchoring: 输出不变量', () => {
+describe('regex anchoring: output invariants', () => {
     const allInputs = [
         ...passThrough.map(([s]) => s),
         ...conversions.map(([s]) => s),
@@ -385,52 +400,53 @@ describe('regex anchoring: 输出不变量', () => {
         '   ni3   hao3   ',
     ];
 
-    it('任何输入都不会抛出异常', () => {
+    it('no input throws', () => {
         for (const s of allInputs) {
-            expect(() => markTones(s), `输入 ${JSON.stringify(s)}`).to.not.throw();
+            expect(() => markTones(s), `input ${JSON.stringify(s)}`).to.not.throw();
         }
     });
 
-    it('幂等：markTones(markTones(x)) === markTones(x)', () => {
+    it('idempotent: markTones(markTones(x)) === markTones(x)', () => {
         for (const s of allInputs) {
             const once = markTones(s);
-            expect(markTones(once), `输入 ${JSON.stringify(s)}`).to.equal(once);
+            expect(markTones(once), `input ${JSON.stringify(s)}`).to.equal(once);
         }
     });
 
-    it('不丢失字母：输出与输入的字母序列一致', () => {
+    it('no letters lost: the output has the same letter sequence as the input', () => {
         for (const s of allInputs) {
             expectNoLoss(s, markTones(s), JSON.stringify(s));
         }
     });
 
-    it('声调符号不会凭空多出来：数量不超过输入里的数字个数', () => {
+    it('no tone marks appear from nowhere: never more of them than there are digits', () => {
         const bad = [];
         for (const s of allInputs) {
             const out = markTones(s);
-            // 原样返回的输入（已经带调、大小写混排）不参与这条统计
+            // Input returned as written (already toned, or mixed case) is left out of this count
             if (out === s) continue;
 
             const digits = (s.match(/[0-9]/g) ?? []).length;
             const marks = toneMarkCount(out);
             if (marks > digits) {
-                bad.push(`${JSON.stringify(s)} -> ${JSON.stringify(out)}（${marks} 调 / ${digits} 数字）`);
+                bad.push(`${JSON.stringify(s)} -> ${JSON.stringify(out)} (${marks} marks / ${digits} digits)`);
             }
         }
         expect(bad).to.deep.equal([]);
     });
 });
 
-describe('regex anchoring: 全音节表扫描', () => {
-    it('轻声儿化：韵母 + r0 也要转换', () => {
-        // 儿化在轻声下不加调号，但 r 必须留在输出里 —— 2.x 的旧实现曾把 ar0 原样返回。
+describe('regex anchoring: full syllable-table sweep', () => {
+    it('neutral-tone erhua: a final plus r0 converts too', () => {
+        // Erhua takes no tone mark in the neutral tone, but the r has to stay in the output —
+        // the 2.x implementation used to return ar0 as written.
         expect(markTones('ar0')).to.equal('ar');
         expect(markTones('bair0')).to.equal('bair');
         expect(markTones('huar0')).to.equal('huar');
         expect(markTones('vr0')).to.equal('ür');
     });
 
-    it('全表范围内不出现 undefined / 空串 / 字母丢失', () => {
+    it('across the whole table there is no undefined, no empty string, no lost letters', () => {
         for (const ini of SWEEP_INITIALS) {
             for (const fin of SWEEP_FINALS) {
                 for (const t of SWEEP_TONES) {
@@ -444,7 +460,7 @@ describe('regex anchoring: 全音节表扫描', () => {
     });
 });
 
-describe('regex anchoring: 随机 fuzz', () => {
+describe('regex anchoring: random fuzz', () => {
     const ALPHABET = (
         'abcdefghijklmnopqrstuvwxyz' +
         'ABHNZ' +
@@ -454,7 +470,7 @@ describe('regex anchoring: 随机 fuzz', () => {
         '“”…中文😀Ωüé'
     ).split('');
 
-    it('600 条随机字符串：不抛异常、幂等、字母不丢', () => {
+    it('600 random strings: nothing throws, idempotent, no letters lost', () => {
         const rand = makeRandom(20261018);
         const failures = [];
 
@@ -467,14 +483,16 @@ describe('regex anchoring: 随机 fuzz', () => {
                 const out = markTones(s);
                 expectNoLoss(s, out, `fuzz #${n} ${JSON.stringify(s)}`);
 
-                // 幂等只对「第一遍输出仍是纯 ASCII」的输入成立。
-                // 输出里一旦出现 ü 或调号，字符串就不在输入字母表里了：
-                // 输入约定是 ASCII 拼音，`vv` -> `vü` 之后那个 v 会被再读一次
-                // （v 单独就是一个音节，等于 ü），第二遍看到的是另一门语言。
-                // ASCII 输出只可能来自「没写声调」或「轻声」，那时转换其实没改字母，
-                // 幂等才是能立住的约束。
+                // Idempotence only holds when the first output is still pure ASCII.
+                // As soon as the output contains ü or a tone mark, the string is outside the
+                // input alphabet: by the input contract it is ASCII pinyin, so after
+                // `vv` -> `vü` that v would be read again (a lone v is a syllable, i.e. ü) and
+                // the second pass is looking at a different language.
+                // ASCII output can only come from "no tone written" or "neutral tone", where
+                // conversion did not actually change the letters — that is when idempotence is
+                // a claim worth making.
                 if (!/[^\x00-\x7F]/.test(out) && markTones(out) !== out) {
-                    failures.push(`${JSON.stringify(s)}: 非幂等 -> ${JSON.stringify(out)}`);
+                    failures.push(`${JSON.stringify(s)}: not idempotent -> ${JSON.stringify(out)}`);
                 }
             } catch (err) {
                 failures.push(`${JSON.stringify(s)}: ${err.message}`);

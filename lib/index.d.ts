@@ -1,79 +1,94 @@
 // lib/index.d.ts
 
 /**
- * 哪些片段保持原样：一个片段，或一组片段。
+ * Which runs stay as written: one run, or a set of runs.
  *
- * 比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），
- * 也碰不到 `m2`。输入里不写任何标记字符，所以正文里的反斜杠、花括号都是普通文本。
+ * The comparison is against **the whole run** and is case-sensitive — `'M2'` cannot touch
+ * `M20` (a different run) or `m2`. No marker characters are written into the input, so a
+ * backslash or a brace in the text is just ordinary text.
  *
- * 不收 `RegExp` 与函数：这里能给的只有单个片段，正则的环视拿不到前后字符、
- * `^`/`$` 锚在片段两端而不是文本两端，`g`/`y` 的有状态迭代也无从谈起 ——
- * 「写得像对的、其实不生效」比不支持更糟。真要按模式判断，调用方先自己算出
- * 要保的片段（`text.matchAll(...)`）再传字符串列表即可。
+ * `RegExp` and functions are not accepted: all this can see is one run at a time, so a
+ * lookaround has no neighbouring characters to inspect, `^`/`$` anchor to the ends of the run
+ * rather than the ends of the text, and there is nowhere for `g`/`y`'s stateful iteration to
+ * live — something that reads as if it works but silently does not is worse than not
+ * supporting it. To match by pattern, work out which runs to keep first
+ * (`text.matchAll(...)`) and pass the resulting list of strings.
  */
 export type SkipSpec = string | readonly string[];
 
 export interface MarkTonesOptions {
     /**
-     * 只认普通话的 426 个音节，另有 418 条儿化由基底决定。
+     * Accept only the 426 syllables of Standard Mandarin; the 418 erhua syllables follow
+     * from their base form.
      *
-     * 默认 `false`：词表 1952 个键全部放行，包括 `jui`、`juang`、`juei` 这类
-     * 「声母 × 韵母」笛卡尔积的产物，也包括 `duang`、`biu`、`biong` 这类非标准
-     * 但在用的口语音，以及 `vai` 这种把 v 当辅音的写法。
+     * The default, `false`, accepts all 1,952 dictionary keys, including the cartesian
+     * product of initials and finals such as `jui`, `juang` and `juei`, the non-standard but
+     * spoken forms `duang`, `biu` and `biong`, and spellings that treat v as a consonant such
+     * as `vai`.
      *
-     * 置 `true` 时，白名单之外的音节原样返回（不会输出半截结果）。
-     * 儿化跟着基底走：`huar` 合法是因为 `hua` 合法。
+     * When `true`, a syllable outside the whitelist comes back as written (no partial
+     * output). Erhua follows its base: `huar` is legal because `hua` is.
      */
     strict?: boolean;
 
     /**
-     * 保持原样的片段。不写这个字段时一切照转。
+     * Runs to keep as written. Without this field everything converts.
      *
-     * `M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o`
-     * 本身就是音节），在这里说一次就够：
+     * All-caps Latin strings with digits, such as `M2`, `A4` and `O2`, collide with pinyin
+     * (`m`, `a` and `o` are syllables on their own). Declaring them once here is enough:
      *
      * ```js
      * markTones('M2 货币供应量', {skip: 'M2'});     // 'M2 货币供应量'
      * markTones('M2 A4 N3', {skip: ['M2', 'A4']});  // 'M2 A4 Ň'
      * ```
      *
-     * 规则以片段为单位，覆盖该片段的每一次出现：一次调用里同一个片段只能有一种
-     * 处置，要区别对待就把文本切开、分别调用。
+     * A rule covers every occurrence of that run: within one call a given run can only be
+     * handled one way. To treat two occurrences differently, cut the text and call once per
+     * part.
      *
-     * 只对本来会转换的片段询问；转了也是原样的片段不会问。
+     * Only runs that would convert are asked about; a run that would come out unchanged
+     * either way is never consulted.
      */
     skip?: SkipSpec;
 }
 
 /**
- * 给用 ASCII 写成的拼音标上调号：`hao3` -> `hǎo`。混在中文里的也认：
- * `今天ni3hao3` -> `今天nǐhǎo`，其余字符逐字保留，首尾空白也不会被裁掉。
+ * Mark pinyin written in ASCII with tone marks: `hao3` -> `hǎo`. Pinyin mixed into Chinese
+ * is recognised too: `今天ni3hao3` -> `今天nǐhǎo`; every other character is copied through,
+ * and leading or trailing whitespace is not trimmed.
  *
- * 不要求空格隔开。实现先在整段里取出候选片段，片段内部按声调数字切音节，
- * 所以 `ni3hao3` 与 `ni3 hao3` 都成立。省略数字只对最后一段有效：
- * `ni3hao3ma` -> `nǐhǎoma`，而 `ni3haoma5` 因为 `haoma` 不是音节整段不动。
- * 粘在英文单词上（`abcju1`、`ju1abc`）或含下划线（`ni3_hao3`）的片段不动。
+ * Spaces are not required. The implementation takes candidate runs from the text and cuts
+ * each one into syllables at its tone digits, so both `ni3hao3` and `ni3 hao3` work. A digit
+ * may be omitted only on the last syllable: `ni3hao3ma` -> `nǐhǎoma`, while `ni3haoma5`
+ * stays as written because `haoma` is not a syllable. A run glued to an English word
+ * (`abcju1`, `ju1abc`) or containing an underscore (`ni3_hao3`) is left alone.
  *
- * 某个片段认不全（`a1b2c3`、`hua1r`、`ma6`、音节内大小写混用）就那个片段原样
- * 返回，不会输出半截结果；同串里的其他片段照转。`hanyu3pin1yin1` 这类没有声调
- * 数字可切的地方也不猜。
+ * If a run is not fully recognised (`a1b2c3`, `hua1r`, `ma6`, mixed case inside a syllable)
+ * that run comes back as written — no partial output — while other runs in the same string
+ * still convert. A run with no tone digit to cut at, such as `hanyu3pin1yin1`, is not guessed
+ * at either.
  *
- * 大小写收三种形态并原样带回：`Zhong1guo2` -> `Zhōngguó`、`BEI3JING1` ->
- * `BĚIJĪNG`（正词法的全大写示例本身带调号）。形态按音节判定，`ZHONG1guo2`
- * -> `ZHŌNGguó`；音节内混用（`hAo3`）不是标准里的写法，整串原样。
+ * Three cases are accepted and carried into the output: `Zhong1guo2` -> `Zhōngguó`,
+ * `BEI3JING1` -> `BĚIJĪNG` (the spelling standard's own all-caps example keeps its tone
+ * marks). Case is decided per syllable, so `ZHONG1guo2` -> `ZHŌNGguó`; mixing case inside a
+ * syllable (`hAo3`) is not something the standard writes, and the run stays as written.
  *
- * 不想转的片段写进 `skip` 选项（见该选项）：输入里不带任何标记字符，
- * 含反斜杠或花括号的正文（路径、LaTeX、模板）一个字都不会被吃掉。
+ * Runs that should not convert go into the `skip` option (see above): the input carries no
+ * marker characters, so text containing a backslash or a brace (paths, LaTeX, templates)
+ * loses nothing.
  *
- * `j`/`q`/`x`/`y` 与 `ü` 相拼时按《汉语拼音方案》省两点，因此输出恒为规范形式：
- * `jv1` 与 `ju1` 都得到 `jū`。要某处保留两点，就写一个英文冒号，位置只有两个：
- * 紧跟承载它的 `u`（或 `v`），或缀在整个音节末尾 —— `ju:1` -> `jǖ`（`jv:1` 同义）、
- * `jvan:1` -> `jüān`、`jv:an1` -> `jüān`。冒号不结束音节，其后的字母仍属同一韵母：
- * `lu:e4` -> `lüè`。写在别处（`j:van1`、`jva:n1`）算写错，整串原样。
- * 除此之外没有切换整串拼写的选项。
- * `n`/`l` 后的 ü 本来就保留两点（`nv3` -> `nǚ`），不受影响。
+ * After `j`/`q`/`x`/`y` the two dots over `ü` are dropped as 汉语拼音方案 requires, so the
+ * output is always the standard spelling: `jv1` and `ju1` both give `jū`. To keep the dots
+ * somewhere, write an ASCII colon, which has exactly two legal positions: right after the
+ * `u` (or `v`) that carries them, or at the very end of the syllable — `ju:1` -> `jǖ`
+ * (`jv:1` means the same), `jvan:1` -> `jüān`, `jv:an1` -> `jüān`. The colon does not end
+ * the syllable; the letters after it belong to the same final: `lu:e4` -> `lüè`. Anywhere
+ * else (`j:van1`, `jva:n1`) is a mistake and the run stays as written. There is no option to
+ * switch the whole string to the literal spelling.
+ * After `n`/`l` the dots are kept anyway (`nv3` -> `nǚ`) and are unaffected.
  *
- * `ê`（欸 / 诶）写作 `e^`：`^` 就是那个扬抑符。`e^2` -> `ế`、`e^4` -> `ề`，
- * 不带数字则是 `ê`。`^` 只认 `e`，写在别的字母后面（`be^2`）整段原样。
+ * `ê` (欸 / 诶) is written `e^`: `^` is that circumflex. `e^2` -> `ế`, `e^4` -> `ề`, and
+ * without a digit it is `ê`. `^` is accepted only on `e`; after any other letter (`be^2`)
+ * the run stays as written.
  */
 export function markTones(text: string, options?: MarkTonesOptions): string;
