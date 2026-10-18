@@ -33,7 +33,28 @@ jobs:
       - run: npm ci
       # package.json 的 test = mocha && tsc --noEmit：
       # 行为靠 mocha，类型层（d.ts 与 fixture）靠 tsc。
+      # pretest 会先跑 `build-cjs.mjs --check`：dist/index.cjs 与 lib/ 不同步就直接红，
+      # 于是 test-cjs.js 里那份「CJS 与 ESM 输出逐条相同」对拍不会被过期产物骗过。
       - run: npm test
+
+  engines:
+    name: engines floor (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # engines 声明的是 >=14。矩阵压在这个下界上：14 是能跑的最低版本，
+        # 18 是「require() 能读 ESM 之前」的最后一个大版本（18.19 才开始支持）。
+        # 不装 devDependencies —— mocha 11 / chai 6 在 14 上装不上，
+        # 而这一步要证明的只是「包本身在这个 Node 上能用」，与测试框架无关。
+        node: ['14', '18']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # 打包 → 装进一个干净工程 → 让真实的 Node 分别走 require 与 import 两个条件。
+      - run: node scripts/smoke-entry.cjs
 
   package:
     name: package contents
@@ -46,5 +67,6 @@ jobs:
           cache: npm
       - run: npm ci
       # 守卫：CONTRIBUTORS.svg（455KB 内嵌头像）曾被打进 tarball，
-      # 占包体 3/4。这里把「包里有什麼、有多大」变成一条会红的断言。
+      # 占包体 3/4。这里把「包里有什么、有多大」变成一条会红的断言。
+      # prepack 会先校验 dist/index.cjs 是否与 lib/ 同步。
       - run: npm run pack:check
