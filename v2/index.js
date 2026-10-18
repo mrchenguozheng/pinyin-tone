@@ -123,8 +123,9 @@ function toneIndex(num) {
 }
 
 // 一声到四声的调号。轻声不加，所以从 1 开始用。
-// 用数组而不是字符串做索引：m̄ / m̌ / m̀ / n̄ 是「字母 + 组合符」两个码位，
-// 按字符串下标取会取到半个字符（拿到的只剩组合符，叠不出东西）。
+// 只列有元音的音节；m / n / ng / hm / hng 没有元音可标，走下面的 NASAL_TONES。
+// 用数组而不是字符串做索引：以后若出现「字母 + 组合符」两个码位的调号，
+// 按字符串下标取会取到半个字符。
 const TONE_MARKS = {
     a: ['ā', 'á', 'ǎ', 'à'],
     o: ['ō', 'ó', 'ǒ', 'ò'],
@@ -132,28 +133,46 @@ const TONE_MARKS = {
     i: ['ī', 'í', 'ǐ', 'ì'],
     u: ['ū', 'ú', 'ǔ', 'ù'],
     'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ'],
-    m: ['m\u0304', 'ḿ', 'm\u030c', 'm\u0300'],
-    n: ['n\u0304', 'ń', 'ň', 'ǹ'],
 };
 
 // 除 a/o/e 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
 const CLOSING_VOWELS = 'iuü';
 
-// 叹词音节的落调位置：倒数第一个 m 或 n（m -> ḿ、hng -> hńg、ng -> ńg）。
-const NASALS = 'mn';
+// 叹词音节的带调形式是**闭集**，不是规则。
+//
+// 这里只列词典（pypinyin 的 pinyin_dict，注音取自《现代汉语词典》一系）里
+// 真实出现过的组合，字形逐条抄自该表：
+//   m   m̄ 嘸 / ḿ 呒呣唔嘸 / m̀ 呣      —— 没有第三声
+//   n   ń 咹哽唔嗯 / ň 㕶嗯 / ǹ 哏嗯   —— 没有第一声
+//   ng  ńg 哽唔嗯 / ňg 㕶嗯 / ǹg 嗯   —— 没有第一声
+//   hm  噷                            —— 只有无调
+//   hng 哼                            —— 只有无调
+//
+// 没列出的组合（m3、n1、ng1、hm 与 hng 的全部四声）一律不转换：宁可整串原样，
+// 也不要拿一条「标在最后一个鼻音上」的规则凭空造出词典里不存在的字形。
+// m̄ / m̀ 是「字母 + 组合符」两个码位，写在这里比在别处拼接更不容易出错。
+const NASAL_TONES = {
+    m: {1: 'm\u0304', 2: 'ḿ', 4: 'm\u0300'},
+    n: {2: 'ń', 3: 'ň', 4: 'ǹ'},
+    ng: {2: 'ńg', 3: 'ňg', 4: 'ǹg'},
+    hm: {},
+    hng: {},
+};
 
 /**
  * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，
  * 否则标最后一个元音（iu -> u、ui -> i）。儿化尾 r 不是元音，不影响判断。
  *
- * 一个元音都没有的音节（ng、m、n、hm、hng）走最后一条兜底：标在倒数第一个
- * m 或 n 上，与词典里这几个叹词的写法一致（ńg、ḿ、hńg）。轻声（tone 0）不加调。
+ * 一个元音都没有的音节（m、n、ng、hm、hng）查 NASAL_TONES 这张闭集表：
+ * 该声调在词典里存在就返回那个字形，不存在就返回 null —— 由调用方原样返回，
+ * 不猜、不按规则外推。
  *
  * 词表只存无调形式，四个声调在这里生成 —— 它们是同一条规则的展开，
  * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1949 × 5 已验证）。
+ * 轻声（tone 0）不加调。
  * @param {string} base
  * @param {number} tone 0-4
- * @returns {string}
+ * @returns {string|null} null 表示这个声调形式不存在
  */
 function markTone(base, tone) {
     if (tone === 0) return base;
@@ -174,15 +193,9 @@ function markTone(base, tone) {
     }
 
     if (at === -1) {
-        for (let i = base.length - 1; i >= 0; i -= 1) {
-            if (NASALS.includes(base[i])) {
-                at = i;
-                break;
-            }
-        }
+        const closed = NASAL_TONES[base];
+        return closed && closed[tone] ? closed[tone] : null;
     }
-
-    if (at === -1) return base;
 
     const marks = TONE_MARKS[base[at]];
     return marks ? base.slice(0, at) + marks[tone - 1] + base.slice(at + 1) : base;

@@ -31,7 +31,7 @@ describe('v2 严格模式', () => {
             ['ma1', 'mā'], ['ni3', 'nǐ'], ['hao3', 'hǎo'], ['xiong2', 'xióng'],
             ['zhuang1', 'zhuāng'], ['lv4', 'lǜ'], ['er2', 'ér'], ['e1', 'ē'],
             ['dia3', 'diǎ'], ['rua2', 'ruá'], ['nun2', 'nún'], ['zhei4', 'zhèi'],
-            ['m2', 'ḿ'], ['n2', 'ń'], ['ng2', 'ńg'], ['hm2', 'hḿ'], ['hng4', 'hǹg'],
+            ['m2', 'ḿ'], ['n2', 'ń'], ['ng2', 'ńg'],
         ];
 
         CORE.forEach(([input, expected]) => {
@@ -48,6 +48,50 @@ describe('v2 严格模式', () => {
             it(`${input} 原样返回`, () => {
                 assert.equal(toPinyinTones(input, {strict: true}), input);
             });
+        });
+    });
+
+    describe('叹词的带调形式是词典闭集', () => {
+        // 这 9 个是词典里真实出现的字形，逐条抄自 pypinyin 的 pinyin_dict
+        // （m̄ 嘸、ḿ 呒呣唔嘸、m̀ 呣；ń 咹哽唔嗯、ň 㕶嗯、ǹ 哏嗯；ńg、ňg、ǹg 嗯）
+        const LISTED = [
+            ['m1', 'm\u0304'], ['m2', 'ḿ'], ['m4', 'm\u0300'],
+            ['n2', 'ń'], ['n3', 'ň'], ['n4', 'ǹ'],
+            ['ng2', 'ńg'], ['ng3', 'ňg'], ['ng4', 'ǹg'],
+        ];
+
+        LISTED.forEach(([input, expected]) => {
+            it(`${input} -> ${expected}`, () => {
+                assert.equal(toPinyinTones(input), expected);
+            });
+        });
+
+        // 词典里没有的组合不按「标在最后一个鼻音上」的规则外推。
+        // m 没有第三声，n 与 ng 没有第一声，hm（噷）与 hng（哼）只有无调。
+        const NOT_LISTED = ['m3', 'n1', 'ng1',
+            'hm1', 'hm2', 'hm3', 'hm4', 'hng1', 'hng2', 'hng3', 'hng4'];
+
+        NOT_LISTED.forEach((input) => {
+            it(`${input} 原样返回`, () => {
+                assert.equal(toPinyinTones(input), input);
+            });
+        });
+
+        it('轻声不受影响：无调形式就是音节本身', () => {
+            ['m', 'n', 'ng', 'hm', 'hng'].forEach((key) => {
+                assert.equal(toPinyinTones(key), key);
+                assert.equal(toPinyinTones(key + '5'), key);
+                assert.equal(toPinyinTones(key + '0'), key);
+            });
+        });
+
+        it('m̄ 与 m̀ 是「字母 + 组合符」两个码位', () => {
+            // 这两个没有预组合字符，必须靠 U+0304 / U+0300 叠上去
+            assert.deepEqual([...toPinyinTones('m1')].map((c) => c.codePointAt(0)), [0x6D, 0x304]);
+            assert.deepEqual([...toPinyinTones('m4')].map((c) => c.codePointAt(0)), [0x6D, 0x300]);
+            // ḿ / ń 有预组合字符，是单个码位
+            assert.equal(toPinyinTones('m2').length, 1);
+            assert.equal(toPinyinTones('n2').length, 1);
         });
     });
 
@@ -91,23 +135,32 @@ describe('v2 严格模式', () => {
 
     describe('全表计数', () => {
         const keys = Object.keys(dict);
-        const passes = (key) => toPinyinTones(key + '1', {strict: true}) !== key + '1';
+        // 四个声调里任何一个能出字，就算这个键在严格模式下立得住。
+        // 不能只看第一声 —— n 与 ng 没有第一声，hm / hng 四声全无。
+        const passes = (key) => [1, 2, 3, 4].some(
+            (tone) => toPinyinTones(key + tone, {strict: true}) !== key + tone,
+        );
 
-        // 词表 1953 个键，严格模式放行 875、挡掉 1078。
-        // 放行的 875 = core 425 + 儿化 418 + jv 系列的字面拼写 32
-        //   （jv/jve/jvan/jvn 及其儿化变体，j/q/x/y 各 8 条；它们与 ju/jue/juan/jun
-        //    是同一音位，投影后照样是音节）。
-        // 挡掉的 1078 = 1110 条笛卡尔积噪声减去那 32 条字面拼写。
-        it('放行 875 个键，挡掉 1078 个', () => {
+        // 词表 1953 个键，严格模式放行 873、挡掉 1080。
+        // 放行的 873 = core 425 + 儿化 418 + jv 系列的字面拼写 32 - hm - hng。
+        //   jv/jve/jvan/jvn 及其儿化变体与 ju/jue/juan/jun 是同一音位，投影后照样是音节；
+        //   hm（噷）与 hng（哼）虽是音节，但在词典里只有无调形式，四声一个都出不来。
+        // 挡掉的 1080 = 1110 条笛卡尔积噪声减去那 32 条字面拼写。
+        it('放行 873 个键，挡掉 1080 个', () => {
             const passed = keys.filter(passes);
-            assert.equal(passed.length, 875);
-            assert.equal(keys.length - passed.length, 1078);
+            assert.equal(passed.length, 873);
+            assert.equal(keys.length - passed.length, 1080);
         });
 
-        it('非儿化 441，儿化 434', () => {
+        it('非儿化 439，儿化 434', () => {
             const passed = keys.filter(passes);
-            assert.equal(passed.filter((k) => !isErhua(k)).length, 441);
+            assert.equal(passed.filter((k) => !isErhua(k)).length, 439);
             assert.equal(passed.filter(isErhua).length, 434);
+        });
+
+        it('core 里出不了带调形式的只有 hm 与 hng', () => {
+            const toneless = [...core].filter((k) => !passes(k));
+            assert.deepEqual(toneless.sort(), ['hm', 'hng']);
         });
 
         it('core 之外的放行只有 jv 系列的字面拼写', () => {
