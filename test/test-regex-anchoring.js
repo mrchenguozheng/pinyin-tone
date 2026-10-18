@@ -1,8 +1,8 @@
 // test/test-regex-anchoring.js
-// 针对未锚定正则导致的「静默截断 / 大写错乱」问题的回归测试。
+// 针对未锚定正则导致的「静默截断 / 大写错位」问题的回归测试。
 //
-// 核心约定：单个音节整串匹配；一个 token 可以切成若干音节，
-// 但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
+// 核心约定：单个音节整串匹配（大小写三种形态都收，音节内混用除外）；
+// 一个 token 可以切成若干音节，但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
 import { expect } from 'chai';
 import {markTones} from '../lib/index.js';
 
@@ -35,15 +35,23 @@ const INVALID_TONE = [
     'ma-3',
 ];
 
-// 大写：旧正则的 [a-z]+ 会跳过大写字母，从中间开始匹配
-const UPPERCASE = [
-    'Hao3',
-    'Ni3 Hao3',
-    'HAO3',
+// 大小写：三种合法形态（全小写 / 首字母大写 / 全大写）都转换，形态带到输出。
+// 依据是《汉语拼音正词法基本规则》§6.3，它自己的全大写例子就带调号（BĚIJĪNG）。
+const CASE_FORMS = [
+    ['Hao3', 'Hǎo'],
+    ['Ni3 Hao3', 'Nǐ Hǎo'],
+    ['HAO3', 'HǍO'],
+    ['Hua1', 'Huā'],
+    ['Zhong1Guo2', 'ZhōngGuó'],
+    ['Ni3hao3', 'Nǐhǎo'],
+];
+
+// 音节内部混用大小写：标准里没有这种写法（hAo3 既不是全小写也不是首字母大写），
+// 当认不全处理。旧正则在这里会跳过大写字母、从中间开始匹配（Hao3 -> ǎo）。
+const CASE_MIXED = [
     'hAo3',
-    'Hua1',
-    'Zhong1Guo2',
-    'Ni3hao3',
+    'HaO3',
+    'ZHong1guo2',
 ];
 
 // 标点旁边的符号类：不是拼音，也不该被吃掉
@@ -136,7 +144,7 @@ const passThrough = [
     ...UNSPACED_MIXED.map((s) => [s, 'unspaced mixed']),
     ...LEGACY_ERHUA.map((s) => [s, 'legacy erhua']),
     ...INVALID_TONE.map((s) => [s, 'invalid tone']),
-    ...UPPERCASE.map((s) => [s, 'uppercase']),
+    ...CASE_MIXED.map((s) => [s, 'mixed case']),
     ...SYMBOLS.map((s) => [s, 'symbols']),
     ...COLON_NO_LANDING.map((s) => [s, 'colon has no landing']),
     ...NOT_PINYIN.map((s) => [s, 'not pinyin']),
@@ -144,6 +152,8 @@ const passThrough = [
 
 // 合法输入必须保持正确转换（防止修正则时改坏）
 const conversions = [
+    // 大小写
+    ...CASE_FORMS,
     // 基础
     ['ni3 hao3', 'nǐ hǎo'],
     ['chu1 yin1 wei4 lai2', 'chū yīn wèi lái'],
@@ -236,7 +246,7 @@ const mixedSentences = [
     ['ni3 hao3! wo3', 'nǐ hǎo! wǒ'],
     ['wo3 ai4 ni3!', 'wǒ ài nǐ!'],
     ['ni3hao3 wo3 hen3 hao3', 'nǐhǎo wǒ hěn hǎo'],
-    ['Hao3 ma5?', 'Hao3 ma?'],
+    ['Hao3 ma5?', 'Hǎo ma?'],
     ['zhong1 guo2 123 ren2', 'zhōng guó 123 rén'],
     ['han4 yu3, pin1 yin1.', 'hàn yǔ, pīn yīn.'],
     ['ni3 hao3 ! wo3', 'nǐ hǎo ! wǒ'],
@@ -297,11 +307,11 @@ function makeRandom(seed) {
 
 // ---------------------------------------------------------------- 用例
 
-// passThrough 里的 41 条按「为什么不能转」分成两类。两类的断言是同一句
+// passThrough 里的 35 条按「为什么不能转」分成两类。两类的断言是同一句
 // （输出 === 输入），但原因不同：这一组是「切了会丢字母」，下一组是「根本不是拼音」。
 // 合在一起跑两遍只会让人以为有 82 个独立用例。
 const TRUNCATION_KINDS = new Set(['unspaced', 'unspaced mixed', 'legacy erhua', 'invalid tone']);
-const NOT_PINYIN_KINDS = new Set(['uppercase', 'symbols', 'colon has no landing', 'not pinyin']);
+const NOT_PINYIN_KINDS = new Set(['mixed case', 'symbols', 'colon has no landing', 'not pinyin']);
 
 describe('regex anchoring: 切开会丢字母的输入，整串原样', () => {
     for (const [input, kind] of passThrough.filter(([, k]) => TRUNCATION_KINDS.has(k))) {
