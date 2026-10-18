@@ -11,19 +11,10 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./workaround": {
-      "types": "./workaround/index.d.ts",
-      "default": "./workaround/index.js"
-    },
-    "./workaround/index.js": {
-      "types": "./workaround/index.d.ts",
-      "default": "./workaround/index.js"
-    },
     "./package.json": "./package.json"
   },
   "files": [
     "lib",
-    "workaround",
     "CHANGELOG.md"
   ],
   "scripts": {
