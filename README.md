@@ -307,7 +307,7 @@ console.log(convertUnspacedPinyin('han0yu3pin1yin1')); // hanyǔpīnyīn
 
 ## Contributors
 
-![Contributors](CONTRIBUTORS.svg "Contributors")
+![Contributors](https://mrchenguozheng.github.io/pinyin-tone/CONTRIBUTORS.svg "Contributors")
 
 ## Contributing
 

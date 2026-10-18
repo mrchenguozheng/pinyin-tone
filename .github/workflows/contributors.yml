@@ -1,21 +1,30 @@
 name: Contributors
+
+# 只做「生成 + 打包成 Pages artifact」，不提交、不部署。
+# 触发点集中在 pages.yml（每周 cron / push master / 手动），这里只负责被它调用；
+# 也可以单独 workflow_dispatch 跑一次，验证生成是否正常。
 on:
-  schedule:
-    - cron: '0 1 * * 0' # At 01:00 on Sunday.
-  push:
-    branches:
-      - master
-# 这个 action 会把生成的 CONTRIBUTORS.svg 提交回 master，
-# 默认的 GITHUB_TOKEN 是只读的，不给 write 就会在 push 那一步失败。
+  workflow_call:
+  workflow_dispatch:
+
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  contributors:
+  build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      # noCommit: 生成到工作区就停手。以前这个 action 会把 444KB 的 SVG 提交回
+      # master —— 图里的两张头像按原尺寸内嵌成 base64，每更新一次历史就多一份。
+      # 现在图只进 Pages artifact，仓库里一个字节都不留。
       - uses: wow-actions/contributors-list@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          noCommit: true
           userNameHeight: 19
           itemTemplate: >
             <g transform="translate({{ x }}, {{ y }})">
@@ -24,3 +33,21 @@ jobs:
                 <text x="32" y="74" text-anchor="middle" alignment-baseline="middle" font-size="10">{{{ name }}}</text>
               </a>
             </g>
+
+      # Pages 的站点根需要一个 index.html，否则 https://<user>.github.io/<repo>/ 是 404。
+      # 图本身才是被 README 引用的那个文件。
+      - name: 打包成 Pages artifact
+        run: |
+          mkdir -p dist
+          mv CONTRIBUTORS.svg dist/
+          printf '<!doctype html>\n<meta charset="utf-8">\n<title>Contributors</title>\n<img src="CONTRIBUTORS.svg" alt="Contributors">\n' > dist/index.html
+
+      # enablement: 首次运行时把 Pages 的来源自动切成 GitHub Actions，
+      # 省掉在 Settings → Pages 里手点一次。需要仓库管理员权限与 pages: write。
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist

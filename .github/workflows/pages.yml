@@ -1,0 +1,35 @@
+name: Pages
+
+on:
+  schedule:
+    - cron: '0 1 * * 0' # At 01:00 on Sunday.
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Pages 部署必须串行：两次部署并发会互相覆盖。
+# cancel-in-progress 必须为 false，否则新的一次会把正在发布的那次掐掉。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 生成 CONTRIBUTORS.svg 并上传 Pages artifact（复用 contributors.yml）
+  build:
+    uses: ./.github/workflows/contributors.yml
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
