@@ -150,6 +150,26 @@ describe('两种拼写：冒号表示 u 上的两点', () => {
         expect(markTones('u:e1')).to.equal('üē');
     });
 
+    it('冒号只认两个位置：承载位之后，或音节末尾', () => {
+        // 承载位之后 —— 冒号主张这两点属于紧邻的那个 u/v，其后的字母仍属同一韵母
+        expect(markTones('ju:an1')).to.equal('jüān');
+        expect(markTones('jv:an1')).to.equal('jüān');
+        expect(markTones('lu:e4')).to.equal('lüè');
+
+        // 音节末尾 —— 缩写形式，冒号与承载位之间可以隔着韵母剩下的字母
+        expect(markTones('juan:1')).to.equal('jüān');
+        expect(markTones('jvan:1')).to.equal('jüān');
+
+        // 两种位置求的是同一件事
+        expect(markTones('jv:an1')).to.equal(markTones('jvan:1'));
+
+        // 其余位置不猜：冒号既不在承载位后、也不在末尾，整串原样。
+        // 这几条原本都能转换（j:van1 -> jüān），收紧后归入「写错了」。
+        for (const input of ['j:van1', 'j:uan1', 'jva:n1', 'jua:n1', 'n:ue4', 'l:ve4']) {
+            expect(markTones(input), input).to.equal(input);
+        }
+    });
+
     it('冒号落在 v 上、这一格又没把 v 当 ü 时，输出等于裸写', () => {
         // 三格的词表值是 v-a-i / v-ü / v-u，落点那个 v 是辅音，冒号换不动它。
         // 冒号不制造「失败」状态：换不动就按这一格本来的拼写输出，
