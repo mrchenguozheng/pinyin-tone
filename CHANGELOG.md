@@ -23,6 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 
+### Added
+
+- Added: `toPinyinTones` 与 `convertUnspacedPinyin` 新增可选第二参数 `{ umlaut }`，用于显式选择
+  `j`/`q`/`x`/`y` 之后 `ü` 的拼写方式：
+  - `'auto'`（默认）：跟随输入，`ju1 → jū`、`jv1 → jǖ`，与旧行为完全一致；
+  - `'omit'`：强制规范形式，一律省两点，`jv1 → jū`；
+  - `'keep'`：强制字面形式，一律保留两点，`ju1 → jǖ`。
+  该选项只影响 `j`/`q`/`x`/`y`；`n`/`l` 后的 `ü` 在三种模式下都保留两点（`nǚ`、`lǜ`），
+  因为那里的 `u` 与 `ü` 是对立音位（`nǔ` 努 / `nǚ` 女）。非法取值抛 `TypeError`。
+  新增 `test/test-umlaut-style.js`（21 条），用「换查表键」与「字符级替换」两套独立实现
+  交叉验证 32 个白名单音节 × 5 个声调 × 3 种模式，并对全表 1949 条断言投影不越界
+  （假音节 `jui`/`jua`/`juo` 等 80 条、`n`/`l` 的 16 条在 `keep` 下必须保持不变）。
+
 ### Changed
 
 - Refactor: `v2` 的 51 个分词表合并为单文件 `v2/dict.js`（1949 条），`v2/index.js` 由

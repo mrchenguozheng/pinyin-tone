@@ -96,6 +96,28 @@ syllables, an invalid tone — is returned unchanged. v2 never returns a partial
 token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
 `convertUnspacedPinyin` if you need to handle unspaced input.
 
+**Two spellings for `ü` after `j`/`q`/`x`/`y`.** Both the standard form (`ju`, `jue`, `juan`,
+`jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input, and either can
+be requested on output. Use the `umlaut` option to choose:
+
+```javascript
+import toPinyinTones from 'pinyin-tone/v2';
+
+toPinyinTones('jv1');                       // 'jǖ'  — auto: follows the input spelling
+toPinyinTones('ju1');                       // 'jū'  — auto: follows the input spelling
+toPinyinTones('jv1', { umlaut: 'omit' });   // 'jū'  — standard: never writes ü
+toPinyinTones('ju1', { umlaut: 'keep' });   // 'jǖ'  — literal: always writes ü
+```
+
+`umlaut` defaults to `'auto'`, which reproduces the historical behaviour above. The option only
+affects `j`/`q`/`x`/`y`: after `n`/`l` the diaeresis is kept in every mode (`nǚ`, `lǜ`), because
+there `u` and `ü` are distinct sounds (`nǔ` 努 vs `nǚ` 女).
+
+> `jǖ` is not a second *valid* spelling — GB/T 16159 and the *Scheme for the Chinese Phonetic
+> Alphabet* require omitting the diaeresis after `j`/`q`/`x`. It is kept because this package is
+> also used to render the literal form, and because `jv` is the ASCII input convention for `ü`.
+> Prefer `'omit'` unless you specifically need the literal form.
+
 ```javascript
 // CommonJS usage (up to version 2.2.7)
 var anotherPinyinTones = require('pinyin-tone/v2');

@@ -2,6 +2,7 @@
 // 这里用的是「包自引用」（self-reference）：import 的说明符是包名，
 // 所以必须靠 exports 字段才能解析成功。
 import v2Default, { splitUnspacedSyllables, convertUnspacedPinyin } from 'pinyin-tone/v2';
+import type { UmlautStyle, ToPinyinTonesOptions } from 'pinyin-tone/v2';
 import v2DefaultFromFile from 'pinyin-tone/v2/index.js';
 import v1Default from 'pinyin-tone/v1';
 import v1DefaultFromFile from 'pinyin-tone/v1/index.js';
@@ -17,4 +18,15 @@ const f: string = v1DefaultFromFile('ma1 ma2 ma3 ma4 ma');
 const g: string = markSinglePinyinVowel('a');
 const h: string = markSinglePinyinVowelFromFile('a');
 
-export { a, b, c, d, e, f, g, h };
+// umlaut 选项：三种取值都必须是合法类型，且能传到两个函数上
+const style: UmlautStyle = 'keep';
+const opts: ToPinyinTonesOptions = { umlaut: 'omit' };
+const i: string = v2Default('jv1', { umlaut: style });
+const j: string = convertUnspacedPinyin('ju1', opts);
+const k: string = convertUnspacedPinyin('ju1', { umlaut: 'auto' });
+
+// 'canonical' 不是合法取值 —— 若哪天 d.ts 放宽成 string，这行会因「不该有错」而报错
+// @ts-expect-error 非法 umlaut 取值必须在编译期被拒
+v2Default('jv1', { umlaut: 'canonical' });
+
+export { a, b, c, d, e, f, g, h, i, j, k };
