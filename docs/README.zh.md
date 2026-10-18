@@ -9,7 +9,7 @@ English: [../README.md](../README.md) —— 发布到 npm 和仓库首页的是
 ## 安装
 
 ```bash
-npm install pinyin-tone
+npm install pinyin-tone@next
 ```
 
 要 Node.js 14 以上（见 `engines`）。ESM 和 CommonJS 都能用，两种写法都得按名字取 `markTones`，**没有默认导出**。`require()` 加载的是 `dist/index.cjs`，这个文件在发布前由 `lib/` 生成，并且逐条和 `lib/` 比对过，跑的不是另一份代码。
@@ -109,6 +109,8 @@ markTones('M2 A4 N3', {skip: ['M2', 'A4']});    // 'M2 A4 Ň'
 | `pinyin-tone/v1`、`splitUnspacedSyllables(x)` | 已删除 |
 
 2.4.1 的根入口有三个名字：默认导出，加上具名的 `v2` 和 `markSinglePinyinVowel`，现在全部并进了 `markTones`。名字漏改会当场报错，不会拖到线上：3.0 没有默认导出，`import anything from 'pinyin-tone'` 是语法错误，不会变成 `undefined` 混过去。
+
+3.0 发布时走的是 `next` 标签，`latest` 还指着 2.4.1，所以手上有 `^2` 的项目不会在 `npm install` 之后突然跳过去。要升级，写 `npm install pinyin-tone@next`；跳过去之后想退回，把版本改回 `2.4.1` 或 `^2` 就行。
 
 ## 细节文档
 

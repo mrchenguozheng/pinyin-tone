@@ -10,7 +10,7 @@ dependencies; unspaced or mixed text needs no preprocessing.
 ## Quick start
 
 ```bash
-npm install pinyin-tone
+npm install pinyin-tone@next
 ```
 
 Node.js 14 or later (`engines`). Both module systems work, and both need the named
@@ -141,6 +141,10 @@ The 2.4.1 root entry had three names — a default export plus the named `v2` an
 `markSinglePinyinVowel`. All three collapse into `markTones`, and getting the rename wrong is
 loud rather than silent: 3.0 has no default export, so `import anything from 'pinyin-tone'`
 is a syntax error, not an `undefined` you find in production.
+
+3.0 ships under the `next` tag while `latest` stays on 2.4.1, so a project depending on `^2`
+does not jump a major version the next time it installs. Opt in with
+`npm install pinyin-tone@next`, and go back by putting the version back to `2.4.1` or `^2`.
 
 ## Details
 
