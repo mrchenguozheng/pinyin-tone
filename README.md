@@ -125,13 +125,17 @@ toPinyinTones('ju1');   // 'jū'  — standard input, standard output
 ```
 
 To keep the diaeresis at one particular place, write a colon after the `u`. The colon is the
-two dots themselves:
+two dots themselves, and the `u` is the letter they sit on:
 
 ```javascript
 toPinyinTones('ju1 ju:1');   // 'jū jǖ'   — both spellings in one line
-toPinyinTones('jv:1');       // 'jǖ'      — same as 'ju:1', v is ü in ASCII
 toPinyinTones('juan:1');     // 'jüān'
+toPinyinTones('jun:4');      // 'jǜn'
 ```
+
+The marker belongs on the `u`; that is the only letter it is asking about. `v` is the ASCII
+spelling of `ü`, though, so `jv:1` says the same thing and is accepted as a synonym for `ju:1`
+(`'jǖ'`). Write the `u` form unless you are feeding in text that already spells `ü` as `v`.
 
 There is no option that switches a whole string to the literal spelling — the colon marks one
 token, which is what makes `'jū jǖ'` writable in a single call. If you need both forms of a
@@ -150,8 +154,8 @@ syllables, and rendering them is the point — this package also exists to put n
 spellings next to standard ones, so a written colon is taken at face value. It declines only
 when there is no `u`/`v` in the syllable to carry the dots (`ma:1`, `ha:o3`, `ji:1`), or when the
 dictionary entry does not treat `v` as `ü` and would leave a literal `v` in the output
-(`vai:1`, `vv:1`). Either letter may stand before the colon — `jv:1` is read exactly like
-`ju:1`, since `v` is the ASCII spelling of `ü` and the colon settles which sound was meant.
+(`vai:1`, `vv:1`). `jv:1` is read exactly like `ju:1` — `v` is the ASCII spelling of `ü`, so the
+colon adds nothing to the sound, only confirms it.
 
 `n`/`l` never take part in this projection: there `u` and `ü` are distinct sounds, so `nv3` is
 `nǚ` and `nu3` is `nǔ` — the spelling you type is the sound you get. `nu:3` also gives `nǚ`, but
@@ -178,8 +182,8 @@ toPinyinTonesInline('ju是规范写法，而ju:1是不规范写法，因为u:1�
 
 Bare tokens follow the same default as `toPinyinTones` — the standard spelling, so `ju1` and
 `jv1` both give `jū`. To ask for the literal form at one particular place, put a colon right
-after the `u` (or after the `v`, which means the same): `ju:1` gives `jǖ`, `jv:1` gives `jǖ`,
-`juan:1` gives `jüān`, `jun:4` gives `jǜn`. The colon stands for the two dots above `ü`, so the
+after the `u`: `ju:1` gives `jǖ`, `juan:1` gives `jüān`, `jun:4` gives `jǜn` (`jv:1` is the same
+request written with the `v` spelling of `ü`, and gives `jǖ` too). The colon stands for the two dots above `ü`, so the
 whole sentence can be typed on a US keyboard — every non-ASCII character is produced by the
 converter, none has to be typed.
 
