@@ -33,7 +33,7 @@ markTones('ju1', {strict: 'yes'});
 markTones('M2', {skip: true});
 // @ts-expect-error skip 不收 RegExp（只看得到单个片段，环视会静默失效）
 markTones('M2', {skip: /^M2$/});
-// @ts-expect-error skip 不收函数：要精确到某一次出现就写行内反斜杠
+// @ts-expect-error skip 不收函数：只认片段文本相等这一条语义
 markTones('M2', {skip: (run: string) => run === 'M2'});
 // @ts-expect-error skip 的数组只能放字符串
 markTones('M2', {skip: ['M2', 42]});
