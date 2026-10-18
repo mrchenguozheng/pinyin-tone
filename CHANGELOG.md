@@ -149,6 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed: `package.json` 补上 `engines.node: ">=14.0.0"`。实现里唯一限制下限的语法是
+  `convertToken` 里的 `??`（空值合并，Node 14.0 起支持）；命名捕获组与 `\p{Script=Han}`
+  要 Node 10，`String.matchAll` 要 Node 12，`exports` 字段要 Node 12.7 —— 都不高于 14。
+  此前没有这个字段，用 Node 12 安装不报错，跑起来才在 `??` 处抛语法错误。
 - Changed: 目录 `v2/` 改名为 `lib/`，`v1/` 直接删除。`v2` 这个前缀说的是「第二代实现」，
   与包版本无关，3.0 里再留着只会让人以为它是「版本 2 的那一份」；`lib` 不带版本含义，也不会
   和音节表 `lib/core.js` 撞名。连同 `pinyin-tone/v2`、`pinyin-tone/v2/index.js` 两个别名一起
