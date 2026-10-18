@@ -9,8 +9,8 @@
 //   ju:1            -> 冒号代表 u 上面那两点，输出 jǖ
 // 冒号只对 ü 真正能出现的声母生效（n/l/j/q/x/y 与零声母 u），其余原样返回。
 import { expect } from 'chai';
-import toPinyinTones, { toPinyinTonesInline } from '../v2/index.js';
-import dict from '../v2/dict.js';
+import toPinyinTones, { toPinyinTonesInline } from '../lib/index.js';
+import dict from '../lib/dict.js';
 import { expectedValue } from './support/dict-values.js';
 
 const HEADS = ['j', 'q', 'x', 'y'];
@@ -22,7 +22,7 @@ const TONES = [0, 1, 2, 3, 4];
 /** 只保留汉字，用于校验非拼音内容没被改动 */
 const hanOnly = (s) => s.replace(/[^\u4e00-\u9fff]/g, '');
 
-describe('v2 混排：toPinyinTonesInline', () => {
+describe('混排：toPinyinTonesInline', () => {
     describe('核心用例：一句里并排两种写法', () => {
         const input = 'ju是规范写法，而ju:1是不规范写法，因为u:1在j后面要省略上面的两点';
         const output = 'ju是规范写法，而jǖ是不规范写法，因为ǖ在j后面要省略上面的两点';

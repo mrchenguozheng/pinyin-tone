@@ -1,14 +1,12 @@
 // test/test-regex-anchoring.js
-// 针对 v2 正则未锚定导致的「静默截断 / 大写错乱」问题的回归测试。
+// 针对未锚定正则导致的「静默截断 / 大写错乱」问题的回归测试。
 //
 // 核心约定：单个音节整串匹配；一个 token 可以切成若干音节，
 // 但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
 import { expect } from 'chai';
-import toPinyinTonesV2 from '../v2/index.js';
-import toPinyinTonesV1 from '../v1/index.js';
+import toPinyinTones from '../lib/index.js';
 
-const v2 = toPinyinTonesV2;
-const v1 = toPinyinTonesV1;
+const tones = toPinyinTones;
 
 // ---------------------------------------------------------------- 测试数据
 
@@ -17,13 +15,13 @@ const UNSPACED = [
     'hanyu3pin1yin1',
 ];
 
-// 切得开但中间有不认识的片段（b / c 不是 v2 认识的音节），整串放弃
+// 切得开但中间有不认识的片段（b / c 不是当前实现认识的音节），整串放弃
 const UNSPACED_MIXED = [
     'a1b2c3',
     'a1b2c3d4',
 ];
 
-// v2 不支持「音节+声调+r」，必须原样返回而不是把 r 吞掉
+// 不支持「音节+声调+r」，必须原样返回而不是把 r 吞掉
 const LEGACY_ERHUA = [
     'hua1r',
     'wan2r',
@@ -222,7 +220,7 @@ const conversions = [
     ['jiong3', 'jiǒng'],
     ['yo1', 'yō'],
     ['bong1 tv2 pe3 wir4', 'bōng tǘ pě wìr'],   // 词表里的非标准组合
-    ['liou2 yuen2', 'lióu yuén'],                // v2 与 v1 的既定差异
+    ['liou2 yuen2', 'lióu yuén'],                // 与 2.x（v1 实现）的既定差异
     // 首尾空白
     ['  ni3 hao3  ', 'nǐ hǎo'],
     ['ni3 hao3 ', 'nǐ hǎo'],
@@ -257,11 +255,6 @@ const SWEEP_FINALS = ['a', 'o', 'e', 'ai', 'ei', 'ao', 'ou', 'an', 'en', 'ang', 
     'u', 'ua', 'uo', 'uai', 'ui', 'uan', 'un', 'uang',
     'v', 've', 'van', 'vn', 'er'];
 const SWEEP_TONES = ['', '0', '1', '2', '3', '4', '5'];
-
-// jvn / jvnr 是 j + ün，规范写法是 jun（省两点）→ jūn / jūnr。
-// v1 对这一族保留两点（jǖn），与它自己处理 jv1（→ jū）的方式并不统一，
-// 因此不能拿它当基准；v2 一律按国标输出。跳过的只是「对照」，不是「正确性」。
-const isV1UmlautInconsistency = (input) => /^[jqxy]vn/.test(input);
 
 // ---------------------------------------------------------------- 工具
 
@@ -307,54 +300,54 @@ function makeRandom(seed) {
 
 // ---------------------------------------------------------------- 用例
 
-describe('v2 regex anchoring: 不完整的输入不得被截断', () => {
+describe('regex anchoring: 不完整的输入不得被截断', () => {
     for (const [input, kind] of passThrough) {
         it(`[${kind}] ${JSON.stringify(input)} 应原样返回`, () => {
-            expect(v2(input)).to.equal(input);
+            expect(tones(input)).to.equal(input);
         });
     }
 });
 
-describe('v2 regex anchoring: 标点不再阻断转换', () => {
+describe('regex anchoring: 标点不再阻断转换', () => {
     // 旧行为是「吞掉标点后照样转换」（'hao3!' -> 'hǎo'），代价是信息丢失。
     // 更早一版改成了「有标点就整词不动」，代价是 'ni3,hao3' 这种整段失效。
     // 现在标点只当作音节边界，自己原样留在原位。
     it('尾随标点的 token 转换后标点原样保留', () => {
-        expect(v2('hao3!')).to.equal('hǎo!');
-        expect(v2('ni3, hao3')).to.equal('nǐ, hǎo');
-        expect(v2('hao3. hao3')).to.equal('hǎo. hǎo');
+        expect(tones('hao3!')).to.equal('hǎo!');
+        expect(tones('ni3, hao3')).to.equal('nǐ, hǎo');
+        expect(tones('hao3. hao3')).to.equal('hǎo. hǎo');
     });
 
     it('标点单独成 token 时不受影响', () => {
-        expect(v2('ni3 hao3 !')).to.equal('nǐ hǎo !');
+        expect(tones('ni3 hao3 !')).to.equal('nǐ hǎo !');
     });
 });
 
-describe('v2 regex anchoring: 合法拼音仍能正常转换', () => {
+describe('regex anchoring: 合法拼音仍能正常转换', () => {
     for (const [input, expected] of conversions) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-            expect(v2(input)).to.equal(expected);
+            expect(tones(input)).to.equal(expected);
         });
     }
 });
 
-describe('v2 regex anchoring: 合法与非法 token 混在一句里', () => {
+describe('regex anchoring: 合法与非法 token 混在一句里', () => {
     for (const [input, expected] of mixedSentences) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-            expect(v2(input)).to.equal(expected);
+            expect(tones(input)).to.equal(expected);
         });
     }
 });
 
-describe('v2 regex anchoring: 非法输入的处理与 v1 对齐', () => {
+describe('regex anchoring: 非法输入整串原样返回', () => {
     for (const [input, kind] of passThrough) {
-        it(`[${kind}] v2(${JSON.stringify(input)}) === v1(...)`, () => {
-            expect(v2(input)).to.equal(v1(input));
+        it(`[${kind}] ${JSON.stringify(input)} 原样返回`, () => {
+            expect(tones(input)).to.equal(input);
         });
     }
 });
 
-describe('v2 regex anchoring: 输出不变量', () => {
+describe('regex anchoring: 输出不变量', () => {
     const allInputs = [
         ...passThrough.map(([s]) => s),
         ...conversions.map(([s]) => s),
@@ -366,27 +359,27 @@ describe('v2 regex anchoring: 输出不变量', () => {
 
     it('任何输入都不会抛出异常', () => {
         for (const s of allInputs) {
-            expect(() => v2(s), `输入 ${JSON.stringify(s)}`).to.not.throw();
+            expect(() => tones(s), `输入 ${JSON.stringify(s)}`).to.not.throw();
         }
     });
 
-    it('幂等：v2(v2(x)) === v2(x)', () => {
+    it('幂等：tones(tones(x)) === tones(x)', () => {
         for (const s of allInputs) {
-            const once = v2(s);
-            expect(v2(once), `输入 ${JSON.stringify(s)}`).to.equal(once);
+            const once = tones(s);
+            expect(tones(once), `输入 ${JSON.stringify(s)}`).to.equal(once);
         }
     });
 
     it('不丢失字母：输出与输入的字母序列一致', () => {
         for (const s of allInputs) {
-            expectNoLoss(s, v2(s), JSON.stringify(s));
+            expectNoLoss(s, tones(s), JSON.stringify(s));
         }
     });
 
     it('声调符号不会凭空多出来：数量不超过输入里的数字个数', () => {
         const bad = [];
         for (const s of allInputs) {
-            const out = v2(s);
+            const out = tones(s);
             // 原样返回的输入（已经带调、大小写混排）不参与这条统计
             if (out === s) continue;
 
@@ -400,48 +393,12 @@ describe('v2 regex anchoring: 输出不变量', () => {
     });
 });
 
-describe('v2 regex anchoring: 全音节表扫描', () => {
-    it('除已知 ü 缺陷外，所有声母×韵母×声调组合与 v1 一致', () => {
-        const diffs = [];
-        for (const ini of SWEEP_INITIALS) {
-            for (const fin of SWEEP_FINALS) {
-                for (const t of SWEEP_TONES) {
-                    const input = ini + fin + t;
-                    if (isV1UmlautInconsistency(input)) continue;
-                    const a = v1(input);
-                    const b = v2(input);
-                    if (a !== b) diffs.push(`${input}: v1=${a} v2=${b}`);
-                }
-            }
-        }
-        expect(diffs).to.deep.equal([]);
-    });
-
-    it('儿化全表：v1 能接受的组合与 v1 一致', () => {
-        const diffs = [];
-        for (const ini of SWEEP_INITIALS) {
-            for (const fin of SWEEP_FINALS) {
-                if (fin === 'er') continue;
-                for (const t of SWEEP_TONES) {
-                    const input = `${ini}${fin}r${t}`;
-                    if (isV1UmlautInconsistency(input)) continue;
-                    const a = v1(input);
-                    // v1 对「纯韵母 + r0」有漏判（'ar0' 原样返回，'bair0' 却能转换），
-                    // 这属于 v1 自身的历史怪癖，不能当作基准。
-                    if (a === input) continue;
-                    const b = v2(input);
-                    if (a !== b) diffs.push(`${input}: v1=${a} v2=${b}`);
-                }
-            }
-        }
-        expect(diffs).to.deep.equal([]);
-    });
-
-    it('轻声儿化在 v2 中处理一致（v1 对纯韵母 + r0 有漏判）', () => {
-        expect(v2('ar0')).to.equal('ar');
-        expect(v2('bair0')).to.equal('bair');
-        expect(v2('huar0')).to.equal('huar');
-        expect(v2('vr0')).to.equal('ür');
+describe('regex anchoring: 全音节表扫描', () => {
+    it('轻声儿化：纯韵母 + r0 也转换（v1 曾漏判）', () => {
+        expect(tones('ar0')).to.equal('ar');
+        expect(tones('bair0')).to.equal('bair');
+        expect(tones('huar0')).to.equal('huar');
+        expect(tones('vr0')).to.equal('ür');
     });
 
     it('全表范围内不出现 undefined / 空串 / 字母丢失', () => {
@@ -449,7 +406,7 @@ describe('v2 regex anchoring: 全音节表扫描', () => {
             for (const fin of SWEEP_FINALS) {
                 for (const t of SWEEP_TONES) {
                     const input = ini + fin + t;
-                    const out = v2(input);
+                    const out = tones(input);
                     expect(typeof out, input).to.equal('string');
                     expectNoLoss(input, out, input);
                 }
@@ -458,7 +415,7 @@ describe('v2 regex anchoring: 全音节表扫描', () => {
     });
 });
 
-describe('v2 regex anchoring: 随机 fuzz', () => {
+describe('regex anchoring: 随机 fuzz', () => {
     const ALPHABET = (
         'abcdefghijklmnopqrstuvwxyz' +
         'ABHNZ' +
@@ -478,9 +435,9 @@ describe('v2 regex anchoring: 随机 fuzz', () => {
             for (let i = 0; i < len; i++) s += ALPHABET[Math.floor(rand() * ALPHABET.length)];
 
             try {
-                const out = v2(s);
+                const out = tones(s);
                 expectNoLoss(s, out, `fuzz #${n} ${JSON.stringify(s)}`);
-                if (v2(out) !== out) failures.push(`${JSON.stringify(s)}: 非幂等 -> ${JSON.stringify(out)}`);
+                if (tones(out) !== out) failures.push(`${JSON.stringify(s)}: 非幂等 -> ${JSON.stringify(out)}`);
             } catch (err) {
                 failures.push(`${JSON.stringify(s)}: ${err.message}`);
             }

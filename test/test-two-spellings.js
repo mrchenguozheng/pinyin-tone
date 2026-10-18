@@ -10,8 +10,8 @@
 // 方法：实现层用「换查表键」做投影，测试层用「字符级替换」独立算出期望值。
 // 两条路径不同，交叉验证才有效。
 import { expect } from 'chai';
-import toPinyinTones, { convertUnspacedPinyin, toPinyinTonesVariants } from '../v2/index.js';
-import dict from '../v2/dict.js';
+import toPinyinTones, { convertUnspacedPinyin, toPinyinTonesVariants } from '../lib/index.js';
+import dict from '../lib/dict.js';
 import { expectedValue } from './support/dict-values.js';
 
 // ---------------------------------------------------------------- 闭集白名单
@@ -46,7 +46,7 @@ function canonicalValueDotted(abbr, tone) {
 
 // ---------------------------------------------------------------- 默认行为
 
-describe('v2 两种拼写：默认输出规范形式', () => {
+describe('两种拼写：默认输出规范形式', () => {
     it('字面输入默认投影为规范形式', () => {
         expect(toPinyinTones('jv1')).to.equal('jū');
         expect(toPinyinTones('jve2')).to.equal('jué');
@@ -90,7 +90,7 @@ describe('v2 两种拼写：默认输出规范形式', () => {
 
 // ---------------------------------------------------------------- 冒号拿字面
 
-describe('v2 两种拼写：冒号表示 u 上的两点', () => {
+describe('两种拼写：冒号表示 u 上的两点', () => {
     it('一个冒号换一种拼写，其余完全相同', () => {
         expect(toPinyinTones('ju1 ju:1')).to.equal('jū jǖ');
         expect(toPinyinTones('juan1 juan:1')).to.equal('juān jüān');
@@ -169,7 +169,7 @@ describe('v2 两种拼写：冒号表示 u 上的两点', () => {
 
 // ---------------------------------------------------------------- 不越界
 
-describe('v2 两种拼写：投影不能越过白名单', () => {
+describe('两种拼写：投影不能越过白名单', () => {
     it('n/l 的 ü 保留两点（本来就不省）', () => {
         const nlKeys = ['nv', 'nve', 'nvan', 'nvn', 'nvr', 'nver', 'nvanr', 'nvnr',
                         'lv', 'lve', 'lvan', 'lvn', 'lvr', 'lver', 'lvanr', 'lvnr'];
@@ -216,7 +216,7 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
 // ---------------------------------------------------------------- 无全局开关
 // 函数只吃一个参数，拼写不随参数变化，唯一的影响来源是 token 自己写的冒号。
 
-describe('v2 两种拼写：没有全局开关', () => {
+describe('两种拼写：没有全局开关', () => {
     it('规范化对每个 token 独立成立，与调用次数无关', () => {
         expect(toPinyinTones('jv1 ju1 ju:1')).to.equal('jū jū jǖ');
         expect(toPinyinTones('jv1 ju1 ju:1')).to.equal(
@@ -227,7 +227,7 @@ describe('v2 两种拼写：没有全局开关', () => {
 
 // ---------------------------------------------------------------- 透传
 
-describe('v2 两种拼写：convertUnspacedPinyin', () => {
+describe('两种拼写：convertUnspacedPinyin', () => {
     it('字面输入输出规范形式', () => {
         expect(convertUnspacedPinyin('jv1')).to.equal('jū');
         expect(convertUnspacedPinyin('jv1nv3')).to.equal('jūnǚ');
@@ -244,7 +244,7 @@ describe('v2 两种拼写：convertUnspacedPinyin', () => {
 
 // ---------------------------------------------------------------- 一次取两种
 
-describe('v2 两种拼写：toPinyinTonesVariants 一次返回两种', () => {
+describe('两种拼写：toPinyinTonesVariants 一次返回两种', () => {
     it('字面输入同时给出规范与字面', () => {
         expect(toPinyinTonesVariants('jv1')).to.deep.equal({ canonical: 'jū', literal: 'jǖ' });
         expect(toPinyinTonesVariants('ju1')).to.deep.equal({ canonical: 'jū', literal: 'jǖ' });

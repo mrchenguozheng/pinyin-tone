@@ -1,5 +1,5 @@
 // test/support/dict-values.js
-// v2/dict.js 只存每个音节的**无调形式**，四个声调由 v2/index.js 在运行时加上。
+// lib/dict.js 只存每个音节的**无调形式**，四个声调由 lib/index.js 在运行时加上。
 // 测试需要独立的期望值，所以这里把标调再实现一遍：
 //
 //   生产代码：indexOf 循环，依次找 a / o / e / ê，找不到再倒着扫 i/u/ü，最后先查
@@ -11,7 +11,7 @@
 // 标调规则）：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，否则标最后一个元音。
 // ê 自成一条 —— 它不是 e，且自带扬抑符，调号叠在扬抑符上（ế）。
 // 一个元音都没有的叹词音节标在最后一个鼻音上（m3 -> m̌、hng2 -> hńg）。
-import dict from '../../v2/dict.js';
+import dict from '../../lib/dict.js';
 
 // 用数组做索引：调号里出现「字母 + 组合符」两个码位时，按字符串下标会取到半个字符。
 const MARKS = {
@@ -34,7 +34,7 @@ const MAIN_VOWEL = /a|o|e|ê|[iuü](?![aoeiuüê])/;
 // hng -> 标 n（hńg）、hm -> 标 m（hḿ）、ng -> 标 n（ńg）。
 const LAST_NASAL = /[mn](?![a-z]*[mn])/;
 
-// 词典里真实出现过的叹词带调组合，优先于规则。字形与 v2/index.js 的
+// 词典里真实出现过的叹词带调组合，优先于规则。字形与 lib/index.js 的
 // NASAL_TONES 相互独立地抄写，两边对不上就说明有人改错了。
 // m 缺第三声，n 与 ng 缺第一声，hm / hng 只有无调 —— 这些格子由规则补。
 const NASAL_TONES = {

@@ -1,4 +1,4 @@
-// v2/index.d.ts
+// lib/index.d.ts
 
 export interface PinyinTonesVariants {
     /** 规范形式：j/q/x/y 后的 ü 省两点（jū） */

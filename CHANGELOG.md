@@ -12,27 +12,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-- Breaking: 根入口 `pinyin-tone` 从 v1 换成 v2。此前默认导出的是 v1 的正则实现，要用 v2 得写
-  `pinyin-tone/v2`；现在根入口就是 v2，v1 退到 `pinyin-tone/v1`。两者在 13671 个输入
-  （词表全键 × 六个声调）上差异 11.3%，全部是 v1 把字母吞掉的旧问题（`biou1`：v1 给 `biū`，
-  v2 给 `biōu`）。需要旧输出的调用方改一行 import 即可，其余代码不用动。
+- Breaking: 根入口 `pinyin-tone` 从 v1 换成基于词表的实现。此前默认导出的是 v1 的正则实现，
+  要用新的那份得写 `pinyin-tone/v2`；现在根入口就是它。两者在 13671 个输入（词表全键 × 六个
+  声调）上差异 11.3%，全部是 v1 把字母吞掉的旧问题（`biou1`：v1 给 `biū`，新实现给 `biōu`）。
+- Breaking: v1 实现整体删除 —— `v1/` 目录、`pinyin-tone/v1`、`pinyin-tone/v1/index.js`
+  都不再存在。3.0 只有一份实现，没有「新旧并存」这个状态：需要 v1 精确输出的调用方应锁在
+  最后一个 2.x 版本（`pinyin-tone@2.4.1`），而不是在 3.0 里找开关。
+  测试侧一并去掉了以 v1 为基准的对拍（`test-example.js` 的 v1 用例、`test-regex-anchoring.js`
+  的两条全表对拍）——v1 不在包里以后它无法再充当对照。留下的独立期望值来源是
+  `test/support/dict-values.js`（另写一套标调实现），以及全表的字母守恒、幂等、数量不变量。
 - Breaking: `splitUnspacedSyllables` 不再是导出。它是 `convertUnspacedPinyin` 的内部一步 ——
   输出是「带空格的音节串」，除了再喂回转换器没有独立用途，而转换器本来就接受连写输入。
   函数本身保留在实现里，只是不再对外。公开导出因此从 5 个收敛到 4 个：
   `toPinyinTones`（默认）、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`。
-- Removed: `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js` 等）不再发布。
-  这些文件从未出现在 README / CHANGELOG 中，也不构成有语义的公开接口；如果之前绕过文档直接
-  `import x from 'pinyin-tone/v2/b.js'`，升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
+- Removed: 2.x 里 `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js`
+  等）合并为单文件 `lib/dict.js`，不再按声母拆分。这些文件从未出现在 README / CHANGELOG 中，
+  也不构成有语义的公开接口；如果之前绕过文档直接 `import x from 'pinyin-tone/v2/b.js'`，
+  升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
   包内词表不提供任何受支持的访问入口：它的文件划分、表结构、键顺序都是实现细节，会随实现调整而变更。
 - Changed: `package.json` 的 `exports` 字段把公开入口固定为
-  `.`、`./v2`、`./v2/index.js`、`./v1`、`./v1/index.js`、`./workaround`、`./workaround/index.js`、
-  `./package.json`。其余子路径将解析失败。
+  `.`、`./workaround`、`./workaround/index.js`、`./package.json`。其余子路径将解析失败。
   这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
-  `main` / `types` 也一并指向 `v2/index.js` / `v2/index.d.ts`，根目录不再有转发文件。
+  `main` / `types` 也一并指向 `lib/index.js` / `lib/index.d.ts`，根目录不再有转发文件。
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 
-- Breaking (behavior change): v2 现在默认输出**规范**形式的 `ü`。`j`/`q`/`x`/`y` 与 `ü` 相拼时
+- Breaking (behavior change): 新实现现在默认输出**规范**形式的 `ü`。`j`/`q`/`x`/`y` 与 `ü` 相拼时
   《汉语拼音方案》要求省略两点，此前 `jv1 → jǖ`、`jvan1 → jüān` 这类输出保留了两点，属于
   不合规范的拼写。现在默认 `jv1 → jū`、`jvan1 → juān`。字面形式**不是**一个全局选项，而是
   写在需要它的那一处：`ju:1 → jǖ`（`jv:1` 同义）、`juan:1 → jüān`。
@@ -110,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。四个入口（`toPinyinTones`、`toPinyinTonesInline`、
   `toPinyinTonesVariants`、`convertUnspacedPinyin`）都接受该选项，默认 `false`，
   现有调用方看不到任何变化。
-  新增 `v2/core.js`（426 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
+  新增 `lib/core.js`（426 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
   加 m/n/hm/hng 四条叹词，再加 `e^` 一条）与 `test/test-strict.js`（53 条）。
 - Added: 叹词音节 `m`、`n`、`ng`、`hm`、`hng` 进词表（`ng` 原有，本次补齐其余四个）。
   它们没有元音，调号标在**最后一个鼻音**上：`m2 → ḿ`、`n2 → ń`、`ng4 → ǹg`、
@@ -128,24 +133,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Changed: `pinyin-tone/v2` 与 `pinyin-tone/v2/index.js` 保留为根入口的别名，但不再从 README
-  推荐。根入口已经是 v2、`/v2` 指向同一份文件，删掉它没有任何功能收益；而 2.x 的 README 有
-  三处教用户写 `import … from 'pinyin-tone/v2'`，删了会让这些 import 直接
-  `ERR_PACKAGE_PATH_NOT_EXPORTED`。顺带修好一处旧问题：2.x 没有 `exports` 字段，ESM 下
-  `import 'pinyin-tone/v2'` 实测抛 `ERR_UNSUPPORTED_DIR_IMPORT`（2.4.1 上可复现），现在
-  显式声明后可用，且与根入口是同一个模块实例。
+- Changed: 目录 `v2/` 改名为 `lib/`，`v1/` 直接删除。`v2` 这个前缀说的是「第二代实现」，
+  与包版本无关，3.0 里再留着只会让人以为它是「版本 2 的那一份」；`lib` 不带版本含义，也不会
+  和音节表 `lib/core.js` 撞名。连同 `pinyin-tone/v2`、`pinyin-tone/v2/index.js` 两个别名一起
+  删掉 —— 根入口就是这份实现，别名没有语义；2.x 的 README 教过用户这样写，但保留一个同义的
+  路径只会让「该用哪个」这个问题继续存在。这两个 import 现在抛
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`。
 
 - Changed: `ng` 的四个声调不再原样返回。此前 `ng2` / `ng3` / `ng4` 都输出 `ng` ——
   `markTone` 找不到元音就直接返回基底。现在它和 `m` / `n` / `hm` / `hng` 一样标在鼻音上，
   输出 `ńg` / `ňg` / `ǹg`，`ng1` 则是 `n̄g`。这是本次唯一一处既有行为的变化。
 
-- Changed: `v2/dict.js` 的每个键只存**无调形式**，四个声调改由 `v2/index.js` 的 `markTone`
+- Changed: `lib/dict.js` 的每个键只存**无调形式**，四个声调改由 `lib/index.js` 的 `markTone`
   在运行时生成：有 `a` 标 `a`，无 `a` 有 `o` 标 `o`，无 `a`/`o` 有 `e` 标 `e`（`ê` 同 `e`，
   但它自带扬抑符、要单独查表），否则标最后一个元音（`iu → u`、`ui → i` 由此自动满足）。
   原因是 9760 条输出（1952 键 × 5 个声调）里有 7808 条（80%）是同一基底的机械变形，
   存 1 条 + 一条规则与存 5 条预生成字符串逐条等价 —— 已对全表逐键 × 5 个声调断言 0 差异，
   另有逐键 × 7 种输入形态（含冒号）的完整比对。
-  `v2/dict.js` 由 110,310 字节降到 38,732 字节（gzip 31,120 → 10,638），公开行为不变：
+  `lib/dict.js` 由 110,310 字节降到 38,732 字节（gzip 31,120 → 10,638），公开行为不变：
   `toPinyinTones`、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`
   的输出逐条相同。
   值仍逐键写出，不做「键把 `v` 换成 `ü`」的推导：74 个键的 `v` 是辅音字母（`va`、`vai`、
@@ -154,14 +159,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   测试侧新增 `test/support/dict-values.js`：用一条正则（`/a|o|e|[iuü](?![aoeiuü])/`）
   独立实现标调，作为期望值来源，与生产代码的 `indexOf` 循环形成两套实现交叉验证。
 
-- Refactor: `v2` 的 51 个分词表合并为单文件 `v2/dict.js`（1949 条），`v2/index.js` 由
+- Refactor: 51 个分词表合并为单文件 `lib/dict.js`（1949 条），`lib/index.js` 由
   51 行 import + `Object.assign` 改为一行默认导入。键的插入顺序、每条 5 个声调值、
   43 处重复键的最终取值均与合并前逐字节一致，`toPinyinTones` 行为无变化。
 
 ### Fixed
 
-- Fixed: 词表里的两条**死键** —— 存着数据，却没有任何输入能打到它。`e^` 从 v2 第一版起就躺在
-  `v2/dict.js` 里（值 `ê`），而词法 `[a-z]+` 永远匹配不到 `^`，所以 `e^2` 一直原样返回；
+- Fixed: 词表里的两条**死键** —— 存着数据，却没有任何输入能打到它。`e^` 从第二代实现的第一版起就躺在
+  `lib/dict.js` 里（值 `ê`），而词法 `[a-z]+` 永远匹配不到 `^`，所以 `e^2` 一直原样返回；
   现在 `^` 成为 `e` 的可选后缀，这条键有了出口。另一条是 `'ü': 'ü'`，值与 `v` 完全重复、
   同样打不中，已删除（`v` 仍然给 `ü`：`v → ü`、`v1 → ǖ`、`nv3 → nǚ` 均不变）。
   词表因此从 1953 键降到 1952 键，严格模式放行 876、挡掉 1076。
@@ -169,19 +174,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   转换，且键只能是纯小写字母或 `e^`。此前 `test-inline.js` 与 `test-two-spellings.js` 的
   全表扫描都带着 `filter((k) => /^[a-z]+$/.test(k))`，把死键悄悄跳过 —— 断言照旧在跑，
   覆盖面已经少了两条而没有人知道。过滤已删除，现在整表都扫。
-- Fixed (behavior change): v2 的正则没有锚点，任何只被部分匹配的 token 都会被**静默截断**，
+- Fixed (behavior change): 第二代实现的正则没有锚点，任何只被部分匹配的 token 都会被**静默截断**，
   不给任何提示：`ni3hao3 → nǐ`、`Hao3 → ǎo`、`ma6 → ma`、`hua1r → huā`、`a1b2c3 → ā`。
-  现在整串必须完整匹配 `^[a-z]+[0-5]?$` 才会转换，认不全就原样返回（与 v1 一致），
+  现在整串必须完整匹配 `^[a-z]+[0-5]?$` 才会转换，认不全就原样返回（与 2.x 一致），
   不再输出半截结果。同时把 `5` 纳入合法声调——此前的字符类写成 `[01234^]`（`^` 应为 `5` 的
   笔误），导致 `ma5` 被当作 `ma` 处理；`0` / `5` / 缺省均按轻声取词表第 0 项。
   新增 `test/test-regex-anchoring.js`（206 条用例）覆盖截断、大写、标点、连写、非法声调、
   全音节表扫描与随机 fuzz。对既有输出有影响，建议与本次 breaking 同批发布。
-- Fixed: `import ... from 'pinyin-tone/v2'`、`'pinyin-tone/v1'`、`'pinyin-tone/workaround'`
-  在 ESM 下报 `ERR_UNSUPPORTED_DIR_IMPORT`。这是缺少 `exports` 字段导致的既有问题，
-  README 里给出的无扩展名写法此前在 ESM 下一直不可用。
-- Fixed: `v2/index.d.ts` 声明的导出名 `unspacedPinyinSplit` 实际不存在，现更正为
+- Fixed: `import ... from 'pinyin-tone/workaround'` 在 ESM 下报 `ERR_UNSUPPORTED_DIR_IMPORT`。
+  这是缺少 `exports` 字段导致的既有问题，README 里给出的无扩展名写法此前在 ESM 下一直不可用。
+- Fixed: `lib/index.d.ts` 声明的导出名 `unspacedPinyinSplit` 实际不存在，现更正为
   `splitUnspacedSyllables`；其返回类型也从 `string[]` 更正为 `string`。
-- Fixed: `v1/index.d.ts`、`workaround/index.d.ts` 使用 `declare module '...'` 写法，
+- Fixed: `workaround/index.d.ts` 使用 `declare module '...'` 写法，
   导致 TS 报 TS2306（File is not a module），现改为正常的模块导出声明。
 - Fixed: `tsconfig.json` 的 `include` 未覆盖任何 `.d.ts`，类型声明此前不参与 `tsc --noEmit`，
   上面两类错误因此长期未被发现。现已纳入，并新增 `test/fixtures-typescript/exports.ts`
