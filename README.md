@@ -23,11 +23,12 @@ Only the entry points declared in `package.json` → `exports` are supported pub
 | Import path | Provides |
 | --- | --- |
 | `pinyin-tone` | `toPinyinTones` (default), `convertUnspacedPinyin`, `toPinyinTonesInline`, `toPinyinTonesVariants` |
+| `pinyin-tone/v2` | the same module as the root entry — a compatibility alias, not a separate build |
 | `pinyin-tone/v1` | the legacy v1 converter (default), kept for comparison |
 | `pinyin-tone/workaround` | `markSinglePinyinVowel` (default) |
 
-The `.js`-suffixed equivalents (`pinyin-tone/v1/index.js`, `pinyin-tone/workaround/index.js`)
-resolve to the same files and are equally supported.
+The `.js`-suffixed equivalents (`pinyin-tone/v2/index.js`, `pinyin-tone/v1/index.js`,
+`pinyin-tone/workaround/index.js`) resolve to the same files and are equally supported.
 
 **Everything else inside the package is private implementation.** Any other subpath is not
 part of the API — including files you can see in `node_modules`, such as
@@ -39,23 +40,28 @@ fail with `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_MODULE_NOT_FOUND`. The interna
 of the dictionary — how it is split across files, its table shape, its key order — is
 **not** a contract and changes without notice.
 
-**3.0.0 is a breaking change**, in three places:
+**3.0.0 is a breaking change**, in two places:
 
 1. `pinyin-tone` now exports the v2 converter. It used to export v1. On the 13,671 inputs
    formed by every dictionary key × six tones the two disagree on 11.3% — v2 fixes cases where
    v1 dropped letters (`biou1`: v1 gives `biū`, v2 gives `biōu`). If you need the old output,
    import from `pinyin-tone/v1`.
-2. The `pinyin-tone/v2` and `pinyin-tone/v2/index.js` subpaths are gone. The root entry point
-   *is* v2 now, so there is nothing left to disambiguate.
-3. `splitUnspacedSyllables` is no longer exported. It was an internal step of
+2. `splitUnspacedSyllables` is no longer exported. It was an internal step of
    `convertUnspacedPinyin` with no independent use — the converter already accepts unspaced
    input.
 
-**中文说明：** 只有上表列出的三个入口是公开接口，包内其他任何路径（含 `v2/` 目录下的文件）
+The `pinyin-tone/v2` alias survives, so code written against 2.x — where the root entry was
+v1 and v2 had to be imported explicitly — keeps working without an edit. It is simply no
+longer the recommended way to reach v2, because the root entry already is v2. One side
+benefit: `import … from 'pinyin-tone/v2'` used to throw `ERR_UNSUPPORTED_DIR_IMPORT` under
+ESM, since 2.x shipped no `exports` field; the alias in 3.0.0 declares it properly.
+
+**中文说明：** 只有上表列出的四个入口是公开接口，包内其他任何路径（含 `v2/` 目录下的文件）
 都属于私有实现，随时可能被移动、改名或删除。依赖它们会得到**未定义、不可信的结果或直接报错**。
-3.0.0 的三处破坏性变更：根入口从 v1 换成 v2（两者在 13671 个输入上差异 11.3%，需要旧输出请用
-`pinyin-tone/v1`）；`pinyin-tone/v2` 子路径删除（根入口就是它）；`splitUnspacedSyllables`
-不再导出（它是 `convertUnspacedPinyin` 的内部步骤）。
+3.0.0 的两处破坏性变更：根入口从 v1 换成 v2（两者在 13671 个输入上差异 11.3%，需要旧输出请用
+`pinyin-tone/v1`）；`splitUnspacedSyllables` 不再导出（它是 `convertUnspacedPinyin` 的内部步骤）。
+`pinyin-tone/v2` 保留为根入口的别名，按 2.x 写法 `import … from 'pinyin-tone/v2'` 的代码
+无需修改；它只是不再作为「怎么拿到 v2」的推荐写法，因为根入口本身已经是 v2。
 
 ## Usage
 

@@ -16,9 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pinyin-tone/v2`；现在根入口就是 v2，v1 退到 `pinyin-tone/v1`。两者在 13671 个输入
   （词表全键 × 六个声调）上差异 11.3%，全部是 v1 把字母吞掉的旧问题（`biou1`：v1 给 `biū`，
   v2 给 `biōu`）。需要旧输出的调用方改一行 import 即可，其余代码不用动。
-- Breaking: `pinyin-tone/v2` 与 `pinyin-tone/v2/index.js` 两个子路径删除。根入口已经是 v2，
-  保留一个同义的 `/v2` 只会让「该用哪个」这个问题继续存在。升级后这两个路径解析失败
-  （`ERR_PACKAGE_PATH_NOT_EXPORTED`）。
 - Breaking: `splitUnspacedSyllables` 不再是导出。它是 `convertUnspacedPinyin` 的内部一步 ——
   输出是「带空格的音节串」，除了再喂回转换器没有独立用途，而转换器本来就接受连写输入。
   函数本身保留在实现里，只是不再对外。公开导出因此从 5 个收敛到 4 个：
@@ -28,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `import x from 'pinyin-tone/v2/b.js'`，升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
   包内词表不提供任何受支持的访问入口：它的文件划分、表结构、键顺序都是实现细节，会随实现调整而变更。
 - Changed: `package.json` 的 `exports` 字段把公开入口固定为
-  `.`、`./v1`、`./v1/index.js`、`./workaround`、`./workaround/index.js`、`./package.json`。
-  其余子路径将解析失败。
+  `.`、`./v2`、`./v2/index.js`、`./v1`、`./v1/index.js`、`./workaround`、`./workaround/index.js`、
+  `./package.json`。其余子路径将解析失败。
   这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
   `main` / `types` 也一并指向 `v2/index.js` / `v2/index.d.ts`，根目录不再有转发文件。
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
@@ -102,19 +99,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `u:` / `u:1` / `v:` / `v:1` 输出字符本身 `ü` / `ǖ`。
   新增 `test/test-inline.js`（31 条），覆盖混排核心用例、幂等性、边界（英文单词、
   前后紧邻 ASCII 字母、非法声调）、n/l 不受影响、全表逐条与 `toPinyinTones` 对齐。
-- Added: `{ strict: true }` 选项，只认普通话的 **425** 个音节（另加 418 条儿化，由基底决定）。
-  默认仍是宽容的：词表 1953 个键全部放行，包括 `jui`、`juang`、`juei`、`biong` 这类
+- Added: `{ strict: true }` 选项，只认普通话的 **426** 个音节（另加 418 条儿化，由基底决定）。
+  默认仍是宽容的：词表 1952 个键全部放行，包括 `jui`、`juang`、`juei`、`biong` 这类
   「声母 × 韵母」笛卡尔积的产物，`duang`、`biu` 这类非标准但在用的口语音，以及 `vai`
   这种把 `v` 当辅音的写法。`strict` 下它们整串原样（`jui1 → jui1`、`duang1 → duang1`），
   而 `ma1 → mā`、`huar1 → huār` 照常。儿化跟着基底走 —— `huar` 合法是因为 `hua` 合法，
   所以 418 条儿化一条都不用写进表里；`jv`/`jve`/`jvan`/`jvn` 先投影到
   `ju`/`jue`/`juan`/`jun` 再判，两种拼写在严格模式下表现一致（`jv1 → jū`）。
-  全表 1953 键：放行 **875**、挡掉 **1078** —— 后者正是 1110 条笛卡尔积噪声去掉 32 条
-  字面拼写之后的数目，没有一条漏网。四个入口（`toPinyinTones`、`toPinyinTonesInline`、
+  全表 1952 键：放行 **876**、挡掉 **1076** —— 两条死键修好后从 1953 / 875 / 1078 变来
+  （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。四个入口（`toPinyinTones`、`toPinyinTonesInline`、
   `toPinyinTonesVariants`、`convertUnspacedPinyin`）都接受该选项，默认 `false`，
   现有调用方看不到任何变化。
-  新增 `v2/core.js`（425 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
-  加 m/n/hm/hng 四条叹词）与 `test/test-strict.js`（53 条）。
+  新增 `v2/core.js`（426 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
+  加 m/n/hm/hng 四条叹词，再加 `e^` 一条）与 `test/test-strict.js`（53 条）。
 - Added: 叹词音节 `m`、`n`、`ng`、`hm`、`hng` 进词表（`ng` 原有，本次补齐其余四个）。
   它们没有元音，调号标在**最后一个鼻音**上：`m2 → ḿ`、`n2 → ń`、`ng4 → ǹg`、
   `hm2 → hḿ`、`hng1 → hn̄g`。
@@ -130,6 +127,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   一度变成一个孤立的组合符 `̄`，改成数组才对。
 
 ### Changed
+
+- Changed: `pinyin-tone/v2` 与 `pinyin-tone/v2/index.js` 保留为根入口的别名，但不再从 README
+  推荐。根入口已经是 v2、`/v2` 指向同一份文件，删掉它没有任何功能收益；而 2.x 的 README 有
+  三处教用户写 `import … from 'pinyin-tone/v2'`，删了会让这些 import 直接
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`。顺带修好一处旧问题：2.x 没有 `exports` 字段，ESM 下
+  `import 'pinyin-tone/v2'` 实测抛 `ERR_UNSUPPORTED_DIR_IMPORT`（2.4.1 上可复现），现在
+  显式声明后可用，且与根入口是同一个模块实例。
 
 - Changed: `ng` 的四个声调不再原样返回。此前 `ng2` / `ng3` / `ng4` 都输出 `ng` ——
   `markTone` 找不到元音就直接返回基底。现在它和 `m` / `n` / `hm` / `hng` 一样标在鼻音上，
