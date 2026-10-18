@@ -150,27 +150,31 @@ describe('两种拼写：冒号表示 u 上的两点', () => {
         expect(toPinyinTones('u:e1')).to.equal('üē');
     });
 
-    it('冒号落点上没有 ü 可给时原样返回，而同一格裸写照样能转', () => {
-        // 三格的词表值是 v-a-i / v-ü / v-u，第一个 v 都不是 ü。
-        // 冒号要求的是「落点变成 ü」，不是「这个词能不能转」——
-        // 所以同一格裸写有输出、加冒号反而原样。
-        expect(toPinyinTones('vai1')).to.equal('vāi');
-        expect(toPinyinTones('vv1')).to.equal('vǖ');
-        expect(toPinyinTones('vu1')).to.equal('vū');
+    it('冒号落在 v 上、这一格又没把 v 当 ü 时，输出等于裸写', () => {
+        // 三格的词表值是 v-a-i / v-ü / v-u，落点那个 v 是辅音，冒号换不动它。
+        // 冒号不制造「失败」状态：换不动就按这一格本来的拼写输出，
+        // 于是一个 v 上的冒号只是把同一件事又说了一遍 —— vv:1 就是 vv1。
+        expect(toPinyinTones('vai:1')).to.equal(toPinyinTones('vai1'));
+        expect(toPinyinTones('vv:1')).to.equal(toPinyinTones('vv1'));
+        expect(toPinyinTones('vu:1')).to.equal(toPinyinTones('vu1'));
 
-        expect(toPinyinTones('vai:1')).to.equal('vai:1');
-        expect(toPinyinTones('vv:1')).to.equal('vv:1');
-        expect(toPinyinTones('vu:1')).to.equal('vu:1');
+        expect(toPinyinTones('vai:1')).to.equal('vāi');
+        expect(toPinyinTones('vv:1')).to.equal('vǖ');
+        expect(toPinyinTones('vu:1')).to.equal('vū');
     });
 
-    it('值里只剩半个 ü 也不算落点成功（vv 开头八格）', () => {
+    it('值里只剩半个 ü 的八格同样只是裸写的同义词', () => {
         // 这八格的值是 vü / vüe / vüan / vün …：第二个 v 已经转成 ü，
-        // 第一个仍是辅音。守门看的是「输出里还有没有 ASCII v」，
-        // 而不是「里面出现过 ü」，因此它们与 vai 同样原样返回。
+        // 冒号落在第一个 v 上换不动，于是输出与裸写逐字相同。
         const halfDotted = ['vv', 'vve', 'vvan', 'vvn', 'vvr', 'vver', 'vvanr', 'vvnr'];
         for (const key of halfDotted) {
-            expect(toPinyinTones(key + ':1'), key).to.equal(key + ':1');
+            expect(toPinyinTones(key + ':1'), key).to.equal(toPinyinTones(key + '1'));
         }
+
+        // strict 下这些格子本来就不成词，各自逐字原样 ——「原样」保留
+        // 用户写的冒号，与 jui:1 的处理一致，不因为这条规则去掉冒号。
+        expect(toPinyinTones('vv1', {strict: true})).to.equal('vv1');
+        expect(toPinyinTones('vv:1', {strict: true})).to.equal('vv:1');
     });
 
     it('冒号与规范值的差别恰好是两点', () => {
