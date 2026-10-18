@@ -32,6 +32,18 @@ markTones('今天ni3hao3');          // '今天nǐhǎo'
 | --- | --- |
 | `markTones` | `(text, {strict?, skip?}) => string` |
 
+Both options are optional; without them every run that resolves is converted.
+
+| Option | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `strict` | `boolean` | `false` | Convert only the 426 syllables of Standard Mandarin, plus erhua and the literal `jv` spellings |
+| `skip` | `string \| readonly string[]` | none | Keep runs whose text equals an entry verbatim (case-sensitive) |
+
+Anything else is ignored — an unknown field, a `strict` that is not a boolean, a `skip` that is
+not a string or an array — because an option should never change the algorithm by accident.
+
+中文：两个选项都可省略，不写时凡是认得出来的片段都转换。`strict`（默认 `false`）只放行普通话的 426 个音节，外加由基底决定的儿化与字面 `jv` 拼写；`skip` 保持与声明一字不差（区分大小写）的片段原样。其余写法一律当没传 —— 未知字段、非布尔的 `strict`、不是字符串或数组的 `skip` —— 选项不该意外改变算法。
+
 The name says what the call does, not what the package is: it **marks** pinyin you have
 already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese
 characters into pinyin, and does not guess a tone that was not written — `ma` stays `ma`.
@@ -64,11 +76,12 @@ markTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 markTones('今天ni3hao3');     // '今天nǐhǎo' — Chinese is not part of any run
 ```
 
-A digit outside `0`–`5` leaves the run untouched — `ma6` comes back as written because the
-`6` would otherwise be dropped. A run touching an ASCII word character is left alone as
-well, which includes `_`: `ni3_hao3` reads as an identifier, not two syllables.
+A digit outside `0`–`5` is not part of any run, so it sits at a boundary and is never dropped
+(`ma6` comes back as written). Digits count as ASCII word characters, so a run butting against
+one is left alone too: `ni3ma6` stays as written, while `ni3 ma6` converts `ni3` on its own.
+The same applies to `_`: `ni3_hao3` reads as an identifier, not two syllables.
 
-中文：`0`–`5` 之外的数字让整个片段不动（`ma6` 原样，否则那个 `6` 会被吞掉）；紧邻 ASCII 词字符的片段也不动，其中包含下划线：`ni3_hao3` 视作标识符，不是两个音节。
+中文：`0`–`5` 之外的数字不属于任何片段，它自己就是边界，也不会被吞掉（`ma6` 原样）。数字同样算 ASCII 词字符，紧贴数字的片段也不动，所以 `ni3ma6` 整段原样，而 `ni3 ma6` 里 `ni3` 照转。下划线同理：`ni3_hao3` 视作标识符，不是两个音节。
 
 ### Case
 
@@ -89,9 +102,11 @@ syllable (`hAo3`, `HaO3`) is not a spelling the standard defines and is returned
 中文：大小写是拼写的一部分，不是装饰。正词法把大写放在句首、专名首字母，并允许专名全部大写；它自己的全大写例子仍带调号（`BĚIJĪNG`、`LǏ HUÁ`）。三种形态都转换并原样带回：`Zhong1guo2` → `Zhōngguó`、`BEI3JING1` → `BĚIJĪNG`。形态按音节判定，所以 `ZHONG1guo2` → `ZHŌNGguó`；音节内混用（`hAo3`）不是标准里的写法，原样返回。
 
 One consequence: an all-caps Latin token carrying a digit cannot be told apart from pinyin,
-so `A4` becomes `À` and `O2` becomes `Ó`. Lowercase the input first if it is mostly English.
+so `A4` becomes `À`, `O2` becomes `Ó` and `CO2` becomes `CÓ`. Lowercasing the input is one way
+out, but it also flattens the case of names you meant to keep; list the codes instead, as in
+the next section, and everything else keeps its case.
 
-中文：代价是「全大写拉丁串 + 数字」与拼音无法区分，`A4` 会变成 `À`、`O2` 会变成 `Ó`；输入以英文为主时先转小写。
+中文：代价是「全大写拉丁串 + 数字」与拼音无法区分：`A4` → `À`、`O2` → `Ó`、`CO2` → `CÓ`。先转小写是一种办法，但会连专名的大小写一起抹平；更精确的做法是下一节那样把这些码列进 `skip`，其余文本照旧保留大小写。
 
 ### Skipping a class of tokens
 
@@ -114,10 +129,10 @@ here only ever sees one run, so a lookbehind such as `(?<=今天 )` could never 
 `^`/`$` would anchor at the run's ends rather than the text's. Both fail silently, which is
 worse than not being supported at all.
 
-A rule is per run, so it covers every occurrence of that run: one run cannot mean two things
-in the same call. If it does, cut the text and call once per part.
+A rule is per run, so it covers every occurrence of that run: the text `M2 M2` gives `M2 M2`,
+never one of each. If a call needs both outcomes, cut the text and call once per part.
 
-中文：`M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o` 本身就是音节，`M2` 会变成 `Ḿ`），用 `skip` 在选项里说一次要保留哪些片段。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。输入里不写任何标记字符，所以 `C:\Users` 这样的路径、`\texttt` 这样的 LaTeX 命令一字不改（不过 `\ni3` 仍会被标调：对这里来说反斜杠只是普通字符）。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，覆盖该片段的每一次出现：同一个片段在一次调用里只能有一种处置，要区别对待就把文本切开分别调用。
+中文：`M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o` 本身就是音节，`M2` 会变成 `Ḿ`），用 `skip` 在选项里说一次要保留哪些片段。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。输入里不写任何标记字符，所以 `C:\Users` 这样的路径、`\texttt` 这样的 LaTeX 命令一字不改（不过 `\ni3` 仍会被标调：对这里来说反斜杠只是普通字符）。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，覆盖该片段的每一次出现：`M2 M2` 得到 `M2 M2`，不会「保一个转一个」；一次调用里要两种结果就把文本切开分别调用。
 
 ### Spacing is yours
 
@@ -176,10 +191,10 @@ markTones('gu:1');     // 'gǖ'
 There is no option that switches a whole string to the literal spelling, and no entry point
 that returns both — ask per token, and call twice if you need the two forms side by side.
 
-It declines in three cases, returning the token unchanged: no `u`/`v` to carry the dots
-(`ma:1`, `ji:1`); a `u` whose replacement is read as a consonant `v` by that entry, which
-would put a letter you never wrote into the output (`uang:1`, `shui:3`); or a colon that sits
-neither right after its carrier nor at the end of the syllable (`j:van1`, `jva:n1`).
+It declines, returning the token unchanged, when there is no `u`/`v` to carry the dots
+(`ma:1`, `ji:1`), when the `u` it lands on would be replaced by a consonant `v` that entry
+reads as a letter you never wrote (`uang:1`, `shui:3`), or when the colon is in neither legal
+position (already described above: `j:van1`, `jva:n1`).
 
 A colon on a `v` is not a request at all: `v` already is the ASCII spelling of `ü`, so
 `jv:1` is exactly `ju:1`. When that leading `v` is a consonant in the entry, the colon adds
@@ -286,9 +301,10 @@ not two syllables).
 ## Contributing
 
 Bugs and feature requests: [open an issue](https://github.com/mrchenguozheng/pinyin-tone/issues).
-Tests run with `npm test` (mocha + `tsc --noEmit`).
+Tests run with `npm test` (mocha + `tsc --noEmit`); `npm run pack:check` verifies that the
+published tarball still contains exactly `lib/`.
 
-中文：问题与建议请提 issue；测试用 `npm test`。
+中文：问题与建议请提 issue；测试用 `npm test`，`npm run pack:check` 校验打出的包里只含 `lib/`。
 
 ## Changelog
 
@@ -301,7 +317,7 @@ in the repository. It is not shipped in the npm package.
 
 MIT
 
-## About 汉语拼音方案(hàn yǔ pīn yīn fāng àn)
+## About 汉语拼音方案 (hàn yǔ pīn yīn fāng àn)
 
 You can find the official document [汉语拼音方案.pdf] at
 <http://www.moe.gov.cn/jyb_sjzl/ziliao/A19/195802/t19580201_186000.html>

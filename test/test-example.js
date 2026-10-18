@@ -45,6 +45,8 @@ describe('README 示例', () => {
         // 输入里不写标记字符：路径与 LaTeX 一字不改
         expect(markTones('C:\\Users')).to.equal('C:\\Users');
         expect(markTones('\\texttt{ni3}')).to.equal('\\texttt{nǐ}');
+        // 反斜杠对这里只是普通字符：它既不被吃掉，也不保护后面的片段
+        expect(markTones('\\ni3')).to.equal('\\nǐ');
     });
 
     it('Spacing is yours', () => {
