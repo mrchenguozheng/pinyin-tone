@@ -5,7 +5,7 @@
 // 要么原样返回；这边在整段文字里扫，只替换能成词的片段，其余字符逐字保留。
 //
 // 两种标记：
-//   裸写 ju1 / jv1  -> 按 umlaut 选项输出，默认规范形式 jū
+//   裸写 ju1 / jv1  -> 规范形式 jū
 //   ju:1            -> 冒号代表 u 上面那两点，输出 jǖ
 // 冒号只对 ü 真正能出现的声母生效（n/l/j/q/x/y 与零声母 u），其余原样返回。
 import { expect } from 'chai';
@@ -55,20 +55,6 @@ describe('v2 混排：toPinyinTonesInline', () => {
             expect(toPinyinTonesInline('jue2和jve2')).to.equal('jué和jué');
             expect(toPinyinTonesInline('juan1和jvan1')).to.equal('juān和juān');
         });
-
-        it('显式 keep 时裸写也统一成字面形式', () => {
-            expect(toPinyinTonesInline('ju1和jv1', { umlaut: 'keep' })).to.equal('jǖ和jǖ');
-        });
-
-        it('as-written 时各自跟随输入写法', () => {
-            expect(toPinyinTonesInline('ju1和jv1', { umlaut: 'as-written' })).to.equal('jū和jǖ');
-        });
-
-        it('auto 与 omit 等价', () => {
-            const text = 'jv1 jvan1 nv3';
-            expect(toPinyinTonesInline(text, { umlaut: 'auto' }))
-                .to.equal(toPinyinTonesInline(text, { umlaut: 'omit' }));
-        });
     });
 
     describe('冒号：u 上面那两点', () => {
@@ -104,8 +90,9 @@ describe('v2 混排：toPinyinTonesInline', () => {
             expect(toPinyinTonesInline('u:4')).to.equal('ǜ');
         });
 
-        it('优先级高于 umlaut 选项', () => {
-            expect(toPinyinTonesInline('ju:1', { umlaut: 'omit' })).to.equal('jǖ');
+        it('冒号与裸写能在同一段里并排', () => {
+            expect(toPinyinTonesInline('ju1和ju:1')).to.equal('jū和jǖ');
+            expect(toPinyinTonesInline('jv1和ju:1')).to.equal('jū和jǖ');
         });
 
         it('音节里没有 u 时不猜，原样返回', () => {
@@ -125,12 +112,11 @@ describe('v2 混排：toPinyinTonesInline', () => {
     });
 
     describe('n/l 不参与自动投影', () => {
-        it('nv / nu 在各种模式下都保持原意', () => {
-            for (const umlaut of ['auto', 'as-written', 'omit', 'keep']) {
-                expect(toPinyinTonesInline('nv3', { umlaut }), umlaut).to.equal('nǚ');
-                expect(toPinyinTonesInline('nu3', { umlaut }), umlaut).to.equal('nǔ');
-                expect(toPinyinTonesInline('lv4', { umlaut }), umlaut).to.equal('lǜ');
-            }
+        it('nv / nu 保持原意', () => {
+            expect(toPinyinTonesInline('nv3')).to.equal('nǚ');
+            expect(toPinyinTonesInline('nu3')).to.equal('nǔ');
+            expect(toPinyinTonesInline('lv4')).to.equal('lǜ');
+            expect(toPinyinTonesInline('lu4')).to.equal('lù');
         });
     });
 
@@ -200,16 +186,6 @@ describe('v2 混排：toPinyinTonesInline', () => {
                         .to.equal(`前缀${toPinyinTones(input)}后缀`);
                 }
             }
-        });
-    });
-
-    describe('参数校验', () => {
-        it('非法 umlaut 抛 TypeError', () => {
-            expect(() => toPinyinTonesInline('jv1', { umlaut: 'both' })).to.throw(TypeError);
-        });
-
-        it('null 也算非法，只有不传才是默认值', () => {
-            expect(() => toPinyinTonesInline('jv1', { umlaut: null })).to.throw(TypeError);
         });
     });
 });

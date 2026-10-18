@@ -25,8 +25,6 @@ const UMLAUT_HEADS = 'jqxy';
 // juang/jueng 这类笛卡尔积产生的假音节，前缀匹配会把它们误转成 jüí/jüá。
 const UMLAUT_FINALS = new Set(['u', 'ue', 'uan', 'un', 'ur', 'uer', 'uanr', 'unr']);
 
-const UMLAUT_STYLES = new Set(['auto', 'keep', 'omit', 'as-written']);
-
 /**
  * 字面写法 -> 规范写法（jv -> ju）。仅在白名单内生效。
  * @param {string} abbr
@@ -54,39 +52,19 @@ function toLiteralSpelling(abbr) {
 }
 
 /**
- * 按 umlaut 选项决定查表用哪个键。
- *   auto（默认）/ omit : 输出规范形式，j/q/x/y 后的 ü 一律省两点（jū）
- *   keep              : 输出字面形式，一律保留两点（jǖ）
- *   as-written        : 跟随这一处输入的写法，jv 得 jǖ、ju 得 jū
- * 默认必须是规范形式：省两点是国标要求，`jǖ` 只有明确要字面写法时才该出现。
- * auto 与 omit 等价，保留 auto 只是让「不传参数」有个名字。
- * as-written 用于同一段文字里并排展示两种写法的场景，风格按 token 各自决定，
- * 而不是整段统一 —— 这是它和另外三种的本质区别。
+ * 查表取某个音节的五个声调。先按请求的拼写查，查不到再用另一种拼写兜底：
+ * j/q/x/y 后的 ü 在词表里两种键都有，投影是安全的；兜底则是为了将来
+ * 清掉冗余的 jv 键时不至于让字面形式直接失效。
  * @param {string} abbr
- * @param {'auto'|'keep'|'omit'|'as-written'} style
- * @returns {string}
- */
-function resolveSpelling(abbr, style) {
-    if (style === 'as-written') return abbr;
-    if (style === 'keep') return toLiteralSpelling(abbr);
-    return toCanonicalSpelling(abbr);
-}
-
-/**
- * 按风格优先取某个键，其余拼写作为兜底。
- * 兜底是为了将来清掉冗余的 jv 键时不至于让 keep / as-written 直接失效。
- * @param {string} abbr
- * @param {'auto'|'keep'|'omit'|'as-written'} style
+ * @param {boolean} literal true 取字面拼写（jǖ），false 取规范拼写（jū）
  * @returns {string[]|undefined}
  */
-function lookupSyllables(abbr, style) {
-    const candidates = style === 'as-written'
-        ? [abbr, toCanonicalSpelling(abbr), toLiteralSpelling(abbr)]
-        : style === 'keep'
-            ? [toLiteralSpelling(abbr), toCanonicalSpelling(abbr)]
-            : [toCanonicalSpelling(abbr), toLiteralSpelling(abbr)];
+function lookupSyllables(abbr, literal) {
+    const keys = literal
+        ? [toLiteralSpelling(abbr), toCanonicalSpelling(abbr)]
+        : [toCanonicalSpelling(abbr), toLiteralSpelling(abbr)];
 
-    for (const key of candidates) {
+    for (const key of keys) {
         const syllables = pinyin_dict_v2[key];
         if (syllables) return syllables;
     }
@@ -102,27 +80,17 @@ function toneIndex(num) {
     return num === '' || num === '0' || num === '5' ? 0 : Number(num);
 }
 
-function normalizeOptions(options) {
-    const raw = options?.umlaut;
-    // 只有 undefined 表示「没传」，null 也算显式给了一个非法值
-    const style = raw === undefined ? 'auto' : raw;
-    if (!UMLAUT_STYLES.has(style)) {
-        throw new TypeError(
-            `umlaut must be one of ${[...UMLAUT_STYLES].map((s) => `'${s}'`).join(', ')}, got ${JSON.stringify(style)}`
-        );
-    }
-    return style;
-}
-
 /**
  * 查表并取对应声调。不成词时返回 null，由调用方决定回退成什么。
+ * 默认输出规范拼写：j/q/x/y 后的 ü 一律省两点（jv1 -> jū），
+ * 这是《汉语拼音方案》的要求，字面拼写（jǖ）只在写了冒号时出现。
  * @param {string} abc
  * @param {string} num
- * @param {'auto'|'keep'|'omit'|'as-written'} style
+ * @param {boolean} literal
  * @returns {string|null}
  */
-function renderSyllable(abc, num, style) {
-    const syllables = lookupSyllables(abc, style);
+function renderSyllable(abc, num, literal) {
+    const syllables = lookupSyllables(abc, literal);
     if (!syllables) return null;
     return syllables[toneIndex(num)] ?? null;
 }
@@ -154,39 +122,48 @@ function dottedKey(abc) {
 }
 
 /**
- * 冒号标记优先于 umlaut 选项：写了 ju:1 就是要 jǖ，不管默认是哪种风格。
+ * 冒号标记优先于默认拼写：写了 ju:1 就是要 jǖ，与上下文无关。
  * @param {string} abc
  * @param {string} mark
  * @param {string} num
- * @param {'auto'|'keep'|'omit'|'as-written'} style
+ * @param {boolean} literal
  * @returns {string|null}
  */
-function renderToken(abc, mark, num, style) {
-    if (mark !== ':') return renderSyllable(abc, num, style);
+function renderToken(abc, mark, num, literal) {
+    if (mark !== ':') return renderSyllable(abc, num, literal);
 
     const key = dottedKey(abc);
-    return key ? renderSyllable(key, num, 'keep') : null;
+    return key ? renderSyllable(key, num, true) : null;
 }
 
 /**
+ * 按空格切分后逐 token 转换。literal 只在 toPinyinTonesVariants 内部使用，
+ * 公开入口固定走规范拼写。
  * @param {string} longString
- * @param {{ umlaut?: 'auto'|'keep'|'omit'|'as-written' }} [options]
- * @return {string}
+ * @param {boolean} literal
+ * @returns {string}
  */
-function toPinyinTones(longString, options) {
-    const style = normalizeOptions(options);
+function convertTokens(longString, literal) {
     const stringArray = longString.trim().split(' ');
 
     return stringArray.map((str) => {
         const match = regex.exec(str);
 
-        // 不是完整的拼音串（大写、标点、多音节连写、非法声调）-> 原样返回，与 v1 行为一致
+        // 不是完整的拼音串（大写、标点、多音节连写、非法声调）-> 原样返回
         if (!match) {
             return str; // is NOT pinyin
         }
 
-        return renderToken(match.groups.abc, match.groups.mark, match.groups.num, style) ?? str;
+        return renderToken(match.groups.abc, match.groups.mark, match.groups.num, literal) ?? str;
     }).join(' ');
+}
+
+/**
+ * @param {string} longString
+ * @return {string}
+ */
+function toPinyinTones(longString) {
+    return convertTokens(longString, false);
 }
 
 /**
@@ -199,19 +176,16 @@ const inlineToken = /(?<![A-Za-z0-9_])([a-z]+)(:?)([0-5]?)(?![A-Za-z0-9_])/g;
  * 转换中文与拼音混排的整句：只替换其中的拼音片段，其余字符逐字保留。
  * 与 toPinyinTones 的区别是分词方式 —— 这里不按空格切，而是在整段里扫。
  *
- * 裸写（ju1 / jv1）按 umlaut 选项输出，默认规范形式 jū；
+ * 裸写（ju1 / jv1）输出规范拼写 jū；
  * 在 u 后面加一个英文冒号（ju:1）表示这个 u 带两点，输出 jǖ。
  * 冒号就是 ü 上面那两点，整段输入因此可以全部用美式键盘敲出。
  * @param {string} text
- * @param {{ umlaut?: 'auto'|'keep'|'omit'|'as-written' }} [options]
  * @returns {string}
  */
-function toPinyinTonesInline(text, options) {
-    const style = normalizeOptions(options);
-
+function toPinyinTonesInline(text) {
     return text.replace(inlineToken, (whole, abc, mark, num) => {
         // 不成词（单独的 j、英文单词）-> 原样保留
-        return renderToken(abc, mark, num, style) ?? whole;
+        return renderToken(abc, mark, num, false) ?? whole;
     });
 }
 
@@ -230,23 +204,23 @@ function splitUnspacedSyllables(text){
 /**
  * output pinyin string without space like "hànyǔpīnyīn"
  * @param {string} unspacedSyllables unspaced pinyin string like "han4yu3pin1yin1"
- * @param {{ umlaut?: 'auto'|'keep'|'omit' }} [options]
  * @returns {string}
  */
-function convertUnspacedPinyin(unspacedSyllables, options){
-    return toPinyinTones(splitUnspacedSyllables(unspacedSyllables), options).split(' ').join('')
+function convertUnspacedPinyin(unspacedSyllables){
+    return toPinyinTones(splitUnspacedSyllables(unspacedSyllables)).split(' ').join('')
 }
 
 /**
  * 同时给出同一输入的规范形式与字面形式。
  * 只有 j/q/x/y 后的 ü 会不同，n/l 两边一样（nǚ / lǜ 在两种形式下都保留两点）。
+ * 这是为了批量比对两种拼写，不是可选项 —— 单次转换一律给规范形式。
  * @param {string} longString
  * @returns {{ canonical: string, literal: string }}
  */
 function toPinyinTonesVariants(longString) {
     return {
-        canonical: toPinyinTones(longString, { umlaut: 'omit' }),
-        literal: toPinyinTones(longString, { umlaut: 'keep' }),
+        canonical: convertTokens(longString, false),
+        literal: convertTokens(longString, true),
     };
 }
 

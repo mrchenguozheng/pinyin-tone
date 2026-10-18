@@ -23,7 +23,7 @@ Only the entry points declared in `package.json` → `exports` are supported pub
 | Import path | Provides |
 | --- | --- |
 | `pinyin-tone` | v1 converter (default) plus named `v2` and `markSinglePinyinVowel` |
-| `pinyin-tone/v2` | v2 converter (default), `splitUnspacedSyllables`, `convertUnspacedPinyin` |
+| `pinyin-tone/v2` | v2 converter (default), `splitUnspacedSyllables`, `convertUnspacedPinyin`, `toPinyinTonesInline`, `toPinyinTonesVariants` |
 | `pinyin-tone/v1` | v1 converter (default) |
 | `pinyin-tone/workaround` | `markSinglePinyinVowel` (default) |
 
@@ -98,24 +98,28 @@ token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
 `convertUnspacedPinyin` if you need to handle unspaced input.
 
 **Two spellings for `ü` after `j`/`q`/`x`/`y`.** Both the standard form (`ju`, `jue`, `juan`,
-`jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is
-**standard by default**; pass `umlaut: 'keep'` to get the literal form instead:
+`jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is always
+the **standard** form — after `j`/`q`/`x`/`y` the *Scheme for the Chinese Phonetic Alphabet*
+requires dropping the diaeresis:
 
 ```javascript
 import toPinyinTones from 'pinyin-tone/v2';
 
-toPinyinTones('jv1');                       // 'jū'  — default: standard spelling
-toPinyinTones('ju1');                       // 'jū'  — default: standard spelling
-toPinyinTones('jv1', { umlaut: 'keep' });   // 'jǖ'  — literal: keeps the diaeresis
-toPinyinTones('ju1', { umlaut: 'omit' });   // 'jū'  — explicit standard (same as default)
+toPinyinTones('jv1');   // 'jū'  — literal input, standard output
+toPinyinTones('ju1');   // 'jū'  — standard input, standard output
 ```
 
-`umlaut` defaults to `'auto'`, which is equivalent to `'omit'`: after `j`/`q`/`x`/`y` the
-diaeresis is omitted, as required by the *Scheme for the Chinese Phonetic Alphabet*. The option
-only affects `j`/`q`/`x`/`y`: after `n`/`l` the diaeresis is kept in every mode (`nǚ`, `lǜ`),
-because there `u` and `ü` are distinct sounds (`nǔ` 努 vs `nǚ` 女).
+To keep the diaeresis at one particular place, write a colon after the `u`. The colon is the
+two dots themselves:
 
-To get both spellings in one call:
+```javascript
+toPinyinTones('ju1 ju:1');   // 'jū jǖ'   — both spellings in one line
+toPinyinTones('juan:1');     // 'jüān'
+```
+
+There is no option that switches a whole string to the literal spelling — the colon marks one
+token, which is what makes `'jū jǖ'` writable in a single call. If you need both forms of a
+longer text, use `toPinyinTonesVariants`:
 
 ```javascript
 import { toPinyinTonesVariants } from 'pinyin-tone/v2';
@@ -123,6 +127,21 @@ import { toPinyinTonesVariants } from 'pinyin-tone/v2';
 toPinyinTonesVariants('jv1 nv3');
 // -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
 ```
+
+The colon only applies where `ü` can actually occur (`n`, `l`, `j`, `q`, `x`, `y`, and the bare
+`u:` for the character itself), and only to the canonical spelling that contains a `u`:
+`gu:1`, `shui:3`, `ji:1` and `jv:1` are returned unchanged rather than turned into syllables
+that do not exist.
+
+`n`/`l` never take part in this projection: there `u` and `ü` are distinct sounds, so `nv3` is
+`nǚ` and `nu3` is `nǔ` — the spelling you type is the sound you get. `nu:3` also gives `nǚ`, but
+that is an explicit request for the diaeresis rather than a projection.
+
+> `jǖ` is not a second *valid* spelling — GB/T 16159 and the *Scheme for the Chinese Phonetic
+> Alphabet* require omitting the diaeresis after `j`/`q`/`x`. This package can still render the
+> literal form because it is also used to show how the two spellings differ, and because `jv`
+> is the ASCII input convention for `ü`. In normal output you should never see `jǖ` unless you
+> asked for it with `:`.
 
 ### Mixing pinyin into Chinese text
 
@@ -143,17 +162,8 @@ after the `u`: `ju:1` gives `jǖ`, `juan:1` gives `jüān`, `jun:4` gives `jǜn`
 for the two dots above `ü`, so the whole sentence can be typed on a US keyboard — every
 non-ASCII character is produced by the converter, none has to be typed.
 
-A colon only takes effect where `ü` can actually occur (`n`, `l`, `j`, `q`, `x`, `y`, and the
-bare `u:` for the character itself). `gu:1`, `shui:3` and `ji:1` are returned unchanged rather
-than turned into syllables that do not exist. It also wins over the `umlaut` option.
-
-> Before this change `jv1` produced `jǖ`. That was a non-standard spelling leaking through as the
-> default; it is now opt-in via `{ umlaut: 'keep' }` or the `ju:1` notation.
-
-> `jǖ` is not a second *valid* spelling — GB/T 16159 and the *Scheme for the Chinese Phonetic
-> Alphabet* require omitting the diaeresis after `j`/`q`/`x`. It is kept because this package is
-> also used to render the literal form, and because `jv` is the ASCII input convention for `ü`.
-> Prefer `'omit'` unless you specifically need the literal form.
+Note that the bare `ju` in that sentence stays `ju`: it is not a syllable with a tone number, so
+it is left as written. Add a tone number (`ju1`) if you want it converted.
 
 ```javascript
 // CommonJS usage (up to version 2.2.7)
