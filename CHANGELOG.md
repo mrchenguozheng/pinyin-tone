@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `test/support/dict-values.js`（另写一套标调实现），以及全表的字母守恒、幂等、数量不变量。
 - Breaking: `splitUnspacedSyllables` 与 `convertUnspacedPinyin` 一起删除，实现也不再保留。
   前者是后者的内部一步（把连写串按声调数字补上空格再喂回转换器），没有独立用途 ——
-  连写输入 `toPinyinTones` 本来就接受；后者的「把输出粘起来」在调用方是一行
+  连写输入 `toToneMarks` 本来就接受；后者的「把输出粘起来」在调用方是一行
   `.replace(/ /g, '')`。随之一并消失的是它独有的「部分转换」行为：`hanyu3pin1yin1`
   以前得到 `hanyu3pīnyīn`（认得的段照转、`hanyu` 原样），现在按全或无的同一规则整串原样。
 - Breaking: `toPinyinTonesVariants` 删除。它一次返回 `{canonical, literal}`，是唯一返回
@@ -34,13 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   收回成 token 自带的写法。
 - Breaking: `pinyin-tone/workaround` 子路径删除，连同 `markSinglePinyinVowel`。
   它是 2.x 的单字母查表（`a` / `o` / `e` / `i` / `u` / `v` × 无数字或 `0`–`4`，共 36 个输入），
-  这 36 个输入 `toPinyinTones` 逐个给出同样的字符，且后者还多认 `a5` / `e5` / `v5`
+  这 36 个输入 `toToneMarks` 逐个给出同样的字符，且后者还多认 `a5` / `e5` / `v5`
   （旧表越界返回原串，转换器给 `a` / `e` / `ü`）。`workaround/` 目录、`exports` 里两条映射、
   `files` 白名单、`pack:check` 的必需项同步删除。
-- Breaking: 公开面由此收敛为两个函数 —— `toPinyinTones`（默认）与 `toPinyinTonesInline`。
+- Breaking: 公开面由此收敛为两个函数 —— `toToneMarks`（默认）与 `toToneMarksInText`。
   删除前后对这两个入口做了 54968 次逐条对拍：全表 1952 键 × 7 种声调写法（无数字、
   `0`–`5`）× 裸写/冒号 × 严格模式开关，加上连写、标点、大小写、汉字混排、非法输入与
   边界空串，输出零差异。也就是说这一轮只删了入口，没动转换结果。
+- Breaking: 两个入口改名 —— `toPinyinTones` → `toToneMarks`，`toPinyinTonesInline` →
+  `toToneMarksInText`，公开类型 `PinyinTonesOptions` → `ToneMarksOptions`。
+  旧名两头不靠：两个函数都不做汉字转拼音（生态里裸叫 `pinyin()` 的库一律指那个方向），
+  `Tones` 是名词、没说什么动作，`Inline` 又是排版术语。新名是动宾结构，说的是产出 ——
+  给已经用 ASCII 写出来的拼音标上调号。3.0.0 从未发布，因此不留别名，2.x 的调用方改 import 即可。
 - Removed: 2.x 里 `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js`
   等）合并为单文件 `lib/dict.js`，不再按声母拆分。这些文件从未出现在 README / CHANGELOG 中，
   也不构成有语义的公开接口；如果之前绕过文档直接 `import x from 'pinyin-tone/v2/b.js'`，
@@ -71,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （此前这类输入整串原样返回，标点紧贴时连合法音节也不转）。token 内部的 `\n` / `\t`
   同样当边界。两道闸仍然挡住不该转的东西：任一音节认不出来就整串原样（`a1b2c3`、
   `ni3b2hao3`）、没有声调数字可切的地方不猜（`hanyu3pin1yin1` 里的 `hanyu`）。
-  大写字母、非法声调、汉字混排仍整串不动。`toPinyinTonesInline` 同步支持连写
+  大写字母、非法声调、汉字混排仍整串不动。`toToneMarksInText` 同步支持连写
   （`今天ni3hao3 → 今天nǐhǎo`），粘在英文单词旁的片段依旧不动（`abcju1`、`ju1abc`、
   `abc_ju1`）。
   新增 `test/test-segmentation.js`（30 条）：连写 × 标点 × 边界 × 混排，并对 17 个音节
@@ -97,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （`e^2e^4 → ếề`、`ni3e^2 → nǐế`），`{strict: true}` 也认它 —— `ê` 是《汉语拼音方案》
   里的一个韵母，不是 `e` 的变体。
 
-- Added: `toPinyinTones` 与 `toPinyinTonesInline` 支持**冒号标记**：在 `u` 后写一个英文冒号
+- Added: `toToneMarks` 与 `toToneMarksInText` 支持**冒号标记**：在 `u` 后写一个英文冒号
   表示这个 `u` 带两点，输出字面形式 —— `ju:1 → jǖ`、`juan:1 → jüān`、`jun:4 → jǜn`、
   `u: → ü`。冒号就是 `ü` 上面那两点，于是同一行里可以并排写出两种拼写
   （`ju1 ju:1 → jū jǖ`），而不需要给整串设一个开关；整段输入也就能全部用美式键盘敲出。
@@ -116,14 +121,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   新增 `test/test-two-spellings.js`，用「换查表键」与「字符级替换」两套独立实现交叉验证
   32 个白名单音节 × 5 个声调，并对全表逐条断言投影不越界（假音节 `jui`/`jua`/`juo` 等
   80 条、`n`/`l` 的 16 条必须保持不变）。
-- Added: `toPinyinTonesInline(text)` 转换**中文与拼音混排**的整句：不按空格切分，
-  而是在整段里扫，只替换能成词的拼音片段，其余字符逐字保留。`toPinyinTones` 遇到
+- Added: `toToneMarksInText(text)` 转换**中文与拼音混排**的整句：不按空格切分，
+  而是在整段里扫，只替换能成词的拼音片段，其余字符逐字保留。`toToneMarks` 遇到
   `ju是规范写法` 这类粘连会整串原样返回，混排场景需要用它。
   裸写 `ju1` / `jv1` 输出规范形式 `jū`；`ju:1` 用英文冒号表示那个 `u` 上面的两点，输出
   字面形式 `jǖ`（`juan:1 → jüān`、`jun:4 → jǜn`），`jv:1` 取的是同一种写法；
   `u:` / `u:1` / `v:` / `v:1` 输出字符本身 `ü` / `ǖ`。
   新增 `test/test-inline.js`（31 条），覆盖混排核心用例、幂等性、边界（英文单词、
-  前后紧邻 ASCII 字母、非法声调）、n/l 不受影响、全表逐条与 `toPinyinTones` 对齐。
+  前后紧邻 ASCII 字母、非法声调）、n/l 不受影响、全表逐条与 `toToneMarks` 对齐。
 - Added: `{ strict: true }` 选项，只认普通话的 **426** 个音节（另加 418 条儿化，由基底决定）。
   默认仍是宽容的：词表 1952 个键全部放行，包括 `jui`、`juang`、`juei`、`biong` 这类
   「声母 × 韵母」笛卡尔积的产物，`duang`、`biu` 这类非标准但在用的口语音，以及 `vai`
@@ -132,8 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   所以 418 条儿化一条都不用写进表里；`jv`/`jve`/`jvan`/`jvn` 先投影到
   `ju`/`jue`/`juan`/`jun` 再判，两种拼写在严格模式下表现一致（`jv1 → jū`）。
   全表 1952 键：放行 **876**、挡掉 **1076** —— 两条死键修好后从 1953 / 875 / 1078 变来
-  （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。两个入口（`toPinyinTones`、
-  `toPinyinTonesInline`）都接受该选项，默认 `false`，现有调用方看不到任何变化。
+  （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。两个入口（`toToneMarks`、
+  `toToneMarksInText`）都接受该选项，默认 `false`，现有调用方看不到任何变化。
   新增 `lib/core.js`（426 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
   加 m/n/hm/hng 四条叹词，再加 `e^` 一条）与 `test/test-strict.js`（53 条）。
 - Added: 叹词音节 `m`、`n`、`ng`、`hm`、`hng` 进词表（`ng` 原有，本次补齐其余四个）。
@@ -174,7 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   存 1 条 + 一条规则与存 5 条预生成字符串逐条等价 —— 已对全表逐键 × 5 个声调断言 0 差异，
   另有逐键 × 7 种输入形态（含冒号）的完整比对。
   `lib/dict.js` 由 110,310 字节降到 38,732 字节（gzip 31,120 → 10,638），公开行为不变：
-  `toPinyinTones` 与 `toPinyinTonesInline` 的输出逐条相同（当时一并存在的另外两个入口，
+  `toToneMarks` 与 `toToneMarksInText` 的输出逐条相同（当时一并存在的另外两个入口，
   已在发布前删除，见上方 Breaking）。
   值仍逐键写出，不做「键把 `v` 换成 `ü`」的推导：74 个键的 `v` 是辅音字母（`va`、`vai`、
   `vong`、`vv`），派生会让它们变成 `üā` 这类不存在的音节；另一个例外是 `e^ → ê`。
@@ -184,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Refactor: 51 个分词表合并为单文件 `lib/dict.js`（1949 条），`lib/index.js` 由
   51 行 import + `Object.assign` 改为一行默认导入。键的插入顺序、每条 5 个声调值、
-  43 处重复键的最终取值均与合并前逐字节一致，`toPinyinTones` 行为无变化。
+  43 处重复键的最终取值均与合并前逐字节一致，`toToneMarks` 行为无变化。
 
 ### Fixed
 
