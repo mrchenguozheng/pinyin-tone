@@ -111,33 +111,32 @@ the output carries no marker, so a second pass would convert `M2` after all.
 ### Skipping a class of tokens
 
 The backslash is per occurrence. When the same shapes keep coming up — `M2`, `A4`, `O2` —
-say it once in the options instead. `skip` takes three forms:
+say it once in the options instead:
 
 ```javascript
-markTones('M2 货币供应量 hao3', {skip: 'M2'});         // 'M2 货币供应量 hǎo'
-markTones('M2 A4 N3', {skip: ['M2', 'A4']});           // 'M2 A4 Ň'
-markTones('M2 A4 N3 BEI3JING1', {skip: (run) => /^[A-Z]\d$/.test(run)}); // 'M2 A4 N3 BĚIJĪNG'
-markTones('M2 hao3 M2', {skip: (run, {before}) => before === ''}); // 'M2 hǎo Ḿ'
+markTones('M2 货币供应量 hao3', {skip: 'M2'});   // 'M2 货币供应量 hǎo'
+markTones('M2 A4 N3', {skip: ['M2', 'A4']});     // 'M2 A4 Ň'
 ```
 
-A string or an array compares the whole run, case-sensitively — every occurrence of that
-token is kept, which is the form that can overreach. A function is asked about one run and
-gets `{offset, before, after, text}`, which is how a rule is narrowed down to one occurrence:
+A string or an array compares the whole run, case-sensitively: `'M2'` cannot touch `M20`
+(a different run) or `m2` (a different string). That is the entire rule — no patterns, no
+predicates. A `RegExp` is deliberately not accepted: a regex reads as "search the text",
+while a rule here only ever sees one run, so a lookbehind such as `(?<=今天 )` could never
+match and `^`/`$` would anchor at the run's ends rather than the text's. Both fail silently,
+which is worse than not being supported at all.
+
+The rule works on runs, so it covers every occurrence of that run. To keep one occurrence and
+convert another, go the other way round — drop the rule and put the backslash where you want
+the escape:
 
 ```javascript
-const at = new Set([...text.matchAll(/M2/g)].map((m) => m.index));
-markTones(text, {skip: (run, {offset}) => at.has(offset)});
+markTones('M2 hao3 M2', {skip: 'M2'});   // 'M2 hǎo M2'  — the rule keeps both
+markTones('\\M2 hao3 M2');               // 'M2 hǎo Ḿ'   — only the first one
 ```
 
-A `RegExp` is deliberately not accepted. A regex reads as "search the text", but a rule here
-only ever sees one run: a lookbehind such as `(?<=今天 )` can never match, `^` and `$` anchor
-at the run's ends rather than the text's, and `g`/`y` have no iteration to be stateful about.
-Each of those fails silently, so patterns go inside the predicate instead —
-`(run) => /^[A-Z]\d$/.test(run)` — where the scope is explicit. Rules are only asked about
-runs that would otherwise convert. A backslash still wins: `\M2` comes out as `M2` even when
-`skip` matches it too.
+A backslash still wins over `skip`: `\M2` comes out as `M2` even when `skip` matches it too.
 
-中文：反斜杠管的是「这一次出现」，同一类形状反复出现时（`M2`、`A4`、`O2`）改在选项里说一次。`skip` 只有三种写法：字符串、字符串数组、函数。字符串与数组比的是整个片段、区分大小写，同一个 token 的所有出现都不转 —— 这正是会误伤的形态；函数对单个片段询问，拿到 `{offset, before, after, text}`，要收窄到某一次出现就用它的 `offset`（先用 `matchAll` 算出下标）。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，`g`/`y` 的有状态迭代也无从谈起，三件事都会静默失效；要按模式判断就写进谓词 `(run) => /^[A-Z]\d$/.test(run)`，作用域是明的。规则只对本来会转换的片段询问；行内反斜杠优先于它 —— 即使 `skip` 也匹配，`\M2` 仍输出 `M2`。
+中文：反斜杠管的是「这一次出现」，同一类形状反复出现时（`M2`、`A4`、`O2`）改在选项里说一次。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，自然覆盖该片段的每一次出现；**只想保住其中一处就把方向反过来** —— 不写规则，改在那一处前面加反斜杠（上面两行示例结果一样）。行内反斜杠优先于 `skip`：即使 `skip` 也匹配，`\M2` 仍输出 `M2`。
 
 ### Spacing is yours
 
