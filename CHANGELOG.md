@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 2026-10-18
 
 - Fixed: the published package no longer contains `CONTRIBUTORS.svg` (455 kB, over three quarters of the tarball) or `tsconfig.json`. A `files` whitelist in package.json now decides what gets packed: tarball 386 kB -> 43 kB, unpacked 596 kB -> 141 kB, 66 -> 63 files. No runtime change.
+- Changed: the contributors image is no longer committed back to the repository. The workflow generates it with `noCommit` and publishes it to GitHub Pages; README uses the Pages URL.
 
 ## v2.4.0
 
