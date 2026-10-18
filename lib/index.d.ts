@@ -1,5 +1,35 @@
 // lib/index.d.ts
 
+/** `skip` 用函数写法时拿到的上下文：这一段在原文里的位置与前后字符。 */
+export interface SkipContext {
+    /** 片段在原文里的起始下标（片段前面写了转义时，是反斜杠之后那一位）。 */
+    offset: number;
+    /** 片段前一个字符；片段在开头时是空串。 */
+    before: string;
+    /** 片段后一个字符；片段在结尾时是空串。 */
+    after: string;
+    /** 传进来的整段原文。 */
+    text: string;
+}
+
+/**
+ * 哪些片段保持原样。四种写法：
+ *
+ * - 字符串：这个片段永远别转
+ * - 字符串数组：同上，一组
+ * - 正则：对片段文本做 `test`，`g` / `y` 会被忽略
+ * - 函数：返回 `true` 时保持原样，能看位置与前后字符
+ *
+ * 字符串与数组只比片段文本，同一个 token 的所有出现都不转；要收窄到某一次出现，
+ * 用函数的 `offset`，或用 `text.matchAll` 先算出下标。正则只看片段自己 ——
+ * `^` / `$` 锚在片段两端，看不到前后的字符，按上下文判断得用函数。
+ */
+export type SkipSpec =
+    | string
+    | readonly string[]
+    | RegExp
+    | ((run: string, context: SkipContext) => boolean);
+
 export interface MarkTonesOptions {
     /**
      * 只认普通话的 426 个音节，另有 418 条儿化由基底决定。
@@ -12,6 +42,23 @@ export interface MarkTonesOptions {
      * 儿化跟着基底走：`huar` 合法是因为 `hua` 合法。
      */
     strict?: boolean;
+
+    /**
+     * 保持原样的片段。不写这个字段时一切照转。
+     *
+     * `M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o`
+     * 本身就是音节），成批跳过比逐处写反斜杠省事：
+     *
+     * ```js
+     * markTones('M2 货币供应量', {skip: 'M2'});            // 'M2 货币供应量'
+     * markTones('M2 A4 N3', {skip: /^[A-Z]\d$/});          // 'M2 A4 N3'
+     * markTones(text, {skip: (run, {before}) => before === ''});  // 只跳过行首
+     * ```
+     *
+     * 只对本来会转换的片段询问；转了也是原样的片段不会问。
+     * 行内反斜杠优先于这里：`\M2` 与 `skip: 'M2'` 同时生效时输出 `M2`。
+     */
+    skip?: SkipSpec;
 }
 
 /**
@@ -34,6 +81,7 @@ export interface MarkTonesOptions {
  * 不想转的片段在它前面写一个反斜杠：`hao3 \M2 货币供应量` ->
  * `hǎo M2 货币供应量`，只影响紧跟的那一段。反斜杠只在真的挡住一次转换时
  * 消失（`C:\Users` 原样），且转义一次性 —— 输出里不留标记。
+ * 同一类片段反复出现时改用 `skip` 选项，不必逐处写反斜杠（见该选项）。
  *
  * `j`/`q`/`x`/`y` 与 `ü` 相拼时按《汉语拼音方案》省两点，因此输出恒为规范形式：
  * `jv1` 与 `ju1` 都得到 `jū`。要某处保留两点，就写一个英文冒号，位置只有两个：

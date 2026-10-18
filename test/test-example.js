@@ -37,6 +37,24 @@ describe('README 示例', () => {
         expect(markTones('O2')).to.equal('Ó');
     });
 
+    it('Opting out', () => {
+        expect(markTones('hao3 \\M2 货币供应量')).to.equal('hǎo M2 货币供应量');
+        // 只是含反斜杠、后面那段本来就不转的，反斜杠原样留着
+        expect(markTones('C:\\Users')).to.equal('C:\\Users');
+        expect(markTones('\\texttt{ni3}')).to.equal('\\texttt{nǐ}');
+        // 一次性：输出不留标记，再跑一遍会转
+        expect(markTones(markTones('\\M2'))).to.equal('Ḿ');
+    });
+
+    it('Skipping a class of tokens', () => {
+        expect(markTones('M2 货币供应量 hao3', {skip: 'M2'})).to.equal('M2 货币供应量 hǎo');
+        expect(markTones('M2 A4 N3', {skip: ['M2', 'A4']})).to.equal('M2 A4 Ň');
+        expect(markTones('M2 A4 N3 BEI3JING1', {skip: /^[A-Z]\d$/})).to.equal('M2 A4 N3 BĚIJĪNG');
+        expect(markTones('M2 hao3 M2', {skip: (run, {before}) => before === ''})).to.equal('M2 hǎo Ḿ');
+        // 正文末句：skip 也匹配时，反斜杠仍然优先
+        expect(markTones('\\M2', {skip: 'M2'})).to.equal('M2');
+    });
+
     it('Spacing is yours', () => {
         expect(markTones('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
         expect(markTones('han4 yu3  pin1   yin1')).to.equal('hàn yǔ  pīn   yīn');

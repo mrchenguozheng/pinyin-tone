@@ -30,7 +30,7 @@ markTones('今天ni3hao3');          // '今天nǐhǎo'
 
 | Export | Signature |
 | --- | --- |
-| `markTones` | `(text, {strict?}) => string` |
+| `markTones` | `(text, {strict?, skip?}) => string` |
 
 The name says what the call does, not what the package is: it **marks** pinyin you have
 already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese
@@ -107,6 +107,34 @@ contains backslashes (`C:\Users`, `\texttt`) comes back unchanged. The escape is
 the output carries no marker, so a second pass would convert `M2` after all.
 
 中文：片段前紧邻的反斜杠让这一段原样，且只影响这一段 —— 同一句里其余片段照转（`hao3 \M2 货币供应量` → `hǎo M2 货币供应量`）。反斜杠只在真的挡住一次转换时消失，所以 `C:\Users`、`\texttt` 这类原样不动；被挡下的那段如果本来就不会转（`\ni3_hao3`），反斜杠同样留着。转义是一次性的：输出里不留标记，再跑一遍 `M2` 还是会被转。
+
+### Skipping a class of tokens
+
+The backslash is per occurrence. When the same shapes keep coming up — `M2`, `A4`, `O2` —
+say it once in the options instead. `skip` takes four forms:
+
+```javascript
+markTones('M2 货币供应量 hao3', {skip: 'M2'});         // 'M2 货币供应量 hǎo'
+markTones('M2 A4 N3', {skip: ['M2', 'A4']});           // 'M2 A4 Ň'
+markTones('M2 A4 N3 BEI3JING1', {skip: /^[A-Z]\d$/});  // 'M2 A4 N3 BĚIJĪNG'
+markTones('M2 hao3 M2', {skip: (run, {before}) => before === ''}); // 'M2 hǎo Ḿ'
+```
+
+A string or an array compares the whole run, case-sensitively — every occurrence of that
+token is kept, which is the form that can overreach. A regular expression is tested against
+the run text alone: `^` and `$` anchor at the run's ends and the characters around it are
+not visible. A function gets `{offset, before, after, text}`, and that is how a rule is
+narrowed down to one occurrence:
+
+```javascript
+const at = new Set([...text.matchAll(/M2/g)].map((m) => m.index));
+markTones(text, {skip: (run, {offset}) => at.has(offset)});
+```
+
+Rules are only asked about runs that would otherwise convert. A backslash still wins: `\M2`
+comes out as `M2` even when `skip` matches it too.
+
+中文：反斜杠管的是「这一次出现」，同一类形状反复出现时（`M2`、`A4`、`O2`）改在选项里说一次。`skip` 有四种写法：字符串、字符串数组、正则、函数。字符串与数组比的是整个片段、区分大小写，同一个 token 的所有出现都不转 —— 这正是会误伤的形态；正则只看到片段本身（`^`/`$` 锚在片段两端，看不到前后字符）；要收窄到某一次出现，用函数的 `offset`（先用 `matchAll` 算出下标）。规则只对本来会转换的片段询问；行内反斜杠优先于它 —— 即使 `skip` 也匹配，`\M2` 仍输出 `M2`。
 
 ### Spacing is yours
 
