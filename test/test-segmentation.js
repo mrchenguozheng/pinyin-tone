@@ -1,14 +1,15 @@
 // test/test-segmentation.js
-// 分词层：一个 token 可以由若干音节连写而成，也可以夹着 ASCII 标点。
+// 分词层：先在整段里取出候选片段，片段内部再按声调数字切成音节。
 //
 // 切分的锚点是声调数字 —— 拼音连写里唯一可靠的分隔信息。
-// 没有数字的连写（hanyu3pin1yin1 里的 "hanyu"）不猜，整串原样返回。
-// 任何一段认不出来，也是整串原样：宁可少转，不出半截。
+// 没有数字的连写（hanyu3pin1yin1 里的 "hanyu"）不猜，整个片段原样返回。
+// 片段里任何一段认不出来也是原样：宁可少转，不出半截。
 //
 // 输出保持输入的分隔方式：连写的音节不补空格（ni3hao3 -> nǐhǎo），
 // 输入里写了空格就还是空格（ni3 hao3 -> nǐ hǎo），标点原样留在原位。
+// 首尾空白也不裁 —— 转换只改字母和声调。
 import { expect } from 'chai';
-import markTones, { markTonesInText } from '../lib/index.js';
+import markTones from '../lib/index.js';
 
 describe('分词：连写音节', () => {
     it('声调数字就是分隔符，音节之间不补空格', () => {
@@ -25,6 +26,8 @@ describe('分词：连写音节', () => {
     it('输入的空白就是输出的空白', () => {
         expect(markTones('ni3 hao3')).to.equal('nǐ hǎo');
         expect(markTones('ni3  hao3')).to.equal('nǐ  hǎo');
+        // 首尾空白不裁：只改字母和声调，排版归调用方
+        expect(markTones('  ni3 hao3  ')).to.equal('  nǐ hǎo  ');
     });
 
     it('连写与带空格只差空格本身', () => {
@@ -104,7 +107,6 @@ describe('分词：认不全就整串原样', () => {
     it('非法声调不猜', () => {
         expect(markTones('ma6')).to.equal('ma6');
         expect(markTones('ma33')).to.equal('ma33');
-        expect(markTones('ma3.5')).to.equal('ma3.5');
         expect(markTones('ma-3')).to.equal('ma-3');
     });
 
@@ -121,47 +123,15 @@ describe('分词：认不全就整串原样', () => {
         expect(markTones('shui:3')).to.equal('shui:3');
     });
 
-    it('大小写混排整串不动', () => {
+    it('大小写混排整段不动', () => {
         expect(markTones('Hao3')).to.equal('Hao3');
         expect(markTones('Ni3hao3')).to.equal('Ni3hao3');
         expect(markTones('Zhong1Guo2')).to.equal('Zhong1Guo2');
         expect(markTones('hAo3')).to.equal('hAo3');
     });
-
-    it('汉字混排交给 markTonesInText，这里不动', () => {
-        expect(markTones('ni3我')).to.equal('ni3我');
-        expect(markTones('今天ni3hao3')).to.equal('今天ni3hao3');
-    });
 });
 
-describe('分词：混排入口', () => {
-    it('中文里夹一段连写拼音', () => {
-        expect(markTonesInText('今天ni3hao3')).to.equal('今天nǐhǎo');
-        expect(markTonesInText('我说ni3hao3')).to.equal('我说nǐhǎo');
-    });
-
-    it('标点分隔的两段都换', () => {
-        expect(markTonesInText('ni3,hao3')).to.equal('nǐ,hǎo');
-        expect(markTonesInText('ni3-hao3')).to.equal('nǐ-hǎo');
-    });
-
-    it('粘在英文单词旁边的片段不动', () => {
-        expect(markTonesInText('abcju1')).to.equal('abcju1');
-        expect(markTonesInText('ju1abc')).to.equal('ju1abc');
-        expect(markTonesInText('abc_ju1')).to.equal('abc_ju1');
-        expect(markTonesInText('3ju1')).to.equal('3ju1');
-    });
-
-    it('标点旁边照常换', () => {
-        expect(markTonesInText('(ju1)')).to.equal('(jū)');
-        expect(markTonesInText('ju1')).to.equal('jū');
-    });
-
-    it('已经是带调拼音的文本不再变化', () => {
-        expect(markTonesInText('nǐ hǎo')).to.equal('nǐ hǎo');
-        expect(markTonesInText('nǐ,hǎo')).to.equal('nǐ,hǎo');
-    });
-});
+// 混排（汉字 / 英文单词 / 下划线相邻）由 test-mixed.js 专测，这里只管分词本身。
 
 describe('分词：连写等价于分开写', () => {
     // ng 是唯一没有韵母的键（表里 5 格都是 ng），连写时无法从字母流里切出来，

@@ -6,7 +6,7 @@
 // 值与 v 完全重复、同样打不中，已删除。
 // 现在 ^ 成了 e 的可选后缀，两条死键都有了下文，这里把「键可达」钉成不变量。
 import {assert} from 'chai';
-import markTones, { markTonesInText } from '../lib/index.js';
+import markTones from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 
@@ -48,8 +48,8 @@ describe('e^：ê 的 ASCII 写法', () => {
     it('连写与混排', () => {
         assert.equal(markTones('e^2e^4'), 'ếề');
         assert.equal(markTones('ni3e^2'), 'nǐế');
-        assert.equal(markTonesInText('欸 e^2 欸'), '欸 ế 欸');
-        assert.equal(markTonesInText('e^x 不动'), 'e^x 不动');
+        assert.equal(markTones('欸 e^2 欸'), '欸 ế 欸');
+        assert.equal(markTones('e^x 不动'), 'e^x 不动');
     });
 
     it('严格模式认它：ê 是普通话韵母', () => {

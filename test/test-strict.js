@@ -2,7 +2,7 @@
 // 严格模式：只认普通话的 426 个音节（+ 418 条儿化），其余整串原样。
 // 默认模式不受影响 —— 词表还是那 1952 个键，一个都没挡。
 import {assert} from 'chai';
-import markTones, { markTonesInText } from '../lib/index.js';
+import markTones from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 
@@ -218,14 +218,14 @@ describe('严格模式', () => {
         });
     });
 
-    describe('其他入口同样生效', () => {
-        it('markTonesInText', () => {
+    describe('混排句里同样生效', () => {
+        it('中文与拼音混排的整句也按 strict 过滤', () => {
             assert.equal(
-                markTonesInText('你好 ni3hao3 和 jui1', {strict: true}),
+                markTones('你好 ni3hao3 和 jui1', {strict: true}),
                 '你好 nǐhǎo 和 jui1',
             );
             assert.equal(
-                markTonesInText('你好 ni3hao3 和 jui1'),
+                markTones('你好 ni3hao3 和 jui1'),
                 '你好 nǐhǎo 和 juī',
             );
         });

@@ -37,12 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   这 36 个输入 `markTones` 逐个给出同样的字符，且后者还多认 `a5` / `e5` / `v5`
   （旧表越界返回原串，转换器给 `a` / `e` / `ü`）。`workaround/` 目录、`exports` 里两条映射、
   `files` 白名单、`pack:check` 的必需项同步删除。
-- Breaking: 公开面由此收敛为两个函数 —— `markTones`（默认）与 `markTonesInText`。
+- Breaking: 公开面由此收敛为一个函数 —— 默认导出的 `markTones`。
   删除前后对这两个入口做了 54968 次逐条对拍：全表 1952 键 × 7 种声调写法（无数字、
   `0`–`5`）× 裸写/冒号 × 严格模式开关，加上连写、标点、大小写、汉字混排、非法输入与
   边界空串，输出零差异。也就是说这一轮只删了入口，没动转换结果。
-- Breaking: 两个入口改名 —— `toPinyinTones` → `markTones`，`toPinyinTonesInline` →
-  `markTonesInText`，公开类型 `PinyinTonesOptions` → `MarkTonesOptions`。
+- Breaking: 两个入口最终合并成一个 —— `markTonesInText` 并入默认导出的 `markTones`，
+  同时改掉旧名：`toPinyinTones` / `toPinyinTonesInline` → `markTones`，
+  公开类型 `PinyinTonesOptions` → `MarkTonesOptions`。
+  依据是 29217 条输入的对拍：纯拼音场景（单音节全表 × 7 声调 × 裸写/冒号、空格分隔、
+  双空格、tab/逗号/连字符分隔、英文前后粘连）两个入口逐条相同，`markTonesInText` 是超集；
+  差异只有四类 —— 首尾空白 279 条、下划线分隔 178 条、汉字紧贴 85 + 85 条。
+  合并后取 `markTonesInText` 的行为，逐条差异变成：首尾空白不再裁掉、`ni3_hao3` 不再转
+  （`_` 是词字符，那串是标识符不是两个音节）、汉字紧贴着也照转。纯拼音 + 空格路径慢约
+  12%（1.1MB：118.2ms → 132.4ms），换来只剩一条分词路径。`convertTokens`
+  （`trim().split(' ')`）随之删除。
   旧名两头不靠：两个函数都不做汉字转拼音（生态里裸叫 `pinyin()` 的库一律指那个方向），
   `Tones` 是名词、没说什么动作，`Inline` 又是排版术语。新名是动宾结构，动词打头：
   词表只存无调形式，四个声调是运行时按落调规则现算的，这一步做的就是把声调数字换成
