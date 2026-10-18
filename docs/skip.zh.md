@@ -29,8 +29,8 @@ markTones('M2 M2', {skip: 'M2'});  // 'M2 M2'
 
 ```javascript
 markTones('C:\\Users');        // 原样    一个路径
-markTones('\\texttt{ni3}');    // '\\texttt{nǐ}'  一条 LaTeX 命令
-markTones('\\ni3');            // '\\nǐ'  反斜杠只是普通字符
+markTones('\\ni3');            // '\nǐ'   反斜杠只是普通字符
+markTones('\\texttt{ni3}');    // '\texttt{nǐ}'  一条 LaTeX 命令
 ```
 
 最后一条单说：反斜杠不起保护作用。只要看着像音节，前面加什么都会照常标调。要它保持原样，就写进 `skip`——这是「别动它」的唯一途径，输入本身因此不带任何指令。

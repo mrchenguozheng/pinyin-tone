@@ -34,8 +34,8 @@ Because the text carries no markers, ordinary content passes through exactly as 
 
 ```javascript
 markTones('C:\\Users');        // unchanged — a path
-markTones('\\texttt{nǐ}');     // unchanged — a LaTeX command
-markTones('\\ni3');            // '\\nǐ'    — the backslash is an ordinary character
+markTones('\\ni3');            // '\nǐ'     — the backslash is an ordinary character
+markTones('\\texttt{ni3}');    // '\texttt{nǐ}' — a LaTeX command
 ```
 
 The last case is worth spelling out: a backslash does not protect anything. A segment that
