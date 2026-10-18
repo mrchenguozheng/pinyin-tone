@@ -6,14 +6,7 @@
 import { expect } from 'chai';
 import {markTones} from '../lib/index.js';
 
-const tones = markTones;
-
 // ---------------------------------------------------------------- 测试数据
-
-// 没有声调数字做锚点，切不开：hanyu 中间没有任何分隔信息
-const UNSPACED = [
-    'hanyu3pin1yin1',
-];
 
 // 切得开但中间有不认识的片段（b / c 不是当前实现认识的音节），整串放弃
 const UNSPACED_MIXED = [
@@ -138,7 +131,8 @@ const WHITESPACE = [
 ];
 
 const passThrough = [
-    ...UNSPACED.map((s) => [s, 'unspaced']),
+    // 没有声调数字做锚点，切不开：hanyu 中间没有任何分隔信息
+    ['hanyu3pin1yin1', 'unspaced'],
     ...UNSPACED_MIXED.map((s) => [s, 'unspaced mixed']),
     ...LEGACY_ERHUA.map((s) => [s, 'legacy erhua']),
     ...INVALID_TONE.map((s) => [s, 'invalid tone']),
@@ -312,7 +306,7 @@ const NOT_PINYIN_KINDS = new Set(['uppercase', 'symbols', 'colon has no landing'
 describe('regex anchoring: 切开会丢字母的输入，整串原样', () => {
     for (const [input, kind] of passThrough.filter(([, k]) => TRUNCATION_KINDS.has(k))) {
         it(`[${kind}] ${JSON.stringify(input)}`, () => {
-            expect(tones(input)).to.equal(input);
+            expect(markTones(input)).to.equal(input);
         });
     }
 });
@@ -322,20 +316,20 @@ describe('regex anchoring: 标点不再阻断转换', () => {
     // 更早一版改成了「有标点就整词不动」，代价是 'ni3,hao3' 这种整段失效。
     // 现在标点只当作音节边界，自己原样留在原位。
     it('尾随标点的 token 转换后标点原样保留', () => {
-        expect(tones('hao3!')).to.equal('hǎo!');
-        expect(tones('ni3, hao3')).to.equal('nǐ, hǎo');
-        expect(tones('hao3. hao3')).to.equal('hǎo. hǎo');
+        expect(markTones('hao3!')).to.equal('hǎo!');
+        expect(markTones('ni3, hao3')).to.equal('nǐ, hǎo');
+        expect(markTones('hao3. hao3')).to.equal('hǎo. hǎo');
     });
 
     it('标点单独成 token 时不受影响', () => {
-        expect(tones('ni3 hao3 !')).to.equal('nǐ hǎo !');
+        expect(markTones('ni3 hao3 !')).to.equal('nǐ hǎo !');
     });
 });
 
 describe('regex anchoring: 合法拼音仍能正常转换', () => {
     for (const [input, expected] of conversions) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-            expect(tones(input)).to.equal(expected);
+            expect(markTones(input)).to.equal(expected);
         });
     }
 });
@@ -343,7 +337,7 @@ describe('regex anchoring: 合法拼音仍能正常转换', () => {
 describe('regex anchoring: 合法与非法 token 混在一句里', () => {
     for (const [input, expected] of mixedSentences) {
         it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-            expect(tones(input)).to.equal(expected);
+            expect(markTones(input)).to.equal(expected);
         });
     }
 });
@@ -351,7 +345,7 @@ describe('regex anchoring: 合法与非法 token 混在一句里', () => {
 describe('regex anchoring: 根本不是拼音的输入，逐字不动', () => {
     for (const [input, kind] of passThrough.filter(([, k]) => NOT_PINYIN_KINDS.has(k))) {
         it(`[${kind}] ${JSON.stringify(input)}`, () => {
-            expect(tones(input)).to.equal(input);
+            expect(markTones(input)).to.equal(input);
         });
     }
 
@@ -383,27 +377,27 @@ describe('regex anchoring: 输出不变量', () => {
 
     it('任何输入都不会抛出异常', () => {
         for (const s of allInputs) {
-            expect(() => tones(s), `输入 ${JSON.stringify(s)}`).to.not.throw();
+            expect(() => markTones(s), `输入 ${JSON.stringify(s)}`).to.not.throw();
         }
     });
 
-    it('幂等：tones(tones(x)) === tones(x)', () => {
+    it('幂等：markTones(markTones(x)) === markTones(x)', () => {
         for (const s of allInputs) {
-            const once = tones(s);
-            expect(tones(once), `输入 ${JSON.stringify(s)}`).to.equal(once);
+            const once = markTones(s);
+            expect(markTones(once), `输入 ${JSON.stringify(s)}`).to.equal(once);
         }
     });
 
     it('不丢失字母：输出与输入的字母序列一致', () => {
         for (const s of allInputs) {
-            expectNoLoss(s, tones(s), JSON.stringify(s));
+            expectNoLoss(s, markTones(s), JSON.stringify(s));
         }
     });
 
     it('声调符号不会凭空多出来：数量不超过输入里的数字个数', () => {
         const bad = [];
         for (const s of allInputs) {
-            const out = tones(s);
+            const out = markTones(s);
             // 原样返回的输入（已经带调、大小写混排）不参与这条统计
             if (out === s) continue;
 
@@ -420,10 +414,10 @@ describe('regex anchoring: 输出不变量', () => {
 describe('regex anchoring: 全音节表扫描', () => {
     it('轻声儿化：韵母 + r0 也要转换', () => {
         // 儿化在轻声下不加调号，但 r 必须留在输出里 —— 2.x 的旧实现曾把 ar0 原样返回。
-        expect(tones('ar0')).to.equal('ar');
-        expect(tones('bair0')).to.equal('bair');
-        expect(tones('huar0')).to.equal('huar');
-        expect(tones('vr0')).to.equal('ür');
+        expect(markTones('ar0')).to.equal('ar');
+        expect(markTones('bair0')).to.equal('bair');
+        expect(markTones('huar0')).to.equal('huar');
+        expect(markTones('vr0')).to.equal('ür');
     });
 
     it('全表范围内不出现 undefined / 空串 / 字母丢失', () => {
@@ -431,7 +425,7 @@ describe('regex anchoring: 全音节表扫描', () => {
             for (const fin of SWEEP_FINALS) {
                 for (const t of SWEEP_TONES) {
                     const input = ini + fin + t;
-                    const out = tones(input);
+                    const out = markTones(input);
                     expect(typeof out, input).to.equal('string');
                     expectNoLoss(input, out, input);
                 }
@@ -460,7 +454,7 @@ describe('regex anchoring: 随机 fuzz', () => {
             for (let i = 0; i < len; i++) s += ALPHABET[Math.floor(rand() * ALPHABET.length)];
 
             try {
-                const out = tones(s);
+                const out = markTones(s);
                 expectNoLoss(s, out, `fuzz #${n} ${JSON.stringify(s)}`);
 
                 // 幂等只对「第一遍输出仍是纯 ASCII」的输入成立。
@@ -469,7 +463,7 @@ describe('regex anchoring: 随机 fuzz', () => {
                 // （v 单独就是一个音节，等于 ü），第二遍看到的是另一门语言。
                 // ASCII 输出只可能来自「没写声调」或「轻声」，那时转换其实没改字母，
                 // 幂等才是能立住的约束。
-                if (!/[^\x00-\x7F]/.test(out) && tones(out) !== out) {
+                if (!/[^\x00-\x7F]/.test(out) && markTones(out) !== out) {
                     failures.push(`${JSON.stringify(s)}: 非幂等 -> ${JSON.stringify(out)}`);
                 }
             } catch (err) {

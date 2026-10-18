@@ -11,12 +11,7 @@
 import { expect } from 'chai';
 import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
-import { expectedValue } from './support/dict-values.js';
 
-const HEADS = ['j', 'q', 'x', 'y'];
-const FINALS = ['v', 've', 'van', 'vn', 'vr', 'ver', 'vanr', 'vnr'];
-const LITERAL_KEYS = HEADS.flatMap((h) => FINALS.map((f) => h + f));
-const CANONICAL_KEYS = LITERAL_KEYS.map((k) => k.replace('v', 'u'));
 const TONES = [0, 1, 2, 3, 4];
 
 /** 只保留汉字，用于校验非拼音内容没被改动 */
@@ -38,10 +33,6 @@ describe('混排文本：只换拼音片段', () => {
         it('输出再跑一次不再变化（幂等）', () => {
             const once = markTones(input);
             expect(markTones(once)).to.equal(once);
-        });
-
-        it('输入里不需要出现任何 ü 系字符', () => {
-            expect(/[üǖǘǚǜ]/.test(input), '输入不该含 ü').to.equal(false);
         });
     });
 
@@ -173,26 +164,9 @@ describe('混排文本：只换拼音片段', () => {
         });
     });
 
+    // 32 个 jqxy+ü 字面键逐声调的取值由 test-two-spellings.js 负责；
+    // 这里只问一件事：片段前后多了汉字，片段自己的结果不变。
     describe('混排不改变片段自己的结果', () => {
-        it('字面与规范两种写法在整句里各自成立（32 键 × 5 声调）', () => {
-            for (let i = 0; i < LITERAL_KEYS.length; i++) {
-                const literal = LITERAL_KEYS[i];
-                const canonical = CANONICAL_KEYS[i];
-                for (const tone of TONES) {
-                    // 裸写一律走规范形式
-                    expect(markTones(canonical + tone), canonical + tone)
-                        .to.equal(expectedValue(canonical, tone));
-                    expect(markTones(literal + tone), literal + tone)
-                        .to.equal(expectedValue(canonical, tone));
-                    // 冒号才拿字面形式；轻声（0）没有带调字形，跳过
-                    if (tone > 0) {
-                        expect(markTones(canonical + ':' + tone), canonical + ':' + tone)
-                            .to.equal(expectedValue(literal, tone));
-                    }
-                }
-            }
-        });
-
         it('全表扫描：前后加汉字不改变片段的结果', () => {
             // 词表里每个键都能被输入语法命中（纯小写字母，或 e^），所以整表都扫。
             for (const key of Object.keys(dict)) {

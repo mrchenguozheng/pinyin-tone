@@ -8,7 +8,6 @@
 import {assert} from 'chai';
 import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
-import core from '../lib/core.js';
 
 describe('e^：ê 的 ASCII 写法', () => {
     it('四个声调', () => {
@@ -89,8 +88,6 @@ describe('词表的键必须打得中', () => {
         assert.equal(markTones('nv3'), 'nǚ');
     });
 
-    it('严格模式认的每个音节也都打得中', () => {
-        const dead = [...core].filter((k) => markTones(k + '2') === k + '2');
-        assert.deepEqual(dead, []);
-    });
+    // core 的每一个键是否都能出带调形式，由 test-strict.js 的
+    // 「core 里的每个键都能出带调形式」负责（它试 1-4 四个声调，比只试 2 更强）。
 });
