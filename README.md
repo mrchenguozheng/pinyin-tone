@@ -16,6 +16,39 @@ Designed for developers and learners who need accurate tone mark formatting in l
 npm install pinyin-tone
 ```
 
+## Public API (公开接口)
+
+Only the entry points declared in `package.json` → `exports` are supported public API:
+
+| Import path | Provides |
+| --- | --- |
+| `pinyin-tone` | v1 converter (default) plus named `v2` and `markSinglePinyinVowel` |
+| `pinyin-tone/v2` | v2 converter (default), `splitUnspacedSyllables`, `convertUnspacedPinyin` |
+| `pinyin-tone/v1` | v1 converter (default) |
+| `pinyin-tone/workaround` | `markSinglePinyinVowel` (default) |
+
+The `.js`-suffixed equivalents (`pinyin-tone/v2/index.js`, `pinyin-tone/v1/index.js`,
+`pinyin-tone/workaround/index.js`) resolve to the same files and are equally supported.
+
+**Everything else inside the package is private implementation.** Any other subpath is not
+part of the API — including files you can see in `node_modules`, such as
+`pinyin-tone/v2/b.js` or `pinyin-tone/v2/dict.js`.
+
+**Do not import those private paths.** Doing so yields undefined and untrustworthy
+results: the files may be moved, renamed, or deleted in any release, and your code will
+fail with `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_MODULE_NOT_FOUND`. The internal layout
+of the dictionary — how it is split across files, its table shape, its key order — is
+**not** a contract and changes without notice.
+
+**This release is a breaking change.** The 51 per-initial tables under `v2/`
+(`v2/b.js`, `v2/zh.js`, `v2/special.js`, …) are no longer published. They were never
+documented and never were public API. Code that deep-imported them will break; migrate to
+one of the four entry points above.
+
+**中文说明：** 只有上表列出的四个入口是公开接口，包内其他任何路径（含 `v2/` 目录下的文件）
+都属于私有实现，随时可能被移动、改名或删除。依赖它们会得到**未定义、不可信的结果或直接报错**。
+本次版本已移除 `v2/` 下的 51 个分声母词表，这是 **breaking change**；如需迁移，请改用上表入口。
+
 ## Usage (Default Behavior)
 
 This module exports a function. You can name it as desired, such as `pinyin`.

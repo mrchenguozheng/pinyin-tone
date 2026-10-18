@@ -19,7 +19,6 @@
       "types": "./v2/index.d.ts",
       "default": "./v2/index.js"
     },
-    "./v2/dict.js": "./v2/dict.js",
     "./v1": {
       "types": "./v1/index.d.ts",
       "default": "./v1/index.js"

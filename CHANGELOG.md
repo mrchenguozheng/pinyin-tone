@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed: `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js` 等）不再发布。
   这些文件从未出现在 README / CHANGELOG 中，也不构成有语义的公开接口；如果之前绕过文档直接
   `import x from 'pinyin-tone/v2/b.js'`，升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
-  需要完整词表请改用 `import dict from 'pinyin-tone/v2/dict.js'`，再按需取键。
+  包内词表不提供任何受支持的访问入口：它的文件划分、表结构、键顺序都是实现细节，会随实现调整而变更。
 - Changed: `package.json` 新增 `exports` 字段，公开入口被显式固定为
-  `.`、`./v2`、`./v2/index.js`、`./v2/dict.js`、`./v1`、`./v1/index.js`、
+  `.`、`./v2`、`./v2/index.js`、`./v1`、`./v1/index.js`、
   `./workaround`、`./workaround/index.js`、`./package.json`。其余子路径将解析失败。
   这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
+- Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
+  路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 
 ### Changed
 
