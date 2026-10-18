@@ -63,6 +63,13 @@ const regex = /(?<abc>[a-z]+)(?<num>[01234^]?)/;
  * @return {string}
  */
 function toPinyinTones(longString) {
+    // Hand anything that is not a string back untouched, the way v1 does. Without this,
+    // toPinyinTones(null) and toPinyinTones() throw, so a caller who passes an optional
+    // variable has to guard the call instead of just getting the input back.
+    if (typeof longString !== 'string') {
+        return longString;
+    }
+
     const stringArray = longString.trim().split(' ');
 
     return stringArray.map((str) => {
@@ -81,6 +88,10 @@ function toPinyinTones(longString) {
  * @returns {string}
  */
 function splitUnspacedSyllables(text){
+    if (typeof text !== 'string') {
+        return text;
+    }
+
     // insert a separator between each number
     return text.replace(/(\d)/g, '$1 ') // add space after each number
     .replace(/\s+/g, ' ') // remove multiple spaces
@@ -93,6 +104,10 @@ function splitUnspacedSyllables(text){
  * @returns {string}
  */
 function convertUnspacedPinyin(unspacedSyllables){
+    if (typeof unspacedSyllables !== 'string') {
+        return unspacedSyllables;
+    }
+
     return toPinyinTones(splitUnspacedSyllables(unspacedSyllables)).split(' ').join('')
 }
 
