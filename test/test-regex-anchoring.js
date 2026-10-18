@@ -211,9 +211,10 @@ const SWEEP_FINALS = ['a', 'o', 'e', 'ai', 'ei', 'ao', 'ou', 'an', 'en', 'ang', 
     'v', 've', 'van', 'vn', 'er'];
 const SWEEP_TONES = ['', '0', '1', '2', '3', '4', '5'];
 
-// 已知数据缺陷：j/q/x/y 与 ü 相拼时汉语拼音方案要求省略两点（jū 而非 jǖ）。
-// v2 词典把这 32 条写成了带两点的形式，与 v1 不一致，属独立的词典问题，不在本文件覆盖范围。
-const isKnownUmlautBug = (input) => /^[jqxy]v/.test(input);
+// jvn / jvnr 是 j + ün，规范写法是 jun（省两点）→ jūn / jūnr。
+// v1 对这一族保留两点（jǖn），与它自己处理 jv1（→ jū）的方式并不统一，
+// 因此不能拿它当基准；v2 一律按国标输出。跳过的只是「对照」，不是「正确性」。
+const isV1UmlautInconsistency = (input) => /^[jqxy]vn/.test(input);
 
 // ---------------------------------------------------------------- 工具
 
@@ -349,7 +350,7 @@ describe('v2 regex anchoring: 全音节表扫描', () => {
             for (const fin of SWEEP_FINALS) {
                 for (const t of SWEEP_TONES) {
                     const input = ini + fin + t;
-                    if (isKnownUmlautBug(input)) continue;
+                    if (isV1UmlautInconsistency(input)) continue;
                     const a = v1(input);
                     const b = v2(input);
                     if (a !== b) diffs.push(`${input}: v1=${a} v2=${b}`);
@@ -366,7 +367,7 @@ describe('v2 regex anchoring: 全音节表扫描', () => {
                 if (fin === 'er') continue;
                 for (const t of SWEEP_TONES) {
                     const input = `${ini}${fin}r${t}`;
-                    if (isKnownUmlautBug(input)) continue;
+                    if (isV1UmlautInconsistency(input)) continue;
                     const a = v1(input);
                     // v1 对「纯韵母 + r0」有漏判（'ar0' 原样返回，'bair0' 却能转换），
                     // 这属于 v1 自身的历史怪癖，不能当作基准。

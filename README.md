@@ -97,21 +97,25 @@ token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
 `convertUnspacedPinyin` if you need to handle unspaced input.
 
 **Two spellings for `ü` after `j`/`q`/`x`/`y`.** Both the standard form (`ju`, `jue`, `juan`,
-`jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input, and either can
-be requested on output. Use the `umlaut` option to choose:
+`jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is
+**standard by default**; pass `umlaut: 'keep'` to get the literal form instead:
 
 ```javascript
 import toPinyinTones from 'pinyin-tone/v2';
 
-toPinyinTones('jv1');                       // 'jǖ'  — auto: follows the input spelling
-toPinyinTones('ju1');                       // 'jū'  — auto: follows the input spelling
-toPinyinTones('jv1', { umlaut: 'omit' });   // 'jū'  — standard: never writes ü
-toPinyinTones('ju1', { umlaut: 'keep' });   // 'jǖ'  — literal: always writes ü
+toPinyinTones('jv1');                       // 'jū'  — default: standard spelling
+toPinyinTones('ju1');                       // 'jū'  — default: standard spelling
+toPinyinTones('jv1', { umlaut: 'keep' });   // 'jǖ'  — literal: keeps the diaeresis
+toPinyinTones('ju1', { umlaut: 'omit' });   // 'jū'  — explicit standard (same as default)
 ```
 
-`umlaut` defaults to `'auto'`, which reproduces the historical behaviour above. The option only
-affects `j`/`q`/`x`/`y`: after `n`/`l` the diaeresis is kept in every mode (`nǚ`, `lǜ`), because
-there `u` and `ü` are distinct sounds (`nǔ` 努 vs `nǚ` 女).
+`umlaut` defaults to `'auto'`, which is equivalent to `'omit'`: after `j`/`q`/`x`/`y` the
+diaeresis is omitted, as required by the *Scheme for the Chinese Phonetic Alphabet*. The option
+only affects `j`/`q`/`x`/`y`: after `n`/`l` the diaeresis is kept in every mode (`nǚ`, `lǜ`),
+because there `u` and `ü` are distinct sounds (`nǔ` 努 vs `nǚ` 女).
+
+> Before this change `jv1` produced `jǖ`. That was a non-standard spelling leaking through as the
+> default; it is now opt-in via `{ umlaut: 'keep' }`.
 
 > `jǖ` is not a second *valid* spelling — GB/T 16159 and the *Scheme for the Chinese Phonetic
 > Alphabet* require omitting the diaeresis after `j`/`q`/`x`. It is kept because this package is

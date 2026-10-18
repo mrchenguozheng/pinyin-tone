@@ -52,17 +52,17 @@ function toLiteralSpelling(abbr) {
 
 /**
  * 按 umlaut 选项决定查表用哪个键。
- *   auto（默认）: 跟随输入的拼写风格 —— 写 ju 得 jū，写 jv 得 jǖ
- *   keep        : 强制保留两点，ju 也输出 jū 的 ü 形式
- *   omit        : 强制省两点，jv 也输出规范形式
+ *   auto（默认）/ omit : 输出规范形式，j/q/x/y 后的 ü 一律省两点（jū）
+ *   keep              : 输出字面形式，一律保留两点（jǖ）
+ * 默认必须是规范形式：省两点是国标要求，`jǖ` 只有明确要字面写法时才该出现。
+ * auto 与 omit 等价，保留 auto 只是让「不传参数」有个名字。
  * @param {string} abbr
  * @param {'auto'|'keep'|'omit'} style
  * @returns {string}
  */
 function resolveSpelling(abbr, style) {
     if (style === 'keep') return toLiteralSpelling(abbr);
-    if (style === 'omit') return toCanonicalSpelling(abbr);
-    return abbr;
+    return toCanonicalSpelling(abbr);
 }
 
 function normalizeOptions(options) {

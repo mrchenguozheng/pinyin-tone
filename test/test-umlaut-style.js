@@ -3,7 +3,7 @@
 //
 // 核心约定：
 //   同一音节的两种拼写必须都能输出，且由 umlaut 选项显式决定，而不是靠猜。
-//   'auto'（默认）跟随输入；'omit' 强制规范；'keep' 强制保留两点。
+//   默认（'auto' / 'omit'）输出国标规范形式；'keep' 才输出保留两点的字面形式。
 //
 // 方法：实现层用「换查表键」做投影，测试层用「字符级替换」独立算出期望值。
 // 两条路径不同，交叉验证才有效。
@@ -44,19 +44,27 @@ function canonicalValueDotted(abbr, tone) {
 
 // ---------------------------------------------------------------- 默认行为
 
-describe('v2 ü 风格：默认行为不变（auto）', () => {
-    it('字面输入仍然输出保留两点的形式', () => {
-        expect(toPinyinTones('jv1')).to.equal('jǖ');
-        expect(toPinyinTones('jve2')).to.equal('jüé');
-        expect(toPinyinTones('jvan1')).to.equal('jüān');
-        expect(toPinyinTones('jvn4')).to.equal('jǜn');
+describe('v2 ü 风格：默认输出规范形式（auto）', () => {
+    it('字面输入默认投影为规范形式', () => {
+        expect(toPinyinTones('jv1')).to.equal('jū');
+        expect(toPinyinTones('jve2')).to.equal('jué');
+        expect(toPinyinTones('jvan1')).to.equal('juān');
+        expect(toPinyinTones('jvn4')).to.equal('jùn');
     });
 
-    it('规范输入仍然输出省两点的形式', () => {
+    it('规范输入默认保持不变', () => {
         expect(toPinyinTones('ju1')).to.equal('jū');
         expect(toPinyinTones('jue2')).to.equal('jué');
         expect(toPinyinTones('juan1')).to.equal('juān');
         expect(toPinyinTones('jun4')).to.equal('jùn');
+    });
+
+    it('默认输出不含 ü', () => {
+        for (const literal of LITERAL_KEYS) {
+            for (const tone of TONES) {
+                expect(toPinyinTones(literal + tone)).to.not.match(/[üǖǘǚǜ]/);
+            }
+        }
     });
 
     it('不传 options 与 { umlaut: "auto" } 逐条一致', () => {
@@ -64,6 +72,16 @@ describe('v2 ü 风格：默认行为不变（auto）', () => {
             for (const tone of TONES) {
                 const input = key + tone;
                 expect(toPinyinTones(input, { umlaut: 'auto' })).to.equal(toPinyinTones(input));
+            }
+        }
+    });
+
+    it('auto 与 omit 完全等价（全表）', () => {
+        for (const key of Object.keys(dict)) {
+            for (const tone of TONES) {
+                const input = key + tone;
+                expect(toPinyinTones(input, { umlaut: 'auto' }))
+                    .to.equal(toPinyinTones(input, { umlaut: 'omit' }));
             }
         }
     });
@@ -234,9 +252,10 @@ describe('v2 ü 风格：参数校验', () => {
 // ---------------------------------------------------------------- 透传
 
 describe('v2 ü 风格：convertUnspacedPinyin 透传选项', () => {
-    it('字面输入在 omit 下输出规范形式', () => {
+    it('字面输入默认输出规范形式，keep 才保留两点', () => {
+        expect(convertUnspacedPinyin('jv1')).to.equal('jū');
         expect(convertUnspacedPinyin('jv1', { umlaut: 'omit' })).to.equal('jū');
-        expect(convertUnspacedPinyin('jv1')).to.equal('jǖ');
+        expect(convertUnspacedPinyin('jv1', { umlaut: 'keep' })).to.equal('jǖ');
     });
 
     it('规范输入在 keep 下输出保留两点', () => {
@@ -245,6 +264,7 @@ describe('v2 ü 风格：convertUnspacedPinyin 透传选项', () => {
     });
 
     it('多音节句子逐 token 保持风格', () => {
+        expect(toPinyinTones('jv1 nv3')).to.equal('jū nǚ');
         expect(toPinyinTones('jv1 nv3', { umlaut: 'omit' })).to.equal('jū nǚ');
         expect(toPinyinTones('ju1 nv3', { umlaut: 'keep' })).to.equal('jǖ nǚ');
         expect(toPinyinTones('ju1 nv3', { umlaut: 'omit' })).to.equal('jū nǚ');
