@@ -1,10 +1,20 @@
 'use strict';
 import pinyin_dict_v2 from './dict.js';
 
-// 整串必须完全匹配：纯小写字母 + 可选的「两点标记」+ 可选声调数字。
-// 不加锚点会静默截断输入（"ni3hao3" -> "nǐ"、"ma6" -> "ma"），
+// 单个音节必须整串匹配：纯小写字母 + 可选的「两点标记」+ 可选声调数字。
+// 不加锚点会静默截断输入（"ma6" -> "ma"），
 // 大写字母还会被跳过而错位匹配（"Hao3" -> "ǎo"）。
 const regex = /^(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)$/;
+
+// 连写分词用：一个 token 里可以有若干段「字母 + 可选冒号 + 可选声调」。
+// 贪婪的 [a-z]+ 靠声调数字断开，"ni3hao3" 于是自然切成 ni3 | hao3 ——
+// 声调数字本来就是拼音连写里唯一可靠的分隔符，不需要音节层面的歧义消解。
+const segment = /(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)/g;
+
+// 音节之间只允许 ASCII 标点 / 空白。一旦间隙里出现字母、数字或汉字，
+// 说明这个 token 不是「拼音串 + 标点」（英文单词、大小写混排、非法声调、
+// 汉字混排都在此列），宁可整体原样，也不猜着往下切。
+const foreign = /[A-Za-z0-9]|\p{Script=Han}/u;
 
 // u: 里的冒号代表 ü 上面的两点：ju:1 读作 jü + 第一声，输出 jǖ。
 // 这是给美式键盘准备的 —— 不离开 ASCII 就能写出保留两点的形式。
@@ -143,6 +153,60 @@ function renderToken(abc, mark, num, literal) {
 }
 
 /**
+ * 把一个 token 转成拼音。三种情况，其余一律原样返回：
+ *
+ *   1. 单个音节            ni3          -> nǐ
+ *   2. 若干音节连写        ni3hao3      -> nǐ hǎo
+ *   3. 拼音 + ASCII 标点   ni3,hao3     -> nǐ,hǎo
+ *
+ * 连写的音节之间补一个空格：输出是给人读的拼音，音节边界该看得见。
+ * 标点原样留在原位，不吞掉也不改成别的字符。
+ *
+ * 认不全就整串原样（"a1b2c3"、"hua1r"、"ma6"）：宁可少转一个 token，
+ * 也不要输出半截结果 —— 半截结果比不转更难发现。
+ * @param {string} str
+ * @param {boolean} literal
+ * @returns {string}
+ */
+function convertToken(str, literal) {
+    const single = regex.exec(str);
+
+    // 单音节快路径：绝大多数输入走这里
+    if (single) {
+        return renderToken(single.groups.abc, single.groups.mark, single.groups.num, literal) ?? str;
+    }
+
+    let out = '';
+    let pos = 0;
+    let count = 0;
+
+    for (const part of str.matchAll(segment)) {
+        const gap = str.slice(pos, part.index);
+        if (foreign.test(gap)) return str;
+
+        // 冒号后面紧跟字母（lu:e4）说明这个冒号不是「u:」的两点标记，
+        // 整串不认识。不挡的话 lu: 会被当成 lü、后面再切出一个 é。
+        const end = part.index + part[0].length;
+        if (part.groups.mark === ':' && /[a-z]/.test(str[end] ?? '')) return str;
+
+        const piece = renderToken(part.groups.abc, part.groups.mark, part.groups.num, literal);
+        if (piece === null) return str;
+
+        out += gap;
+        if (gap === '' && count > 0) out += ' ';
+        out += piece;
+
+        pos = end;
+        count += 1;
+    }
+
+    const tail = str.slice(pos);
+    if (count === 0 || foreign.test(tail)) return str;
+
+    return out + tail;
+}
+
+/**
  * 按空格切分后逐 token 转换。literal 只在 toPinyinTonesVariants 内部使用，
  * 公开入口固定走规范拼写。
  * @param {string} longString
@@ -152,16 +216,7 @@ function renderToken(abc, mark, num, literal) {
 function convertTokens(longString, literal) {
     const stringArray = longString.trim().split(' ');
 
-    return stringArray.map((str) => {
-        const match = regex.exec(str);
-
-        // 不是完整的拼音串（大写、标点、多音节连写、非法声调）-> 原样返回
-        if (!match) {
-            return str; // is NOT pinyin
-        }
-
-        return renderToken(match.groups.abc, match.groups.mark, match.groups.num, literal) ?? str;
-    }).join(' ');
+    return stringArray.map((str) => convertToken(str, literal)).join(' ');
 }
 
 /**
@@ -173,10 +228,15 @@ function toPinyinTones(longString) {
 }
 
 /**
- * 混排文本里的拼音片段：前后必须是非 ASCII 字母数字（中文、标点、空白都算边界）。
+ * 混排文本里的候选片段：连续的字母 / 冒号 / 声调数字。
+ * 前后必须是非 ASCII 字母数字下划线（中文、标点、空白都算边界）。
  * 没有边界的话，"abcju1" 这种英文单词内部会被切开当成拼音。
+ *
+ * 先按片段整体取出、再交给 convertToken，而不是逐音节匹配：
+ * 这样 "ni3hao3" 在混排里也能切开，而 "ju1abc" 仍然整体不动。
  */
-const inlineToken = /(?<![A-Za-z0-9_])([a-z]+)(:?)([0-5]?)(?![A-Za-z0-9_])/g;
+const inlineRun = /[a-z:0-5]+/g;
+const wordChar = /[A-Za-z0-9_]/;
 
 /**
  * 转换中文与拼音混排的整句：只替换其中的拼音片段，其余字符逐字保留。
@@ -189,9 +249,15 @@ const inlineToken = /(?<![A-Za-z0-9_])([a-z]+)(:?)([0-5]?)(?![A-Za-z0-9_])/g;
  * @returns {string}
  */
 function toPinyinTonesInline(text) {
-    return text.replace(inlineToken, (whole, abc, mark, num) => {
+    return text.replace(inlineRun, (run, offset) => {
+        const before = offset > 0 ? text[offset - 1] : '';
+        const after = offset + run.length < text.length ? text[offset + run.length] : '';
+
+        // 片段粘在字母数字上下划线旁边 -> 是英文单词的一部分，不动
+        if (wordChar.test(before) || wordChar.test(after)) return run;
+
         // 不成词（单独的 j、英文单词）-> 原样保留
-        return renderToken(abc, mark, num, false) ?? whole;
+        return convertToken(run, false);
     });
 }
 

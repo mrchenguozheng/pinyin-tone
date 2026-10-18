@@ -1,7 +1,8 @@
 // test/test-regex-anchoring.js
 // 针对 v2 正则未锚定导致的「静默截断 / 大写错乱」问题的回归测试。
 //
-// 核心约定：整串匹配才算拼音；认不全就原样返回（与 v1 一致），绝不输出半截结果。
+// 核心约定：单个音节整串匹配；一个 token 可以切成若干音节，
+// 但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
 import { expect } from 'chai';
 import toPinyinTonesV2 from '../v2/index.js';
 import toPinyinTonesV1 from '../v1/index.js';
@@ -11,14 +12,13 @@ const v1 = toPinyinTonesV1;
 
 // ---------------------------------------------------------------- 测试数据
 
-// 会被旧正则截断的输入：多音节连写、无分隔符
+// 没有声调数字做锚点，切不开：hanyu 中间没有任何分隔信息
 const UNSPACED = [
-    'ni3hao3',
-    'hao3hao3',
-    'ni3hao',
     'hanyu3pin1yin1',
-    'han4yu3pin1yin1',
-    'ni3hao3ma5',
+];
+
+// 切得开但中间有不认识的片段（b / c 不是 v2 认识的音节），整串放弃
+const UNSPACED_MIXED = [
     'a1b2c3',
     'a1b2c3d4',
 ];
@@ -54,26 +54,47 @@ const UPPERCASE = [
     'Ni3hao3',
 ];
 
-// 标点与符号：旧实现会把匹配段之后的字符全部丢弃
-const PUNCTUATION = [
-    'hao3!',
-    'ni3,',
-    'hao3.',
-    'hao3?',
-    'hao3;',
-    'hao3:',
-    '“hao3”',
-    '(hao3)',
-    '[hao3]',
-    'hao3…',
-    'hao3—',
-    'lu:e4',
+// 标点旁边的符号类：不是拼音，也不该被吃掉
+const SYMBOLS = [
     '/',
     '--',
     '...',
-    'ni3,hao3',
-    'ni3/hao3',
-    'na3-li3',
+];
+
+// 冒号后面紧跟字母（lu:e4）说明冒号不是「u:」的两点标记，整串不认识
+const COLON_NOT_MARK = [
+    'lu:e4',
+    'nu:e4',
+    'u:e1',
+];
+
+// 连写：声调数字本身就是可靠的分隔符，现在能切开
+const SEGMENTED = [
+    ['ni3hao3', 'nǐ hǎo'],
+    ['hao3hao3', 'hǎo hǎo'],
+    ['ni3hao', 'nǐ hao'],
+    ['han4yu3pin1yin1', 'hàn yǔ pīn yīn'],
+    ['ni3hao3ma5', 'nǐ hǎo ma'],
+    ['ni3jue2', 'nǐ jué'],
+    ['xian4dai4hua4', 'xiàn dài huà'],
+];
+
+// 标点不再阻断转换，留在原位
+const PUNCT_BOUND = [
+    ['hao3!', 'hǎo!'],
+    ['ni3,', 'nǐ,'],
+    ['hao3.', 'hǎo.'],
+    ['hao3?', 'hǎo?'],
+    ['hao3;', 'hǎo;'],
+    ['hao3:', 'hǎo:'],
+    ['“hao3”', '“hǎo”'],
+    ['(hao3)', '(hǎo)'],
+    ['[hao3]', '[hǎo]'],
+    ['hao3…', 'hǎo…'],
+    ['hao3—', 'hǎo—'],
+    ['ni3,hao3', 'nǐ,hǎo'],
+    ['ni3/hao3', 'nǐ/hǎo'],
+    ['na3-li3', 'nǎ-lǐ'],
 ];
 
 // 完全不是拼音的输入
@@ -92,21 +113,22 @@ const NOT_PINYIN = [
     'nǐ hǎo',     // 已经是带调拼音
 ];
 
-// 空白：内部空白必须原样保留（v2 只 trim 首尾）
+// 空白：token 内部的空白现在也能跨过，音节之间不加空格（原有空白已经隔开）
 const WHITESPACE = [
-    'ni3\nhao3',
-    'ni3\thao3',
-    'ni3\thao3\two3',
+    ['ni3\nhao3', 'nǐ\nhǎo'],
+    ['ni3\thao3', 'nǐ\thǎo'],
+    ['ni3\thao3\two3', 'nǐ\thǎo\twǒ'],
 ];
 
 const passThrough = [
     ...UNSPACED.map((s) => [s, 'unspaced']),
+    ...UNSPACED_MIXED.map((s) => [s, 'unspaced mixed']),
     ...LEGACY_ERHUA.map((s) => [s, 'legacy erhua']),
     ...INVALID_TONE.map((s) => [s, 'invalid tone']),
     ...UPPERCASE.map((s) => [s, 'uppercase']),
-    ...PUNCTUATION.map((s) => [s, 'punctuation']),
+    ...SYMBOLS.map((s) => [s, 'symbols']),
+    ...COLON_NOT_MARK.map((s) => [s, 'colon not mark']),
     ...NOT_PINYIN.map((s) => [s, 'not pinyin']),
-    ...WHITESPACE.map((s) => [s, 'whitespace']),
 ];
 
 // 合法输入必须保持正确转换（防止修正则时改坏）
@@ -187,19 +209,23 @@ const conversions = [
     ['ni3 hao3 ', 'nǐ hǎo'],
     ['ni3  hao3', 'nǐ  hǎo'],
     ['', ''],
+    // 连写、标点、空白
+    ...SEGMENTED,
+    ...PUNCT_BOUND,
+    ...WHITESPACE,
 ];
 
 // 混合句：合法的要转，不合法的要一动不动
-// 注意：标点紧贴拼音时（"yu3,"）整词不转 —— 这是「整串匹配」策略的必然取舍，
-// 调用方需要自己先按标点分词，或者期望值就应该是原样保留。
+// 标点紧贴拼音不再阻断转换，但标点本身原样保留（不再被吞掉）。
 const mixedSentences = [
-    ['ni3 hao3! wo3', 'nǐ hao3! wǒ'],
-    ['wo3 ai4 ni3!', 'wǒ ài ni3!'],
-    ['ni3hao3 wo3 hen3 hao3', 'ni3hao3 wǒ hěn hǎo'],
-    ['Hao3 ma5?', 'Hao3 ma5?'],
+    ['ni3 hao3! wo3', 'nǐ hǎo! wǒ'],
+    ['wo3 ai4 ni3!', 'wǒ ài nǐ!'],
+    ['ni3hao3 wo3 hen3 hao3', 'nǐ hǎo wǒ hěn hǎo'],
+    ['Hao3 ma5?', 'Hao3 ma?'],
     ['zhong1 guo2 123 ren2', 'zhōng guó 123 rén'],
-    ['han4 yu3, pin1 yin1.', 'hàn yu3, pīn yin1.'],
+    ['han4 yu3, pin1 yin1.', 'hàn yǔ, pīn yīn.'],
     ['ni3 hao3 ! wo3', 'nǐ hǎo ! wǒ'],
+    ['ni3hao3.hao3hao3', 'nǐ hǎo.hǎo hǎo'],
 ];
 
 // 全表扫描用的声母 / 韵母
@@ -218,25 +244,27 @@ const isV1UmlautInconsistency = (input) => /^[jqxy]vn/.test(input);
 
 // ---------------------------------------------------------------- 工具
 
-const TOKEN_RE = /^[a-z]+[0-5]?$/;
 const TONE_MARKS = '\u0304\u0301\u030C\u0300';
 
-/** 断言输出没有「半截转换」：每个 token 要么原样，要么是完全匹配的拼音 */
-function expectNoPartial(input, output, label) {
-    const inTokens = input.trim().split(' ');
-    const outTokens = output.split(' ');
-    expect(outTokens.length, `${label}: token 数量变了（输入 ${inTokens.length} / 输出 ${outTokens.length}）`)
-        .to.equal(inTokens.length);
+/** 去掉声调符号、数字、标点、大小写、v/u 差异之后剩下的字母序列 */
+function lettersOf(s) {
+    return s
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/[^A-Za-z]/g, '')
+        .toLowerCase()
+        .replace(/v/g, 'u');
+}
 
-    for (let i = 0; i < inTokens.length; i++) {
-        const t = inTokens[i];
-        const o = outTokens[i];
-        if (o === t) continue;
-
-        expect(t, `${label}: "${t}" 被改写成 "${o}"，但 "${t}" 不是完整拼音`).to.match(TOKEN_RE);
-        expect(o, `${label}: "${t}" 转换后仍残留数字 -> "${o}"`).to.not.match(/[0-9]/);
-        expect(o, `${label}: "${t}" 转换后为空`).to.not.equal('');
-    }
+/**
+ * 断言转换没有丢东西：输入里出现的每个字母，都必须按原顺序出现在输出里。
+ * 两类差异忽略：声调数字会被消费掉（它已经变成符号），v 与 u 是 ü 的两种 ASCII 写法。
+ *
+ * 这一条同时排除了「半截转换」：ni3hao3 变成 nǐ 会让 hao 三个字母消失，
+ * 而错误地多切一刀（lu:e4 -> lü é）会让字母顺序对不上。
+ */
+function expectNoLoss(input, output, label) {
+    expect(lettersOf(output), `${label}: 字母丢失或顺序变化`).to.equal(lettersOf(input));
 }
 
 /** 统计 token 中的声调符号数量 */
@@ -265,13 +293,14 @@ describe('v2 regex anchoring: 不完整的输入不得被截断', () => {
     }
 });
 
-describe('v2 regex anchoring: 已知取舍——标点紧贴拼音时不转换', () => {
+describe('v2 regex anchoring: 标点不再阻断转换', () => {
     // 旧行为是「吞掉标点后照样转换」（'hao3!' -> 'hǎo'），代价是信息丢失。
-    // 新行为选择保留原文，由调用方决定是否剥离标点。
-    it('尾随标点的 token 原样保留', () => {
-        expect(v2('hao3!')).to.equal('hao3!');
-        expect(v2('ni3, hao3')).to.equal('ni3, hǎo');
-        expect(v2('hao3. hao3')).to.equal('hao3. hǎo');
+    // 更早一版改成了「有标点就整词不动」，代价是 'ni3,hao3' 这种整段失效。
+    // 现在标点只当作音节边界，自己原样留在原位。
+    it('尾随标点的 token 转换后标点原样保留', () => {
+        expect(v2('hao3!')).to.equal('hǎo!');
+        expect(v2('ni3, hao3')).to.equal('nǐ, hǎo');
+        expect(v2('hao3. hao3')).to.equal('hǎo. hǎo');
     });
 
     it('标点单独成 token 时不受影响', () => {
@@ -326,17 +355,23 @@ describe('v2 regex anchoring: 输出不变量', () => {
         }
     });
 
-    it('不产生半截转换', () => {
+    it('不丢失字母：输出与输入的字母序列一致', () => {
         for (const s of allInputs) {
-            expectNoPartial(s, v2(s), JSON.stringify(s));
+            expectNoLoss(s, v2(s), JSON.stringify(s));
         }
     });
 
-    it('转换后的 token 最多一个声调符号', () => {
+    it('声调符号不会凭空多出来：数量不超过输入里的数字个数', () => {
         const bad = [];
         for (const s of allInputs) {
-            for (const token of v2(s).split(' ')) {
-                if (toneMarkCount(token) > 1) bad.push(`${JSON.stringify(s)} -> ${token}`);
+            const out = v2(s);
+            // 原样返回的输入（已经带调、大小写混排）不参与这条统计
+            if (out === s) continue;
+
+            const digits = (s.match(/[0-9]/g) ?? []).length;
+            const marks = toneMarkCount(out);
+            if (marks > digits) {
+                bad.push(`${JSON.stringify(s)} -> ${JSON.stringify(out)}（${marks} 调 / ${digits} 数字）`);
             }
         }
         expect(bad).to.deep.equal([]);
@@ -387,14 +422,14 @@ describe('v2 regex anchoring: 全音节表扫描', () => {
         expect(v2('vr0')).to.equal('ür');
     });
 
-    it('全表范围内不出现 undefined / 空串 / 半截输出', () => {
+    it('全表范围内不出现 undefined / 空串 / 字母丢失', () => {
         for (const ini of SWEEP_INITIALS) {
             for (const fin of SWEEP_FINALS) {
                 for (const t of SWEEP_TONES) {
                     const input = ini + fin + t;
                     const out = v2(input);
                     expect(typeof out, input).to.equal('string');
-                    expectNoPartial(input, out, input);
+                    expectNoLoss(input, out, input);
                 }
             }
         }
@@ -411,7 +446,7 @@ describe('v2 regex anchoring: 随机 fuzz', () => {
         '“”…中文😀Ωüé'
     ).split('');
 
-    it('600 条随机字符串：不抛异常、幂等、无半截转换', () => {
+    it('600 条随机字符串：不抛异常、幂等、字母不丢', () => {
         const rand = makeRandom(20261018);
         const failures = [];
 
@@ -422,7 +457,7 @@ describe('v2 regex anchoring: 随机 fuzz', () => {
 
             try {
                 const out = v2(s);
-                expectNoPartial(s, out, `fuzz #${n} ${JSON.stringify(s)}`);
+                expectNoLoss(s, out, `fuzz #${n} ${JSON.stringify(s)}`);
                 if (v2(out) !== out) failures.push(`${JSON.stringify(s)}: 非幂等 -> ${JSON.stringify(out)}`);
             } catch (err) {
                 failures.push(`${JSON.stringify(s)}: ${err.message}`);

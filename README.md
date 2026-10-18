@@ -90,12 +90,24 @@ v2 does not support the format `pinyin-number-r` (e.g., `hua1r`) for erhua pronu
 
 Instead, it supports the format `pinyin-r-number`, such as `huar1`.
 
-**Input contract:** a token is converted only when the whole token is a syllable plus an
-optional colon and an optional tone digit `0`–`5` (the colon marks a literal `ü`, see below).
-Anything else — uppercase letters, punctuation, unspaced syllables, an invalid tone — is
-returned unchanged. v2 never returns a partially converted
-token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
-`convertUnspacedPinyin` if you need to handle unspaced input.
+**Input contract:** a token is split into syllables at its tone digits, and each syllable must be
+a base form plus an optional colon and an optional tone digit `0`–`5` (the colon marks a literal
+`ü`, see below). ASCII punctuation between syllables is kept as is. If any piece does not resolve
+to a syllable, the whole token is returned unchanged — v2 never returns a partially converted
+token:
+
+```javascript
+toPinyinTones('ni3hao3');        // 'nǐ hǎo'  — one digit per syllable is enough to split
+toPinyinTones('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
+toPinyinTones('na3-li3');        // 'nǎ-lǐ'
+toPinyinTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, nothing is touched
+toPinyinTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
+```
+
+Uppercase letters, a tone digit outside `0`–`5`, and CJK characters still make the whole token pass
+through untouched (use `toPinyinTonesInline` for text that mixes Chinese and pinyin).
+`convertUnspacedPinyin` is still there when you want the result glued back together
+(`'ni3hao3'` → `'nǐhǎo'`).
 
 **Two spellings for `ü` after `j`/`q`/`x`/`y`.** Both the standard form (`ju`, `jue`, `juan`,
 `jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is always
@@ -167,6 +179,10 @@ converter, none has to be typed.
 
 Note that the bare `ju` in that sentence stays `ju`: it is not a syllable with a tone number, so
 it is left as written. Add a tone number (`ju1`) if you want it converted.
+
+Unspaced runs are split at their tone digits here too, so a sentence can mix Chinese with either
+spaced or unspaced pinyin: `toPinyinTonesInline('今天ni3hao3')` gives `'今天nǐ hǎo'`, while
+`'abcju1'` and `'ju1abc'` are still left alone because the run is glued to an English word.
 
 ```javascript
 // CommonJS usage (up to version 2.2.7)
