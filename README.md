@@ -16,21 +16,27 @@ npm install pinyin-tone
 Node.js 14 or later (`engines`). ESM only — `"type": "module"`, no CommonJS build.
 
 ```javascript
-import toPinyinTones, {toPinyinTonesInline} from 'pinyin-tone';
+import toToneMarks, {toToneMarksInText} from 'pinyin-tone';
 
-toPinyinTones('chu1 yin1 wei4 lai2');  // 'chū yīn wèi lái'
-toPinyinTones('jv1 ju1 ju:1');         // 'jū jū jǖ'
-toPinyinTonesInline('今天ni3hao3');    // '今天nǐhǎo'
+toToneMarks('chu1 yin1 wei4 lai2');  // 'chū yīn wèi lái'
+toToneMarks('jv1 ju1 ju:1');         // 'jū jū jǖ'
+toToneMarksInText('今天ni3hao3');    // '今天nǐhǎo'
 ```
 
-中文：`toPinyinTones` 按空格切 token，`toPinyinTonesInline` 扫整段、只替换能成词的拼音片段。Node.js 14+，只提供 ESM。
+中文：`toToneMarks` 按空格切 token，`toToneMarksInText` 扫整段、只替换能成词的拼音片段。Node.js 14+，只提供 ESM。
 
 ## API
 
 | Export | Signature | Use |
 | --- | --- | --- |
-| `toPinyinTones` (default) | `(text, {strict?}) => string` | space-separated pinyin |
-| `toPinyinTonesInline` | `(text, {strict?}) => string` | pinyin mixed into Chinese text |
+| `toToneMarks` (default) | `(text, {strict?}) => string` | space-separated pinyin |
+| `toToneMarksInText` | `(text, {strict?}) => string` | pinyin mixed into Chinese text |
+
+The names say what comes back, not what goes in: both put **tone marks** on pinyin you have
+already written in ASCII (`hao3`, `jv`, `e^`). Neither turns Chinese characters into pinyin,
+and neither guesses a tone that was not written — `ma` stays `ma`.
+
+中文：名字说的是产出（调号），不是「汉字转拼音」：两个入口都不做汉字转拼音，也不猜没写出来的声调（`ma` 仍是 `ma`）。
 
 Only these two are public. Everything else in the package — including `pinyin-tone/lib/*`,
 which you can see in `node_modules` — is private: files may be renamed or deleted in any
@@ -41,7 +47,7 @@ Importing those paths gives you `ERR_PACKAGE_PATH_NOT_EXPORTED` or silently wron
 
 ## How a token is read
 
-`toPinyinTones` splits the string on spaces. Each token is cut into syllables at its tone
+`toToneMarks` splits the string on spaces. Each token is cut into syllables at its tone
 digits; each syllable is a base form, an optional marker (`^` for `ê`, `:` for a literal
 `ü`), and an optional digit `0`–`5`. ASCII punctuation between syllables is kept. If any
 piece does not resolve, the **whole token** is returned unchanged — never a half-converted
@@ -50,17 +56,17 @@ one.
 中文：按空格切 token；每个 token 按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。音节间的 ASCII 标点原样保留。任一段认不出，**整个 token** 原样返回，绝不输出半截。
 
 ```javascript
-toPinyinTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to cut
-toPinyinTones('ni3 hao3');       // 'nǐ hǎo'  — a space in the input stays a space
-toPinyinTones('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
-toPinyinTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, nothing is touched
-toPinyinTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
+toToneMarks('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to cut
+toToneMarks('ni3 hao3');       // 'nǐ hǎo'  — a space in the input stays a space
+toToneMarks('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
+toToneMarks('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, nothing is touched
+toToneMarks('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 ```
 
 Uppercase letters, a digit outside `0`–`5`, and CJK characters also make the whole token
-pass through; use `toPinyinTonesInline` when Chinese is mixed in.
+pass through; use `toToneMarksInText` when Chinese is mixed in.
 
-中文：大写字母、`0`–`5` 之外的数字、汉字，同样让整个 token 原样通过；中英混排用 `toPinyinTonesInline`。
+中文：大写字母、`0`–`5` 之外的数字、汉字，同样让整个 token 原样通过；中英混排用 `toToneMarksInText`。
 
 ### Spacing is yours
 
@@ -69,9 +75,9 @@ double spaces. Unspaced input works as-is because the digit is the cut point; gl
 output is a call-site decision:
 
 ```javascript
-toPinyinTones('han4yu3pin1yin1');                     // 'hànyǔpīnyīn'
-toPinyinTones('han4 yu3  pin1   yin1');               // 'hàn yǔ  pīn   yīn'
-toPinyinTones('han4 yu3pin1yin1').replace(/ /g, '');  // 'hànyǔpīnyīn'
+toToneMarks('han4yu3pin1yin1');                     // 'hànyǔpīnyīn'
+toToneMarks('han4 yu3  pin1   yin1');               // 'hàn yǔ  pīn   yīn'
+toToneMarks('han4 yu3pin1yin1').replace(/ /g, '');  // 'hànyǔpīnyīn'
 ```
 
 The digit is not optional. A run with nothing to cut at (`hanyu3pin1yin1`) comes back as
@@ -88,8 +94,8 @@ literal one (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is always
 the *Scheme for the Chinese Phonetic Alphabet* requires dropping the diaeresis there:
 
 ```javascript
-toPinyinTones('jv1'); // 'jū'  — literal input, standard output
-toPinyinTones('ju1'); // 'jū'  — standard input, standard output
+toToneMarks('jv1'); // 'jū'  — literal input, standard output
+toToneMarks('ju1'); // 'jū'  — standard input, standard output
 ```
 
 `n` and `l` are not part of this projection: there `u` and `ü` are distinct sounds, so `nv3`
@@ -106,10 +112,10 @@ initial — `gu:1` is `gǖ` and `u:e1` is `üē`, neither a valid syllable, both
 purpose:
 
 ```javascript
-toPinyinTones('ju1 ju:1'); // 'jū jǖ'  — both spellings in one line
-toPinyinTones('juan:1');   // 'jüān'
-toPinyinTones('lu:e4');    // 'lüè'
-toPinyinTones('gu:1');     // 'gǖ'
+toToneMarks('ju1 ju:1'); // 'jū jǖ'  — both spellings in one line
+toToneMarks('juan:1');   // 'jüān'
+toToneMarks('lu:e4');    // 'lüè'
+toToneMarks('gu:1');     // 'gǖ'
 ```
 
 There is no option that switches a whole string to the literal spelling, and no entry point
@@ -134,9 +140,9 @@ colon. It belongs to `e` and nothing else (`be^2`, `e^r` stay as written) and is
 exclusive with the colon, since `ê` has no `u` to carry dots:
 
 ```javascript
-toPinyinTones('e^');   // 'ê'
-toPinyinTones('e^2');  // 'ế'
-toPinyinTones('e^4');  // 'ề'
+toToneMarks('e^');   // 'ê'
+toToneMarks('e^2');  // 'ế'
+toToneMarks('e^4');  // 'ề'
 ```
 
 `m`, `n`, `ng`, `hm` and `hng` are in the dictionary too. With no vowel, the mark goes on
@@ -160,11 +166,11 @@ resolved by projection. The other 1076 are initial × final cross products (`jui
 (`vai`, `bvan`). All of them convert by default:
 
 ```javascript
-toPinyinTones('jui1');                  // 'juī'
-toPinyinTones('duang1');                // 'duāng'
-toPinyinTones('jui1', {strict: true});  // 'jui1'  — not a syllable, left alone
-toPinyinTones('huar1', {strict: true}); // 'huār'  — hua is a syllable, so huar is too
-toPinyinTones('e^2', {strict: true});   // 'ế'     — ê is a rime of its own
+toToneMarks('jui1');                  // 'juī'
+toToneMarks('duang1');                // 'duāng'
+toToneMarks('jui1', {strict: true});  // 'jui1'  — not a syllable, left alone
+toToneMarks('huar1', {strict: true}); // 'huār'  — hua is a syllable, so huar is too
+toToneMarks('e^2', {strict: true});   // 'ế'     — ê is a rime of its own
 ```
 
 Erhua is decided by its base: `huar` is valid exactly because `hua` is. Literal spellings
@@ -176,12 +182,12 @@ option; it defaults to `false`.
 
 ## Mixed text
 
-`toPinyinTones` splits on spaces, so pinyin glued to Chinese (`ju是规范写法`) is returned
-untouched. `toPinyinTonesInline` scans the whole string and replaces only the runs it can
+`toToneMarks` splits on spaces, so pinyin glued to Chinese (`ju是规范写法`) is returned
+untouched. `toToneMarksInText` scans the whole string and replaces only the runs it can
 resolve:
 
 ```javascript
-toPinyinTonesInline('ju是规范写法，而ju:1是不规范写法');
+toToneMarksInText('ju是规范写法，而ju:1是不规范写法');
 // -> 'ju是规范写法，而jǖ是不规范写法'
 ```
 
@@ -189,7 +195,7 @@ Same rules as above: bare tokens give the standard spelling, a colon asks for th
 one, unspaced runs are cut at their digits. A run glued to an English word (`abcju1`,
 `ju1abc`) is left alone, and so is a bare `ju` with no tone digit.
 
-中文：`toPinyinTones` 按空格切，所以 `ju是规范写法` 这类粘连会整串原样返回；`toPinyinTonesInline` 扫全文，只替换能成词的片段。规则与前面相同（裸写给规范形式、冒号要字面形式、连写按数字切）；粘在英文单词上的 `abcju1`/`ju1abc`，以及没有声调数字的 `ju`，都不动。
+中文：`toToneMarks` 按空格切，所以 `ju是规范写法` 这类粘连会整串原样返回；`toToneMarksInText` 扫全文，只替换能成词的片段。规则与前面相同（裸写给规范形式、冒号要字面形式、连写按数字切）；粘在英文单词上的 `abcju1`/`ju1abc`，以及没有声调数字的 `ju`，都不动。
 
 ## Migrating from 2.x
 
@@ -202,8 +208,10 @@ disagree on 11.3% — 3.0 fixes cases where the old one dropped letters (`biou1`
 | --- | --- |
 | `pinyin-tone/v2` (alias) | the root entry |
 | `pinyin-tone/v1` | removed |
-| `pinyin-tone/workaround` | `toPinyinTones` (superset of its 36 inputs) |
-| `convertUnspacedPinyin(x)` | `toPinyinTones(x).replace(/ /g, '')` |
+| `toPinyinTones(x)` | `toToneMarks(x)` — renamed |
+| `toPinyinTonesInline(x)` | `toToneMarksInText(x)` — renamed |
+| `pinyin-tone/workaround` | `toToneMarks` (superset of its 36 inputs) |
+| `convertUnspacedPinyin(x)` | `toToneMarks(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
 | `splitUnspacedSyllables(x)` | internal step, no replacement needed |
 
