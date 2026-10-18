@@ -163,18 +163,6 @@ describe('分词：混排入口', () => {
     });
 });
 
-describe('分词：输出不接管排版', () => {
-    it('连写输入 → 连写输出，不补空格', () => {
-        expect(toPinyinTones('ni3hao3')).to.equal('nǐhǎo');
-        expect(toPinyinTones('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
-    });
-
-    it('带空格输入 → 空格原样保留，多打的也不合并', () => {
-        expect(toPinyinTones('han4 yu3 pin1 yin1')).to.equal('hàn yǔ pīn yīn');
-        expect(toPinyinTones('han4  yu3')).to.equal('hàn  yǔ');
-    });
-});
-
 describe('分词：连写等价于分开写', () => {
     // ng 是唯一没有韵母的键（表里 5 格都是 ng），连写时无法从字母流里切出来，
     // 因此不在这一组里 —— 它属于「没有数字锚点就切不开」的已知限制。

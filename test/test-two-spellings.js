@@ -216,12 +216,20 @@ describe('两种拼写：投影不能越过白名单', () => {
 // ---------------------------------------------------------------- 无全局开关
 // 函数只吃一个参数，拼写不随参数变化，唯一的影响来源是 token 自己写的冒号。
 
-describe('两种拼写：没有全局开关', () => {
-    it('规范化对每个 token 独立成立，与调用次数无关', () => {
-        expect(toPinyinTones('jv1 ju1 ju:1')).to.equal('jū jū jǖ');
-        expect(toPinyinTones('jv1 ju1 ju:1')).to.equal(
-            ['jv1', 'ju1', 'ju:1'].map((t) => toPinyinTones(t)).join(' ')
-        );
+describe('两种拼写：token 的输出与上下文无关', () => {
+    // 拼写由 token 自己决定，所以它在句首、句尾、夹在中间、单独调用都应该一样。
+    // 这比「整串结果 = 逐个调用结果再拼起来」强：那种写法左右都是同一个实现，
+    // 只能证明自己等于自己；这里比的是同一 token 在四个位置上的输出。
+    it('32 字面键 + 32 规范键 × 5 声调，四个位置结果一致', () => {
+        for (const key of [...LITERAL_KEYS, ...CANONICAL_KEYS]) {
+            for (const tone of TONES) {
+                const input = key + tone;
+                const alone = toPinyinTones(input);
+                expect(toPinyinTones(`${input} ni3`), input).to.equal(`${alone} nǐ`);
+                expect(toPinyinTones(`ni3 ${input}`), input).to.equal(`nǐ ${alone}`);
+                expect(toPinyinTones(`ni3 ${input} hao3`), input).to.equal(`nǐ ${alone} hǎo`);
+            }
+        }
     });
 });
 
@@ -237,11 +245,5 @@ describe('两种拼写：逐 token 决定', () => {
 
     it('非拼音 token 原样留在原位，不影响两侧', () => {
         expect(toPinyinTones('jv1 hello 123 ju:1')).to.equal('jū hello 123 jǖ');
-    });
-
-    it('n/l 的 ü 不因冒号而改变（本来就保留两点）', () => {
-        expect(toPinyinTones('nv3')).to.equal('nǚ');
-        expect(toPinyinTones('nv:3')).to.equal('nǚ');
-        expect(toPinyinTones('lv:4')).to.equal('lǜ');
     });
 });

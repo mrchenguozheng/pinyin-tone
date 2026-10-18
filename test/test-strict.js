@@ -79,15 +79,20 @@ describe('严格模式', () => {
             });
         });
 
-        it('外推形式与词典字形不冲突', () => {
-            // 有依据的 9 个必须逐条与闭集表一致，不能被规则覆写
-            LISTED.forEach(([input, expected]) => {
-                assert.equal(toPinyinTones(input), expected);
-            });
-            // hm 与 hng 的调号落在最后一个鼻音上
-            assert.equal(toPinyinTones('hm2'), 'hḿ');
-            assert.equal(toPinyinTones('hng2'), 'hńg');
-            assert.equal(toPinyinTones('ng1'), 'n\u0304g');
+        it('词典字形与外推格子互斥，且覆盖全部 20 格', () => {
+            // 上面两组断言已经在逐条验字形，这里只验「归属」：
+            // 同一个格子不能既声称来自词典、又声称是按规则外推 —— 那样谁都不负责。
+            const listedInputs = LISTED.map(([input]) => input);
+            const derivedInputs = DERIVED.map(([input]) => input);
+            assert.deepEqual(derivedInputs.filter((input) => listedInputs.includes(input)), []);
+
+            // m / n / ng / hm / hng × 四个声调，每格都必须有归属。
+            // 漏一格就是「这个音节能不能带这个声调」没人表态。
+            const listed = new Set(listedInputs);
+            const derived = new Set(derivedInputs);
+            const cells = ['m', 'n', 'ng', 'hm', 'hng']
+                .flatMap((key) => [1, 2, 3, 4].map((tone) => key + tone));
+            assert.deepEqual(cells.filter((cell) => !listed.has(cell) && !derived.has(cell)), []);
         });
 
         it('轻声不受影响：无调形式就是音节本身', () => {
@@ -208,7 +213,8 @@ describe('严格模式', () => {
         });
 
         it('未知字段被忽略', () => {
-            assert.equal(toPinyinTones('jui1', {literal: true}), 'juī');
+            // strictMode 从来不是选项名（选项就叫 strict）：认不出来就当没写
+            assert.equal(toPinyinTones('jui1', {strictMode: true}), 'juī');
         });
     });
 
