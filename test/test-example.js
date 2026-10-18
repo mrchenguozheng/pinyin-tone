@@ -1,6 +1,6 @@
 // test/test-example.js
 import { expect } from 'chai'; // 导入 Chai 的 expect
-import toPinyinTones, { convertUnspacedPinyin } from '../lib/index.js';
+import toPinyinTones from '../lib/index.js';
 
 describe('toPinyinTones', () => {
     // const toPinyinTones = toPinyinTones
@@ -24,16 +24,18 @@ describe('toPinyinTones', () => {
 });
 
 describe('issue #16: allow pinyin without spaces', () => {
-    it('should convert unspaced syllables string into toned pinyin string',()=>{
-        // standard
-        expect(convertUnspacedPinyin('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn')
-        // multiple spaces
-        expect(convertUnspacedPinyin('han4 yu3  pin1   yin1')).to.equal('hànyǔpīnyīn')
-        expect(convertUnspacedPinyin('han0yu3  pin1yin1')).to.equal('hanyǔpīnyīn')
-        // er
-        expect(convertUnspacedPinyin('han0   yur3  pin1yin1')).to.equal('hanyǔrpīnyīn')
-        // mixed
-        expect(convertUnspacedPinyin('han yu3pin1yin1')).to.equal('hanyǔpīnyīn')
-        expect(convertUnspacedPinyin('hanyu3pin1yin1')).to.equal('hanyu3pīnyīn')
-    })
-})
+    it('连写串照样转换，且不补空格', () => {
+        expect(toPinyinTones('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn')
+        expect(toPinyinTones('han0yur3pin1yin1')).to.equal('hanyǔrpīnyīn')
+        expect(toPinyinTones('ni3hao3')).to.equal('nǐhǎo')
+    });
+
+    it('输入里写了空格就留着，多了也不删', () => {
+        expect(toPinyinTones('han4 yu3  pin1   yin1')).to.equal('hàn yǔ  pīn   yīn')
+        expect(toPinyinTones('han yu3pin1yin1')).to.equal('han yǔpīnyīn')
+    });
+
+    it('没有声调数字可切的地方不猜，整串原样', () => {
+        expect(toPinyinTones('hanyu3pin1yin1')).to.equal('hanyu3pin1yin1')
+    });
+});

@@ -8,11 +8,7 @@
 // 输出保持输入的分隔方式：连写的音节不补空格（ni3hao3 -> nǐhǎo），
 // 输入里写了空格就还是空格（ni3 hao3 -> nǐ hǎo），标点原样留在原位。
 import { expect } from 'chai';
-import toPinyinTones, {
-    toPinyinTonesInline,
-    toPinyinTonesVariants,
-    convertUnspacedPinyin,
-} from '../lib/index.js';
+import toPinyinTones, { toPinyinTonesInline } from '../lib/index.js';
 
 describe('分词：连写音节', () => {
     it('声调数字就是分隔符，音节之间不补空格', () => {
@@ -167,17 +163,15 @@ describe('分词：混排入口', () => {
     });
 });
 
-describe('分词：无空格入口的分工', () => {
-    it('convertUnspacedPinyin 输出仍然不带空格', () => {
-        expect(convertUnspacedPinyin('ni3hao3')).to.equal('nǐhǎo');
-        expect(convertUnspacedPinyin('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
+describe('分词：输出不接管排版', () => {
+    it('连写输入 → 连写输出，不补空格', () => {
+        expect(toPinyinTones('ni3hao3')).to.equal('nǐhǎo');
+        expect(toPinyinTones('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
     });
 
-    it('连写与带空格输入得到同一个无空格结果', () => {
-        for (const s of ['ni3hao3', 'han4yu3pin1yin1', 'xian4dai4hua4']) {
-            const spaced = s.replace(/([0-9])/g, '$1 ').trim();
-            expect(convertUnspacedPinyin(spaced), s).to.equal(convertUnspacedPinyin(s));
-        }
+    it('带空格输入 → 空格原样保留，多打的也不合并', () => {
+        expect(toPinyinTones('han4 yu3 pin1 yin1')).to.equal('hàn yǔ pīn yīn');
+        expect(toPinyinTones('han4  yu3')).to.equal('hàn  yǔ');
     });
 });
 
@@ -229,18 +223,14 @@ describe('分词：字母守恒', () => {
     });
 });
 
-describe('分词：两种拼写的批量接口跟着分词走', () => {
-    it('toPinyinTonesVariants 对连写同时给出两种拼写', () => {
-        expect(toPinyinTonesVariants('ni3jv1')).to.deep.equal({
-            canonical: 'nǐjū',
-            literal: 'nǐjǖ',
-        });
+describe('分词：冒号在连写与标点旁同样生效', () => {
+    it('同一串里两种拼写并存', () => {
+        expect(toPinyinTones('ni3jv1')).to.equal('nǐjū');
+        expect(toPinyinTones('ni3ju:1')).to.equal('nǐjǖ');
     });
 
     it('标点两侧也保持一致', () => {
-        expect(toPinyinTonesVariants('ni3,jvan1')).to.deep.equal({
-            canonical: 'nǐ,juān',
-            literal: 'nǐ,jüān',
-        });
+        expect(toPinyinTones('ni3,jvan1')).to.equal('nǐ,juān');
+        expect(toPinyinTones('ni3,jvan:1')).to.equal('nǐ,jüān');
     });
 });

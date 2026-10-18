@@ -2,11 +2,7 @@
 // 严格模式：只认普通话的 426 个音节（+ 418 条儿化），其余整串原样。
 // 默认模式不受影响 —— 词表还是那 1952 个键，一个都没挡。
 import {assert} from 'chai';
-import toPinyinTones, {
-    convertUnspacedPinyin,
-    toPinyinTonesInline,
-    toPinyinTonesVariants,
-} from '../lib/index.js';
+import toPinyinTones, { toPinyinTonesInline } from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 
@@ -228,22 +224,12 @@ describe('严格模式', () => {
             );
         });
 
-        it('toPinyinTonesVariants 两边一起收', () => {
-            assert.deepEqual(
-                toPinyinTonesVariants('jui1', {strict: true}),
-                {canonical: 'jui1', literal: 'jui1'},
-            );
-            assert.deepEqual(
-                toPinyinTonesVariants('ju:1', {strict: true}),
-                {canonical: 'jǖ', literal: 'jǖ'},
-            );
-        });
-
-        it('convertUnspacedPinyin', () => {
-            assert.equal(convertUnspacedPinyin('ni3hao3', {strict: true}), 'nǐhǎo');
-            // 先按声调数字切成两个音节再各自转换，所以 jui1 落空只影响它自己
-            assert.equal(convertUnspacedPinyin('ni3jui1', {strict: true}), 'nǐjui1');
-            assert.equal(convertUnspacedPinyin('ni3jui1'), 'nǐjuī');
+        it('冒号形式的严格模式：先投影到规范拼写再查白名单', () => {
+            assert.equal(toPinyinTones('ju:1', {strict: true}), 'jǖ');
+            // 冒号只认 u/ue/uan/un 这几个韵母；jui 不在闭集里，
+            // 两种模式下都无处落点，整串原样 —— 严格模式没有额外放宽或收紧。
+            assert.equal(toPinyinTones('jui:1', {strict: true}), 'jui:1');
+            assert.equal(toPinyinTones('jui:1'), 'jui:1');
         });
     });
 });

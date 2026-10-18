@@ -19,6 +19,7 @@ const FORBIDDEN = [
     ['v1/', 'v1 实现已在 3.0 删除'],
     ['legacy/', 'v1 实现已在 3.0 删除'],
     ['v2/', '目录已改名 lib/，旧名字不应回来'],
+    ['workaround/', '单字母查表子路径已在 3.0 删除，被 toPinyinTones 覆盖'],
 ];
 
 // 包里必须有的文件：少一个就说明 files 白名单写漏了
@@ -27,8 +28,6 @@ const REQUIRED = [
     'lib/core.js',
     'lib/dict.js',
     'lib/index.d.ts',
-    'workaround/index.js',
-    'workaround/index.d.ts',
     'README.md',
     'LICENSE',
     'package.json',

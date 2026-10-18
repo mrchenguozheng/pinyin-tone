@@ -21,18 +21,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   测试侧一并去掉了以 v1 为基准的对拍（`test-example.js` 的 v1 用例、`test-regex-anchoring.js`
   的两条全表对拍）——v1 不在包里以后它无法再充当对照。留下的独立期望值来源是
   `test/support/dict-values.js`（另写一套标调实现），以及全表的字母守恒、幂等、数量不变量。
-- Breaking: `splitUnspacedSyllables` 不再是导出。它是 `convertUnspacedPinyin` 的内部一步 ——
-  输出是「带空格的音节串」，除了再喂回转换器没有独立用途，而转换器本来就接受连写输入。
-  函数本身保留在实现里，只是不再对外。公开导出因此从 5 个收敛到 4 个：
-  `toPinyinTones`（默认）、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`。
+- Breaking: `splitUnspacedSyllables` 与 `convertUnspacedPinyin` 一起删除，实现也不再保留。
+  前者是后者的内部一步（把连写串按声调数字补上空格再喂回转换器），没有独立用途 ——
+  连写输入 `toPinyinTones` 本来就接受；后者的「把输出粘起来」在调用方是一行
+  `.replace(/ /g, '')`。随之一并消失的是它独有的「部分转换」行为：`hanyu3pin1yin1`
+  以前得到 `hanyu3pīnyīn`（认得的段照转、`hanyu` 原样），现在按全或无的同一规则整串原样。
+- Breaking: `toPinyinTonesVariants` 删除。它一次返回 `{canonical, literal}`，是唯一返回
+  对象的入口，也是唯一「把整串切成字面拼写」的入口。字面形式从来不是一个全局选项，
+  而是逐 token 用冒号请求（`ju:1 → jǖ`），`jv1 ju1 ju:1 → jū jū jǖ` 因此仍是一次调用可写。
+  删之前用「裸写 / 冒号」两种输入对旧返回值的 canonical / literal 逐条复现，
+  1952 键 × 7 种声调写法共 27328 项全部对得上，这不是能力丢失，只是把一个批量接口
+  收回成 token 自带的写法。
+- Breaking: `pinyin-tone/workaround` 子路径删除，连同 `markSinglePinyinVowel`。
+  它是 2.x 的单字母查表（`a` / `o` / `e` / `i` / `u` / `v` × 无数字或 `0`–`4`，共 36 个输入），
+  这 36 个输入 `toPinyinTones` 逐个给出同样的字符，且后者还多认 `a5` / `e5` / `v5`
+  （旧表越界返回原串，转换器给 `a` / `e` / `ü`）。`workaround/` 目录、`exports` 里两条映射、
+  `files` 白名单、`pack:check` 的必需项同步删除。
+- Breaking: 公开面由此收敛为两个函数 —— `toPinyinTones`（默认）与 `toPinyinTonesInline`。
+  删除前后对这两个入口做了 54968 次逐条对拍：全表 1952 键 × 7 种声调写法（无数字、
+  `0`–`5`）× 裸写/冒号 × 严格模式开关，加上连写、标点、大小写、汉字混排、非法输入与
+  边界空串，输出零差异。也就是说这一轮只删了入口，没动转换结果。
 - Removed: 2.x 里 `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js`
   等）合并为单文件 `lib/dict.js`，不再按声母拆分。这些文件从未出现在 README / CHANGELOG 中，
   也不构成有语义的公开接口；如果之前绕过文档直接 `import x from 'pinyin-tone/v2/b.js'`，
   升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
   包内词表不提供任何受支持的访问入口：它的文件划分、表结构、键顺序都是实现细节，会随实现调整而变更。
-- Changed: `package.json` 的 `exports` 字段把公开入口固定为
-  `.`、`./workaround`、`./workaround/index.js`、`./package.json`。其余子路径将解析失败。
-  这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
+- Changed: `package.json` 的 `exports` 字段把公开入口固定为 `.` 与 `./package.json`。
+  其余子路径将解析失败。这同时意味着以后内部文件结构调整不会再意外破坏使用方，
+  但任何新增子路径都需要同步声明。
   `main` / `types` 也一并指向 `lib/index.js` / `lib/index.d.ts`，根目录不再有转发文件。
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
@@ -77,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （`e^2e^4 → ếề`、`ni3e^2 → nǐế`），`{strict: true}` 也认它 —— `ê` 是《汉语拼音方案》
   里的一个韵母，不是 `e` 的变体。
 
-- Added: `toPinyinTones` 与 `convertUnspacedPinyin` 支持**冒号标记**：在 `u` 后写一个英文冒号
+- Added: `toPinyinTones` 与 `toPinyinTonesInline` 支持**冒号标记**：在 `u` 后写一个英文冒号
   表示这个 `u` 带两点，输出字面形式 —— `ju:1 → jǖ`、`juan:1 → jüān`、`jun:4 → jǜn`、
   `u: → ü`。冒号就是 `ü` 上面那两点，于是同一行里可以并排写出两种拼写
   （`ju1 ju:1 → jū jǖ`），而不需要给整串设一个开关；整段输入也就能全部用美式键盘敲出。
@@ -93,9 +109,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   新增 `test/test-two-spellings.js`，用「换查表键」与「字符级替换」两套独立实现交叉验证
   32 个白名单音节 × 5 个声调，并对全表逐条断言投影不越界（假音节 `jui`/`jua`/`juo` 等
   80 条、`n`/`l` 的 16 条必须保持不变）。
-- Added: `toPinyinTonesVariants(text)` 一次返回 `{ canonical, literal }`，省掉调用方自己
-  各拼一遍的样板代码 —— 需要整段比对两种拼写时用它，单次转换一律给规范形式。
-  两者只可能差 `ü` 的两点，`n`/`l` 与不含 `ü` 的音节两边相同（已对全表逐一断言）。
 - Added: `toPinyinTonesInline(text)` 转换**中文与拼音混排**的整句：不按空格切分，
   而是在整段里扫，只替换能成词的拼音片段，其余字符逐字保留。`toPinyinTones` 遇到
   `ju是规范写法` 这类粘连会整串原样返回，混排场景需要用它。
@@ -112,9 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   所以 418 条儿化一条都不用写进表里；`jv`/`jve`/`jvan`/`jvn` 先投影到
   `ju`/`jue`/`juan`/`jun` 再判，两种拼写在严格模式下表现一致（`jv1 → jū`）。
   全表 1952 键：放行 **876**、挡掉 **1076** —— 两条死键修好后从 1953 / 875 / 1078 变来
-  （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。四个入口（`toPinyinTones`、`toPinyinTonesInline`、
-  `toPinyinTonesVariants`、`convertUnspacedPinyin`）都接受该选项，默认 `false`，
-  现有调用方看不到任何变化。
+  （见下方 Fixed），1110 条笛卡尔积噪声里没有一条漏网。两个入口（`toPinyinTones`、
+  `toPinyinTonesInline`）都接受该选项，默认 `false`，现有调用方看不到任何变化。
   新增 `lib/core.js`（426 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
   加 m/n/hm/hng 四条叹词，再加 `e^` 一条）与 `test/test-strict.js`（53 条）。
 - Added: 叹词音节 `m`、`n`、`ng`、`hm`、`hng` 进词表（`ng` 原有，本次补齐其余四个）。
@@ -151,8 +163,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   存 1 条 + 一条规则与存 5 条预生成字符串逐条等价 —— 已对全表逐键 × 5 个声调断言 0 差异，
   另有逐键 × 7 种输入形态（含冒号）的完整比对。
   `lib/dict.js` 由 110,310 字节降到 38,732 字节（gzip 31,120 → 10,638），公开行为不变：
-  `toPinyinTones`、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`
-  的输出逐条相同。
+  `toPinyinTones` 与 `toPinyinTonesInline` 的输出逐条相同（当时一并存在的另外两个入口，
+  已在发布前删除，见上方 Breaking）。
   值仍逐键写出，不做「键把 `v` 换成 `ü`」的推导：74 个键的 `v` 是辅音字母（`va`、`vai`、
   `vong`、`vv`），派生会让它们变成 `üā` 这类不存在的音节；另一个例外是 `e^ → ê`。
   这 74 个键的基底因此原样保留，将来清理假音节时再一起处理。

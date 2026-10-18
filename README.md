@@ -18,15 +18,11 @@ npm install pinyin-tone
 
 ## Public API (公开接口)
 
-Only the entry points declared in `package.json` → `exports` are supported public API:
+Only the entry point declared in `package.json` → `exports` is supported public API:
 
 | Import path | Provides |
 | --- | --- |
-| `pinyin-tone` | `toPinyinTones` (default), `convertUnspacedPinyin`, `toPinyinTonesInline`, `toPinyinTonesVariants` |
-| `pinyin-tone/workaround` | `markSinglePinyinVowel` (default) |
-
-The `.js`-suffixed equivalent (`pinyin-tone/workaround/index.js`) resolves to the same file and is
-equally supported.
+| `pinyin-tone` | `toPinyinTones` (default), `toPinyinTonesInline` |
 
 **Everything else inside the package is private implementation.** Any other subpath is not
 part of the API — including files you can see in `node_modules`, such as
@@ -38,7 +34,7 @@ fail with `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_MODULE_NOT_FOUND`. The interna
 of the dictionary — how it is split across files, its table shape, its key order — is
 **not** a contract and changes without notice.
 
-**3.0.0 is a breaking change**, in three places:
+**3.0.0 is a breaking change**, in five places:
 
 1. `pinyin-tone` now exports the dictionary-based converter that 2.x reached only through
    `pinyin-tone/v2`. On the 13,671 inputs formed by every dictionary key × six tones the two
@@ -48,16 +44,31 @@ of the dictionary — how it is split across files, its table shape, its key ord
 2. The `pinyin-tone/v1` and `pinyin-tone/v2` subpaths are removed. `v1` is gone from the
    package entirely, and `v2` is the root entry now, so there is nothing left to alias. Both
    imports now throw `ERR_PACKAGE_PATH_NOT_EXPORTED`.
-3. `splitUnspacedSyllables` is no longer exported. It was an internal step of
-   `convertUnspacedPinyin` with no independent use — the converter already accepts unspaced
-   input.
+3. The `pinyin-tone/workaround` subpath is removed, together with `markSinglePinyinVowel`.
+   All 36 inputs it handled (`a` / `o` / `e` / `i` / `u` / `v` × no digit or `0`–`4`) return
+   the same character from `toPinyinTones`, which also handles the cases the old table left
+   alone: `a5` → `a`, `e5` → `e`, `v5` → `ü`.
+4. `convertUnspacedPinyin` is removed. `toPinyinTones` already accepts unspaced input and
+   preserves whatever spacing the input had, so gluing the output is
+   `toPinyinTones(x).replace(/ /g, '')` at the call site. The one thing that had no
+   counterpart — converting the resolvable part of an unspaced run and leaving the rest
+   (`hanyu3pin1yin1` → `hanyu3pīnyīn`) — is gone with it: a token that does not fully resolve
+   is still returned as written, the same all-or-nothing rule as everywhere else.
+5. `toPinyinTonesVariants` is removed, and `splitUnspacedSyllables` before it. The literal
+   spelling is requested per token with `:`, which is what makes `'jū jǖ'` writable in a
+   single call; there is no option — and now no second entry point — that switches a whole
+   string to the literal spelling.
 
-**中文说明：** 只有上表列出的两个入口是公开接口，包内其他任何路径（含 `lib/` 目录下的文件）
+**中文说明：** 只有上表列出的入口是公开接口，包内其他任何路径（含 `lib/` 目录下的文件）
 都属于私有实现，随时可能被移动、改名或删除。依赖它们会得到**未定义、不可信的结果或直接报错**。
-3.0.0 的三处破坏性变更：根入口换成基于词表的实现（与 2.x 的旧实现在 13671 个输入上差异
+3.0.0 的破坏性变更：根入口换成基于词表的实现（与 2.x 的旧实现在 13671 个输入上差异
 11.3%，需要旧输出请锁在最后一个 2.x 版本 `pinyin-tone@2.4.1`）；`pinyin-tone/v1` 与
 `pinyin-tone/v2` 两个子路径删除（v1 实现不再随包发布，根入口本身就是 v2 那份实现）；
-`splitUnspacedSyllables` 不再导出（它是 `convertUnspacedPinyin` 的内部步骤）。
+`pinyin-tone/workaround` 子路径与 `markSinglePinyinVowel` 删除（它认的 36 个输入
+`toPinyinTones` 逐个相同，且后者还多认 `a5` / `e5` / `v5`）；`convertUnspacedPinyin` 删除
+（连写输入本来就接受，去空格是调用方一行 `.replace(/ /g, '')`）；`toPinyinTonesVariants`
+与更早的 `splitUnspacedSyllables` 删除（字面拼写只由冒号逐 token 请求，没有整串开关）。
+公开面因此收敛为两个函数：`toPinyinTones` 与 `toPinyinTonesInline`。
 
 ## Usage
 
@@ -106,8 +117,9 @@ toPinyinTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 ```
 
 Spacing is never added or removed: syllables written together come back together, syllables
-written apart keep their space. See [Unspaced input](#unspaced-input) when you want the output
-glued together regardless of how the input was spaced.
+written apart keep their space — including extra ones. If you want the output glued together
+regardless of how the input was spaced, strip the spaces at the call site; there is no second
+function for it. See [Unspaced input](#unspaced-input).
 
 Uppercase letters, a tone digit outside `0`–`5`, and CJK characters still make the whole token pass
 through untouched (use `toPinyinTonesInline` for text that mixes Chinese and pinyin).
@@ -138,15 +150,15 @@ spelling of `ü`, though, so `jv:1` says the same thing and is accepted as a syn
 (`'jǖ'`). Write the `u` form unless you are feeding in text that already spells `ü` as `v`.
 
 There is no option that switches a whole string to the literal spelling — the colon marks one
-token, which is what makes `'jū jǖ'` writable in a single call. If you need both forms of a
-longer text, use `toPinyinTonesVariants`:
+token, which is what makes both spellings writable in a single call:
 
 ```javascript
-import { toPinyinTonesVariants } from 'pinyin-tone';
-
-toPinyinTonesVariants('jv1 nv3');
-// -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
+toPinyinTones('jv1 ju1 ju:1');   // 'jū jū jǖ'
 ```
+
+Write the colon at each place you want the diaeresis. If you need the two spellings side by
+side for a longer text, call the converter twice — once with the plain input, once with a
+colon added to the syllables you want dotted. There is no entry point that returns both.
 
 The colon asks for `ü`, not for a syllable that happens to exist, so it does not check the
 initial: `gu:1` gives `gǖ`, `shv:3` gives `shǚ`, and `u:e1` gives `üē`. None of those are valid
@@ -238,9 +250,8 @@ Erhua is decided by its base: `huar` is valid exactly because `hua` is. The lite
 the same in both modes. A rejected syllable makes the whole token pass through unchanged — the same
 all-or-nothing rule as everywhere else.
 
-The option is accepted by every entry point (`toPinyinTones`, `toPinyinTonesInline`,
-`toPinyinTonesVariants`, `convertUnspacedPinyin`). It defaults to `false`, so existing callers see
-no change.
+The option is accepted by both entry points (`toPinyinTones`, `toPinyinTonesInline`). It
+defaults to `false`, so existing callers see no change.
 
 ### Mixing pinyin into Chinese text
 
@@ -288,24 +299,25 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 
 ## Unspaced input
 
-Spacing is never added or removed by `toPinyinTones`: syllables written together come back
-together, syllables written apart keep their space. `convertUnspacedPinyin` is for the case where
-you want the output glued together regardless of how the input was spaced:
+`toPinyinTones` accepts unspaced input directly: a tone digit is enough to cut a syllable, so
+`han4yu3pin1yin1` needs no preprocessing. What it does not do is decide your layout — spacing
+is never added, removed, or collapsed:
 
 ```javascript
-import { convertUnspacedPinyin } from 'pinyin-tone';
-
-console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
-console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn
-console.log(convertUnspacedPinyin('han4 yu3  pin1   yin1')); // hànyǔpīnyīn
-
-// always add a space or a `0` between two syllables if the first syllable does not end with a tone number
-console.log(convertUnspacedPinyin('hanyu3pin1yin1')); // hanyu3pīnyīn
-// like this
-console.log(convertUnspacedPinyin('han yu3pin1yin1')); // hanyǔpīnyīn
-// or this
-console.log(convertUnspacedPinyin('han0yu3pin1yin1')); // hanyǔpīnyīn
+toPinyinTones('han4yu3pin1yin1');        // 'hànyǔpīnyīn'
+toPinyinTones('han4 yu3pin1yin1');       // 'hàn yǔpīnyīn'
+toPinyinTones('han4 yu3  pin1   yin1');  // 'hàn yǔ  pīn   yīn'  — spaces kept as written
 ```
+
+Glue the output at the call site when that is what you want:
+
+```javascript
+toPinyinTones('han4 yu3pin1yin1').replace(/ /g, '');  // 'hànyǔpīnyīn'
+```
+
+The digit is not optional: a run with no tone number to cut at (`hanyu3pin1yin1`) is returned
+as written rather than guessed at. Put a space or a `0` after the syllable that has no tone
+number — `han yu3pin1yin1` or `han0yu3pin1yin1`, both `hanyǔpīnyīn`.
 
 ## Contributors
 
