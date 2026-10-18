@@ -46,7 +46,7 @@ const NASAL_TONES = {
 };
 
 /** 词表里的无调形式，键不存在时抛错（测试里出现笔误要立刻炸） */
-export function baseOf(key) {
+function baseOf(key) {
     const base = dict[key];
     if (base === undefined) throw new Error(`dict 里没有这个键: ${key}`);
     return base;
