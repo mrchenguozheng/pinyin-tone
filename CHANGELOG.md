@@ -37,11 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   这 36 个输入 `markTones` 逐个给出同样的字符，且后者还多认 `a5` / `e5` / `v5`
   （旧表越界返回原串，转换器给 `a` / `e` / `ü`）。`workaround/` 目录、`exports` 里两条映射、
   `files` 白名单、`pack:check` 的必需项同步删除。
-- Breaking: 公开面由此收敛为一个函数 —— 默认导出的 `markTones`。
+- Breaking: 公开面由此收敛为一个函数 —— `markTones`。
   删除前后对这两个入口做了 54968 次逐条对拍：全表 1952 键 × 7 种声调写法（无数字、
   `0`–`5`）× 裸写/冒号 × 严格模式开关，加上连写、标点、大小写、汉字混排、非法输入与
   边界空串，输出零差异。也就是说这一轮只删了入口，没动转换结果。
-- Breaking: 两个入口最终合并成一个 —— `markTonesInText` 并入默认导出的 `markTones`，
+- Breaking: 两个入口最终合并成一个 —— `markTonesInText` 并入 `markTones`，
   同时改掉旧名：`toPinyinTones` / `toPinyinTonesInline` → `markTones`，
   公开类型 `PinyinTonesOptions` → `MarkTonesOptions`。
   依据是 29217 条输入的对拍：纯拼音场景（单音节全表 × 7 声调 × 裸写/冒号、空格分隔、
@@ -57,6 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   那个字形 —— 给它**标**上调号，不是按声调给音节分类，也不涉及汉字。
   名字里不出现 `pinyin`：包名已经说过一次了，接口说的是自己那一步做了什么。
   3.0.0 从未发布，因此不留别名，2.x 的调用方改 import 即可。
+- Breaking: 只提供**具名导出** `markTones`，没有 `export default`。
+  默认导出时函数的公开名不在模块契约里（文档只能写「默认导出叫 `markTones`」这种间接说法），
+  而且三条互操作路径都会露出来：`require()` 读到的是 `{default}`（要 `.default` 才拿到函数）、
+  再导出得写 `export {default as markTones} from 'pinyin-tone'`、测试里 mock 也得按 `default`
+  造形状。具名之后，import 写的名字、README 里的名字、补全插入的名字是同一个。
+  代价只是少了一句「调用方随便命名」，用 `import {markTones as tones}` 就能补回来。
+  3.0.0 未发布，因此不留 `export default` 兼容层 —— 同一个函数有两种取法，等于又造一个入口。
 - Removed: 2.x 里 `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js`
   等）合并为单文件 `lib/dict.js`，不再按声母拆分。这些文件从未出现在 README / CHANGELOG 中，
   也不构成有语义的公开接口；如果之前绕过文档直接 `import x from 'pinyin-tone/v2/b.js'`，

@@ -1,7 +1,7 @@
 // 验证 package.json 的 exports 映射与入口的类型声明是否真的可用。
 // 这里用的是「包自引用」（self-reference）：import 的说明符是包名，
 // 所以必须靠 exports 字段才能解析成功。
-import markTones from 'pinyin-tone';
+import {markTones} from 'pinyin-tone';
 import type { MarkTonesOptions } from 'pinyin-tone';
 
 const a: string = markTones('ni3 hao3');
@@ -35,7 +35,7 @@ import markSinglePinyinVowel from 'pinyin-tone/workaround';
 // @ts-expect-error 带文件名的旧写法同样不再解析
 import markSinglePinyinVowelFromFile from 'pinyin-tone/workaround/index.js';
 
-// 3.0 收敛掉的函数必须不再是导出：公开面只剩默认导出的 markTones。
+// 3.0 收敛掉的函数必须不再是导出：公开面只剩具名导出的 markTones。
 // @ts-expect-error convertUnspacedPinyin 在 3.0 已删除（连写输入转换器本来就接受）
 import { convertUnspacedPinyin } from 'pinyin-tone';
 // @ts-expect-error toPinyinTonesVariants 在 3.0 已删除（字面拼写只由冒号逐 token 请求）
@@ -59,9 +59,13 @@ import { toToneMarks } from 'pinyin-tone';
 import type { ToneMarksOptions } from 'pinyin-tone';
 
 // 两个入口已经合并：这个曾经存在过的名字不得以任何形式复活。
-// @ts-expect-error markTonesInText 已合并进默认入口 markTones
+// @ts-expect-error markTonesInText 已合并进 markTones
 import { markTonesInText } from 'pinyin-tone';
 // @ts-expect-error toToneMarksInText 是合并前的中间名，同样不存在
 import { toToneMarksInText } from 'pinyin-tone';
+
+// 公开面只有一个具名导出：默认导入必须解析失败，否则同一个函数就有了两种取法。
+// @ts-expect-error 3.0 起没有默认导出，取 markTones 得用具名导入
+import defaultExport from 'pinyin-tone';
 
 export { a, i, mixed, strictOn, strictTyped, strictMixed };

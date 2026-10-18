@@ -10,7 +10,7 @@
 // 方法：实现层用「换查表键」做投影，测试层用「字符级替换」独立算出期望值。
 // 两条路径不同，交叉验证才有效。
 import { expect } from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
 import { expectedValue } from './support/dict-values.js';
 

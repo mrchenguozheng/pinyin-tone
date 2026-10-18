@@ -13,23 +13,24 @@ dependencies; unspaced or mixed text needs no preprocessing.
 npm install pinyin-tone
 ```
 
-Node.js 14 or later (`engines`). ESM only — `"type": "module"`, no CommonJS build.
+Node.js 14 or later (`engines`). ESM only — `"type": "module"`, no CommonJS build. Where a
+newer Node lets `require()` load ESM, destructure it: `const {markTones} = require('pinyin-tone')`.
 
 ```javascript
-import markTones from 'pinyin-tone';
+import {markTones} from 'pinyin-tone';
 
 markTones('chu1 yin1 wei4 lai2');  // 'chū yīn wèi lái'
 markTones('jv1 ju1 ju:1');         // 'jū jū jǖ'
 markTones('今天ni3hao3');          // '今天nǐhǎo'
 ```
 
-中文：只有一个默认导出，拼音串与中英混排都走它。Node.js 14+，只提供 ESM。
+中文：只有一个具名导出 `markTones`，拼音串与中英混排都走它。Node.js 14+，只提供 ESM；新版 Node 能用 `require()` 读 ESM 时写成 `const {markTones} = require('pinyin-tone')`。
 
 ## API
 
 | Export | Signature |
 | --- | --- |
-| `markTones` (default) | `(text, {strict?}) => string` |
+| `markTones` | `(text, {strict?}) => string` |
 
 The name says what the call does, not what the package is: it **marks** pinyin you have
 already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese

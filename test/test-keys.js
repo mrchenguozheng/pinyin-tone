@@ -6,7 +6,7 @@
 // 值与 v 完全重复、同样打不中，已删除。
 // 现在 ^ 成了 e 的可选后缀，两条死键都有了下文，这里把「键可达」钉成不变量。
 import {assert} from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 

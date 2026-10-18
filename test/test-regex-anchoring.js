@@ -4,7 +4,7 @@
 // 核心约定：单个音节整串匹配；一个 token 可以切成若干音节，
 // 但任何一段认不出来就整串原样返回 —— 绝不输出半截结果。
 import { expect } from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 
 const tones = markTones;
 

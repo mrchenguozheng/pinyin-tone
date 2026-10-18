@@ -9,7 +9,7 @@
 // 输入里写了空格就还是空格（ni3 hao3 -> nǐ hǎo），标点原样留在原位。
 // 首尾空白也不裁 —— 转换只改字母和声调。
 import { expect } from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 
 describe('分词：连写音节', () => {
     it('声调数字就是分隔符，音节之间不补空格', () => {
