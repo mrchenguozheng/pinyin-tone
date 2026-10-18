@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      - 'release/**'
+      - 'fix/**'
   pull_request:
 
 # 这个 workflow 只读仓库：它不提交任何东西，权限给到最小。
@@ -47,3 +49,20 @@ jobs:
       # 守卫：CONTRIBUTORS.svg（455KB 内嵌头像）曾被打进 tarball，
       # 占包体四分之三。这里把「包里有什麼、有多大」变成一条会红的断言。
       - run: npm run pack:check
+
+  # engines 声明里写的是 >=14，可测试只在 20/22/24 上跑过 —— 那几版都远在上界之上，
+  # 声明本身没人验。这一步压在下界上真跑一遍，不装 devDependencies：
+  # mocha 11 / chai 6 在 14 上装不上，而这里要证明的只是「包本身在这版 Node 上能用」。
+  engines:
+    name: engines floor (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['14', '18']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node scripts/smoke-entry.mjs

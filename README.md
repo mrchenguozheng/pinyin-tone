@@ -16,6 +16,18 @@ Designed for developers and learners who need accurate tone mark formatting in l
 npm install pinyin-tone
 ```
 
+This installs 2.4.1. Version 3.0.0 is published under the `next` tag — it is a rewrite, not an
+upgrade path, so it is not offered by a plain install:
+
+```bash
+npm install pinyin-tone@next
+```
+
+3.0.0 replaces the default export with a named one (`import {markTones} from 'pinyin-tone'`),
+merges `v2` and `workaround` into that single function, and adds a CommonJS entry. Code written
+for 2.x does **not** run against it unchanged; the `npm install pinyin-tone` line above keeps
+2.4.1.
+
 ## Usage (Default Behavior)
 
 This module exports a function. You can name it as desired, such as `pinyin`.
