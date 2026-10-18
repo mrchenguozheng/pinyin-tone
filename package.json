@@ -5,6 +5,9 @@
   "main": "index.js",
   "sideEffects": false,
   "type": "module",
+  "engines": {
+    "node": ">=14"
+  },
   "files": [
     "index.js",
     "index.d.ts",
