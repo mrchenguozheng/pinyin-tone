@@ -2,7 +2,7 @@
 // 这里用的是「包自引用」（self-reference）：import 的说明符是包名，
 // 所以必须靠 exports 字段才能解析成功。
 import {markTones} from 'pinyin-tone';
-import type { MarkTonesOptions, SkipContext, SkipSpec } from 'pinyin-tone';
+import type { MarkTonesOptions, SkipSpec } from 'pinyin-tone';
 
 const a: string = markTones('ni3 hao3');
 
@@ -18,14 +18,10 @@ const options: MarkTonesOptions = {strict: true};
 const strictTyped: string = markTones('jui1', options);
 const strictMixed: string = markTones('你好 jui1', {strict: false});
 
-// skip 的三种写法都要能通过类型检查
+// skip 的两种写法都要能通过类型检查
 const skipOne: string = markTones('M2 hao3', {skip: 'M2'});
 const skipMany: string = markTones('M2 A4', {skip: ['M2', 'A4']});
-const skipFn: string = markTones('M2 hao3', {
-    skip: (run: string, context: SkipContext) => run === 'M2' && context.before === '',
-});
-const skipSpec: SkipSpec = (run, {offset, before, after, text}) =>
-    before === '' && after !== '' && offset < text.length && run.length > 0;
+const skipSpec: SkipSpec = ['M2', 'A4'];
 const skipTyped: string = markTones('M2 hao3', {skip: skipSpec});
 const bothOptions: string = markTones('jui1 M2', {strict: true, skip: 'M2'});
 
@@ -35,8 +31,10 @@ markTones('jv1', {literal: true});
 markTones('ju1', {strict: 'yes'});
 // @ts-expect-error skip 不收 boolean
 markTones('M2', {skip: true});
-// @ts-expect-error skip 不收 RegExp（要按模式判断就写进谓词）
+// @ts-expect-error skip 不收 RegExp（只看得到单个片段，环视会静默失效）
 markTones('M2', {skip: /^M2$/});
+// @ts-expect-error skip 不收函数：要精确到某一次出现就写行内反斜杠
+markTones('M2', {skip: (run: string) => run === 'M2'});
 // @ts-expect-error skip 的数组只能放字符串
 markTones('M2', {skip: ['M2', 42]});
 // @ts-expect-error 第二参数必须是对象
@@ -74,6 +72,8 @@ import type { PinyinTonesOptions } from 'pinyin-tone';
 import { toToneMarks } from 'pinyin-tone';
 // @ts-expect-error ToneMarksOptions 是 3.0 的中间名，定稿为 MarkTonesOptions
 import type { ToneMarksOptions } from 'pinyin-tone';
+// @ts-expect-error SkipContext 随 skip 的函数写法一起删掉了（skip 只收字符串）
+import type { SkipContext } from 'pinyin-tone';
 
 // 两个入口已经合并：这个曾经存在过的名字不得以任何形式复活。
 // @ts-expect-error markTonesInText 已合并进 markTones
@@ -85,4 +85,4 @@ import { toToneMarksInText } from 'pinyin-tone';
 // @ts-expect-error 3.0 起没有默认导出，取 markTones 得用具名导入
 import defaultExport from 'pinyin-tone';
 
-export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipFn, skipTyped, bothOptions };
+export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipTyped, bothOptions };

@@ -1,36 +1,18 @@
 // lib/index.d.ts
 
-/** `skip` 用函数写法时拿到的上下文：这一段在原文里的位置与前后字符。 */
-export interface SkipContext {
-    /** 片段在原文里的起始下标（片段前面写了转义时，是反斜杠之后那一位）。 */
-    offset: number;
-    /** 片段前一个字符；片段在开头时是空串。 */
-    before: string;
-    /** 片段后一个字符；片段在结尾时是空串。 */
-    after: string;
-    /** 传进来的整段原文。 */
-    text: string;
-}
-
 /**
- * 哪些片段保持原样。三种写法：
+ * 哪些片段保持原样：一个片段，或一组片段。
  *
- * - 字符串：这个片段永远别转
- * - 字符串数组：同上，一组
- * - 函数：返回 `true` 时保持原样，能看位置与前后字符
+ * 比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），
+ * 也碰不到 `m2`。只想保住某一处的，用行内反斜杠：`\M2`，那仍然是同一个片段粒度，
+ * 只是把决定写在了文本里。
  *
- * 字符串与数组只比片段文本，同一个 token 的所有出现都不转；要收窄到某一次出现，
- * 用函数的 `offset`，或用 `text.matchAll` 先算出下标。
- *
- * 不收 `RegExp`：正则的直觉是「在整段文本里找」，而这里只看得到单个片段 ——
- * 环视（`(?<=今天 )`）拿不到前后字符，`^` / `$` 锚在片段两端而不是文本两端，
- * `g` / `y` 的有状态迭代在只 `test` 一次的片段上也没有意义。要按模式判断就写进
- * 函数：`(run) => /^[A-Z]\d$/.test(run)`。
+ * 不收 `RegExp` 与函数：这里能给的只有单个片段，正则的环视拿不到前后字符、
+ * `^`/`$` 锚在片段两端而不是文本两端，`g`/`y` 的有状态迭代也无从谈起 ——
+ * 「写得像对的、其实不生效」比不支持更糟。真要按模式判断，调用方先自己算出
+ * 要保的片段（`text.matchAll(...)`）再传字符串列表即可。
  */
-export type SkipSpec =
-    | string
-    | readonly string[]
-    | ((run: string, context: SkipContext) => boolean);
+export type SkipSpec = string | readonly string[];
 
 export interface MarkTonesOptions {
     /**
@@ -52,14 +34,14 @@ export interface MarkTonesOptions {
      * 本身就是音节），成批跳过比逐处写反斜杠省事：
      *
      * ```js
-     * markTones('M2 货币供应量', {skip: 'M2'});            // 'M2 货币供应量'
-     * markTones('M2 A4 N3', {skip: ['M2', 'A4']});         // 'M2 A4 Ň'
-     * markTones('M2 A4', {skip: (run) => /^[A-Z]\d$/.test(run)});  // 'M2 A4'
-     * markTones(text, {skip: (run, {before}) => before === ''});   // 只跳过行首
+     * markTones('M2 货币供应量', {skip: 'M2'});     // 'M2 货币供应量'
+     * markTones('M2 A4 N3', {skip: ['M2', 'A4']});  // 'M2 A4 Ň'
      * ```
      *
+     * 规则以片段为单位：同一个片段的所有出现都不转。只想保住某一处，
+     * 就在那一处前面写反斜杠 —— `\M2` 与 `skip: 'M2'` 同时生效时输出 `M2`。
+     *
      * 只对本来会转换的片段询问；转了也是原样的片段不会问。
-     * 行内反斜杠优先于这里：`\M2` 与 `skip: 'M2'` 同时生效时输出 `M2`。
      */
     skip?: SkipSpec;
 }
