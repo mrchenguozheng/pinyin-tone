@@ -1,7 +1,7 @@
 # `ü`, the colon, `ê`, and the vowel-less interjections
 
-Two ASCII spellings of one letter, one caret for one rime, and the syllables that have no
-vowel at all.
+Three things: two ASCII spellings of one letter, a caret for one rime, and the syllables that
+have no vowel at all.
 
 中文: [uu.zh.md](uu.zh.md)
 
@@ -16,21 +16,20 @@ markTones('jv1'); // 'jū'  — literal input, standard output
 markTones('ju1'); // 'jū'  — standard input, standard output
 ```
 
-`n` and `l` are not part of this projection: there `u` and `ü` are distinct sounds, so `nv3`
+`n` and `l` are not part of this conversion: there `u` and `ü` are distinct sounds, so `nv3`
 is `nǚ` and `nu3` is `nǔ`. `nu:3` also gives `nǚ`, but that is an explicit request for the
-diaeresis, not a projection.
+diaeresis, not a conversion.
 
 ## The colon asks for the diaeresis
 
 A colon is the two dots themselves. It has exactly two legal positions: right after the
-`u`/`v` it sits on, or at the end of the syllable. Everything after it still belongs to the
-same final, so `lu:e4` is `lüè`, not `lü` + `é`; `jv:an1` and `jvan:1` both give `jüān`.
+`u`/`v` it sits on, or at the end of the syllable. The colon joins the final it sits on rather
+than closing it, so `lu:e4` is `lüè`, not `lü` + `é`; `jv:an1` and `jvan:1` both give `jüān`.
 Anywhere else (`j:van1`, `jva:n1`) is a misplaced marker, and the token comes back
 unchanged.
 
 The initial is not checked — `gu:1` is `gǖ` and `u:e1` is `üē`, neither a valid syllable,
 both rendered on purpose:
-
 ```javascript
 markTones('ju1 ju:1'); // 'jū jǖ'  — both spellings in one line
 markTones('juan:1');   // 'jüān'
@@ -99,9 +98,9 @@ not distinguished in the output.
 
 ## Precomposed and combining glyphs
 
-Some of these glyphs have no precomposed character, so they are a letter plus a combining
-mark; the rest are single code points. Both render the same, but if you compare strings by
-bytes or by length, they differ.
+Some of these glyphs have no precomposed character, so they are a letter plus a combining mark;
+the rest are single code points. Both kinds render the same, but a byte or length comparison
+tells them apart.
 
 | Glyph | Code points |
 | --- | --- |

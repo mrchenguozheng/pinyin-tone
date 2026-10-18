@@ -1,10 +1,10 @@
 # `strict` mode
 
 The dictionary is deliberately permissive: 1952 keys, of which 876 pass `strict` — the 426
-syllables of Standard Mandarin plus their erhua forms and the literal `jv` spellings,
-resolved by projection. The other 1076 are initial × final cross products (`jui`, `juang`,
-`biong`), real-world non-standard spellings (`duang`, `biu`), or `v` used as a consonant
-(`vai`, `bvan`).
+syllables of Standard Mandarin, plus the erhua forms and literal `jv` spellings those
+syllables determine. The other 1076 fall into three groups: initial × final cross products
+(`jui`, `juang`, `biong`), non-standard spellings that people really use (`duang`, `biu`), and
+combinations that treat `v` as a consonant (`vai`, `bvan`).
 
 All of them convert by default. `strict: true` converts only the 876 and passes the rest
 through.
@@ -23,7 +23,7 @@ markTones('e^2', {strict: true});    // 'ế'     — ê is a rime of its own
 ## How the check works
 
 Erhua is decided by its base: `huar` is valid exactly because `hua` is. Literal spellings are
-projected onto the standard ones before the check, so they behave the same in both modes. A
+converted to the standard ones before the check, so they behave the same in both modes. A
 rejected syllable makes the whole run pass through — same all-or-nothing rule as everywhere
 else.
 
