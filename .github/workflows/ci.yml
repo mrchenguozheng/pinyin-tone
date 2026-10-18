@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - 'release/3.0'
   pull_request:
 
 # 这个 workflow 只读仓库：它不提交任何东西，权限给到最小。
