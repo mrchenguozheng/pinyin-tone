@@ -5,21 +5,26 @@
 // 这边测的是「文档还准不准」，期望值逐条抄自 README 的注释与表格。
 // 改实现时如果只有这里红，说明代码可能没错、是文档过期了。
 import { expect } from 'chai';
-import markTones, { markTonesInText } from '../lib/index.js';
+import markTones from '../lib/index.js';
 
 describe('README 示例', () => {
     it('Quick start', () => {
         expect(markTones('chu1 yin1 wei4 lai2')).to.equal('chū yīn wèi lái');
         expect(markTones('jv1 ju1 ju:1')).to.equal('jū jū jǖ');
-        expect(markTonesInText('今天ni3hao3')).to.equal('今天nǐhǎo');
+        expect(markTones('今天ni3hao3')).to.equal('今天nǐhǎo');
     });
 
-    it('How a token is read', () => {
+    it('How a run is read', () => {
         expect(markTones('ni3hao3')).to.equal('nǐhǎo');
         expect(markTones('ni3 hao3')).to.equal('nǐ hǎo');
         expect(markTones('ni3,hao3')).to.equal('nǐ,hǎo');
         expect(markTones('a1b2c3')).to.equal('a1b2c3');
         expect(markTones('hanyu3pin1yin1')).to.equal('hanyu3pin1yin1');
+        expect(markTones('今天ni3hao3')).to.equal('今天nǐhǎo');
+        // 正文里的三条断言：大写打断片段、0-5 外的数字不吞、下划线当词字符
+        expect(markTones('Hao3')).to.equal('Hao3');
+        expect(markTones('ma6')).to.equal('ma6');
+        expect(markTones('ni3_hao3')).to.equal('ni3_hao3');
     });
 
     it('Spacing is yours', () => {
@@ -28,6 +33,11 @@ describe('README 示例', () => {
         expect(markTones('han4 yu3pin1yin1').replace(/ /g, '')).to.equal('hànyǔpīnyīn');
         expect(markTones('han yu3pin1yin1')).to.equal('han yǔpīnyīn');
         expect(markTones('han0yu3pin1yin1')).to.equal('hanyǔpīnyīn');
+        // 数字只有片段最后一段能省
+        expect(markTones('ni3hao3ma')).to.equal('nǐhǎoma');
+        expect(markTones('ni3haoma5')).to.equal('ni3haoma5');
+        // 首尾空白不裁
+        expect(markTones('  ni3 hao3  ')).to.equal('  nǐ hǎo  ');
     });
 
     it('Two spellings of ü', () => {
@@ -76,10 +86,10 @@ describe('README 示例', () => {
     });
 
     it('Mixed text', () => {
-        expect(markTonesInText('ju是规范写法，而ju:1是不规范写法'))
+        expect(markTones('ju是规范写法，而ju:1是不规范写法'))
             .to.equal('ju是规范写法，而jǖ是不规范写法');
-        expect(markTonesInText('abcju1')).to.equal('abcju1');
-        expect(markTonesInText('ju1abc')).to.equal('ju1abc');
+        expect(markTones('abcju1')).to.equal('abcju1');
+        expect(markTones('ju1abc')).to.equal('ju1abc');
     });
 });
 

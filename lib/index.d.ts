@@ -8,19 +8,24 @@ export interface MarkTonesOptions {
      * 「声母 × 韵母」笛卡尔积的产物，也包括 `duang`、`biu`、`biong` 这类非标准
      * 但在用的口语音，以及 `vai` 这种把 v 当辅音的写法。
      *
-     * 置 `true` 时，白名单之外的音节整串原样返回（不会输出半截结果）。
+     * 置 `true` 时，白名单之外的音节原样返回（不会输出半截结果）。
      * 儿化跟着基底走：`huar` 合法是因为 `hua` 合法。
      */
     strict?: boolean;
 }
 
 /**
- * 转换拼音串。一个 token 可以是单个音节，也可以是若干音节连写 ——
- * 声调数字就是分隔符，`ni3hao3` -> `nǐhǎo`。输出保持输入的分隔方式：
- * 连写不补空格，写了的空格还在，ASCII 标点原样保留（`ni3,hao3` -> `nǐ,hǎo`）。
+ * 给用 ASCII 写成的拼音标上调号：`hao3` -> `hǎo`。混在中文里的也认：
+ * `今天ni3hao3` -> `今天nǐhǎo`，其余字符逐字保留，首尾空白也不会被裁掉。
  *
- * 任何一段认不出来（`a1b2c3`、`hua1r`、`ma6`、大写字母、汉字）就整串原样返回，
- * 不会输出半截结果。`hanyu3pin1yin1` 这类没有声调数字可切的地方也不猜。
+ * 不要求空格隔开。实例先在整段里取出候选片段，片段内部按声调数字切音节，
+ * 所以 `ni3hao3` 与 `ni3 hao3` 都成立。省略数字只对最后一段有效：
+ * `ni3hao3ma` -> `nǐhǎoma`，而 `ni3haoma5` 因为 `haoma` 不是音节整段不动。
+ * 粘在英文单词上（`abcju1`、`ju1abc`）或含下划线（`ni3_hao3`）的片段不动。
+ *
+ * 某个片段认不全（`a1b2c3`、`hua1r`、`ma6`、大写字母）就那个片段原样返回，
+ * 不会输出半截结果；同串里的其他片段照转。`hanyu3pin1yin1` 这类没有声调数字
+ * 可切的地方也不猜。
  *
  * `j`/`q`/`x`/`y` 与 `ü` 相拼时按《汉语拼音方案》省两点，因此输出恒为规范形式：
  * `jv1` 与 `ju1` 都得到 `jū`。要某处保留两点，就在 `u`（或 `v`）后写一个英文冒号：
@@ -29,14 +34,6 @@ export interface MarkTonesOptions {
  * `n`/`l` 后的 ü 本来就保留两点（`nv3` -> `nǚ`），不受影响。
  *
  * `ê`（欸 / 诶）写作 `e^`：`^` 就是那个扬抑符。`e^2` -> `ế`、`e^4` -> `ề`，
- * 不带数字则是 `ê`。`^` 只认 `e`，写在别的字母后面（`be^2`）整串原样。
+ * 不带数字则是 `ê`。`^` 只认 `e`，写在别的字母后面（`be^2`）整段原样。
  */
-export default function markTones(longString: string, options?: MarkTonesOptions): string;
-
-/**
- * 转换中文与拼音混排的整句，只替换其中的拼音片段，其余字符原样保留。
- * 裸写 `ju1` / `jv1` 输出规范形式 `jū`；
- * `ju:1` 用冒号表示那个 u 上面的两点，输出字面形式 `jǖ`（`jv:1` 同义）；
- * `u:` / `u:1` / `v:` / `v:1` 输出 `ü` / `ǖ`。
- */
-export function markTonesInText(text: string, options?: MarkTonesOptions): string;
+export default function markTones(text: string, options?: MarkTonesOptions): string;

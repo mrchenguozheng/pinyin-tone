@@ -1,9 +1,9 @@
 # pinyin-tone
 
-Convert numeric tone notation (`hao3`) to Pinyin diacritics (`hǎo`). Two functions, no
-dependencies, and unspaced or mixed text needs no preprocessing.
+Convert numeric tone notation (`hao3`) to Pinyin diacritics (`hǎo`). One function, no
+dependencies; unspaced or mixed text needs no preprocessing.
 
-把 `hao3` 这类数字声调转成带调号的拼音 `hǎo`。两个函数，无依赖；连写与中英混排都能直接喂进去。
+把 `hao3` 这类数字声调转成带调号的拼音 `hǎo`。一个函数，无依赖；连写与中英混排都能直接喂进去。
 
 [![NPM](https://nodei.co/npm/pinyin-tone.png)](https://nodei.co/npm/pinyin-tone/)
 
@@ -16,63 +16,65 @@ npm install pinyin-tone
 Node.js 14 or later (`engines`). ESM only — `"type": "module"`, no CommonJS build.
 
 ```javascript
-import markTones, {markTonesInText} from 'pinyin-tone';
+import markTones from 'pinyin-tone';
 
 markTones('chu1 yin1 wei4 lai2');  // 'chū yīn wèi lái'
 markTones('jv1 ju1 ju:1');         // 'jū jū jǖ'
-markTonesInText('今天ni3hao3');    // '今天nǐhǎo'
+markTones('今天ni3hao3');          // '今天nǐhǎo'
 ```
 
-中文：`markTones` 按空格切 token，`markTonesInText` 扫整段、只替换能成词的拼音片段。Node.js 14+，只提供 ESM。
+中文：只有一个默认导出，拼音串与中英混排都走它。Node.js 14+，只提供 ESM。
 
 ## API
 
-| Export | Signature | Use |
-| --- | --- | --- |
-| `markTones` (default) | `(text, {strict?}) => string` | space-separated pinyin |
-| `markTonesInText` | `(text, {strict?}) => string` | pinyin mixed into Chinese text |
+| Export | Signature |
+| --- | --- |
+| `markTones` (default) | `(text, {strict?}) => string` |
 
-The names say what the call does, not what the package is: both **mark** pinyin you have
-already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. Neither turns Chinese
-characters into pinyin, and neither guesses a tone that was not written — `ma` stays `ma`.
+The name says what the call does, not what the package is: it **marks** pinyin you have
+already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese
+characters into pinyin, and does not guess a tone that was not written — `ma` stays `ma`.
 
-中文：名字说的是这个调用做了什么 —— 给你已经用 ASCII 写好的拼音**标上**调号，不是「汉字转拼音」。两个入口都不做汉字转拼音，也不猜没写出来的声调（`ma` 仍是 `ma`）。
+中文：名字说的是这个调用做了什么 —— 给你已经用 ASCII 写好的拼音**标上**调号，不是「汉字转拼音」。它不做汉字转拼音，也不猜没写出来的声调（`ma` 仍是 `ma`）。
 
-Only these two are public. Everything else in the package — including `pinyin-tone/lib/*`,
+Only this function is public. Everything else in the package — including `pinyin-tone/lib/*`,
 which you can see in `node_modules` — is private: files may be renamed or deleted in any
 release, and the dictionary's file layout, table shape and key order are not a contract.
 Importing those paths gives you `ERR_PACKAGE_PATH_NOT_EXPORTED` or silently wrong results.
 
-中文：公开接口只有这两个函数。包内其余路径（含 `node_modules` 里看得见的 `lib/` 文件）都是私有实现，随时可能改名或删除；词表的文件划分、表结构、键顺序都不构成契约。
+中文：公开接口只有这一个函数。包内其余路径（含 `node_modules` 里看得见的 `lib/` 文件）都是私有实现，随时可能改名或删除；词表的文件划分、表结构、键顺序都不构成契约。
 
-## How a token is read
+## How a run is read
 
-`markTones` splits the string on spaces. Each token is cut into syllables at its tone
-digits; each syllable is a base form, an optional marker (`^` for `ê`, `:` for a literal
-`ü`), and an optional digit `0`–`5`. ASCII punctuation between syllables is kept. If any
-piece does not resolve, the **whole token** is returned unchanged — never a half-converted
-one.
+The input is scanned for runs of lowercase letters, `:` `^` and digits `0`–`5`. Everything
+outside a run — Chinese characters, punctuation, whitespace — is copied through untouched.
+Each run is cut into syllables at its tone digits; each syllable is a base form, an optional
+marker (`^` for `ê`, `:` for a literal `ü`), and an optional digit `0`–`5`. A run that does
+not resolve as a whole is returned as written — never half-converted.
 
-中文：按空格切 token；每个 token 按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。音节间的 ASCII 标点原样保留。任一段认不出，**整个 token** 原样返回，绝不输出半截。
+中文：整段扫描「小写字母 / `:` / `^` / `0`–`5`」组成的片段，片段之外的字符（汉字、标点、空白）逐字照抄。片段内部按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。整个片段认不全就原样返回，绝不输出半截。
 
 ```javascript
 markTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to cut
-markTones('ni3 hao3');       // 'nǐ hǎo'  — a space in the input stays a space
+markTones('ni3 hao3');       // 'nǐ hǎo'  — a space is just text between runs
 markTones('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
-markTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, nothing is touched
+markTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, run untouched
 markTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
+markTones('今天ni3hao3');     // '今天nǐhǎo' — Chinese is not part of any run
 ```
 
-Uppercase letters, a digit outside `0`–`5`, and CJK characters also make the whole token
-pass through; use `markTonesInText` when Chinese is mixed in.
+Uppercase letters break a run (`Hao3` stays as written), and so does a digit outside `0`–`5`
+— `ma6` ends up untouched because the `6` would otherwise be dropped. A run touching an
+ASCII word character is left alone as well, which includes `_`: `ni3_hao3` reads as an
+identifier, not two syllables.
 
-中文：大写字母、`0`–`5` 之外的数字、汉字，同样让整个 token 原样通过；中英混排用 `markTonesInText`。
+中文：大写字母会打断片段（`Hao3` 原样）；`0`–`5` 之外的数字同样如此（`ma6` 不转，否则那个 `6` 会被吞掉）。紧邻 ASCII 词字符的片段也不动，其中包含下划线：`ni3_hao3` 视作标识符，不是两个音节。
 
 ### Spacing is yours
 
 Spacing is never added, removed or collapsed — what you wrote is what you get, including
-double spaces. Unspaced input works as-is because the digit is the cut point; gluing the
-output is a call-site decision:
+double spaces and leading or trailing whitespace. Unspaced input works as-is because the
+digit is the cut point; gluing the output is a call-site decision:
 
 ```javascript
 markTones('han4yu3pin1yin1');                     // 'hànyǔpīnyīn'
@@ -80,12 +82,14 @@ markTones('han4 yu3  pin1   yin1');               // 'hàn yǔ  pīn   yīn'
 markTones('han4 yu3pin1yin1').replace(/ /g, '');  // 'hànyǔpīnyīn'
 ```
 
-The digit is not optional. A run with nothing to cut at (`hanyu3pin1yin1`) comes back as
-written rather than guessed. Put a `0` after a toneless syllable to separate without adding
-a space — `han0yu3pin1yin1` gives `hanyǔpīnyīn`; a space separates too, but it stays in the
-output, so `han yu3pin1yin1` gives `han yǔpīnyīn`.
+The digit is not optional, and can only be dropped for the last syllable of a run: `ni3hao3ma`
+gives `nǐhǎoma`, while `ni3haoma5` comes back as written because `haoma` is not a syllable.
+A run with nothing to cut at (`hanyu3pin1yin1`) is returned as written rather than guessed.
+Put a `0` after a toneless syllable to separate without adding a space —
+`han0yu3pin1yin1` gives `hanyǔpīnyīn`; a space separates too, but it stays in the output, so
+`han yu3pin1yin1` gives `han yǔpīnyīn`.
 
-中文：空格不增、不删、不合并，多打的也照样保留。连写输入直接可用（数字就是切点）；要粘连就在调用方 `.replace(/ /g, '')`。数字不能省——没有切点的 `hanyu3pin1yin1` 原样返回。没有声调的音节后面补 `0` 可以分隔而不产生空格（`han0yu3pin1yin1` → `hanyǔpīnyīn`）；用空格分隔则空格会留在输出里（`han yu3pin1yin1` → `han yǔpīnyīn`）。
+中文：空格不增、不删、不合并，多打的、首尾的也照样保留。连写输入直接可用（数字就是切点）；要粘连就在调用方 `.replace(/ /g, '')`。数字不能省，且只有片段最后一段可以省：`ni3hao3ma` → `nǐhǎoma`，而 `ni3haoma5` 因为 `haoma` 不成音节原样返回。没有切点的 `hanyu3pin1yin1` 也不猜。没有声调的音节后面补 `0` 可以分隔而不产生空格（`han0yu3pin1yin1` → `hanyǔpīnyīn`）；用空格分隔则空格会留在输出里（`han yu3pin1yin1` → `han yǔpīnyīn`）。
 
 ### Two spellings of `ü`
 
@@ -175,27 +179,25 @@ markTones('e^2', {strict: true});   // 'ế'     — ê is a rime of its own
 
 Erhua is decided by its base: `huar` is valid exactly because `hua` is. Literal spellings
 are projected onto the standard ones before the check, so they behave the same in both
-modes. A rejected syllable makes the whole token pass through. Both entry points accept the
-option; it defaults to `false`.
+modes. A rejected syllable makes the whole run pass through. The option defaults to `false`.
 
-中文：词表故意宽松——1952 个键里 876 个通过 `strict`（426 个普通话音节，加上由投影得到的儿化与字面 `jv` 写法），其余 1076 个是声母×韵母的笛卡尔积、现实中存在的非标准拼写、或把 `v` 当辅音的组合。默认全转，`{strict: true}` 只放行前者。儿化由基底决定（`huar` 成立是因为 `hua` 成立），字面拼写先投影再判定；两个入口都接受该选项，默认 `false`。
+中文：词表故意宽松——1952 个键里 876 个通过 `strict`（426 个普通话音节，加上由投影得到的儿化与字面 `jv` 写法），其余 1076 个是声母×韵母的笛卡尔积、现实中存在的非标准拼写、或把 `v` 当辅音的组合。默认全转，`{strict: true}` 只放行前者。儿化由基底决定（`huar` 成立是因为 `hua` 成立），字面拼写先投影再判定；被挡掉的音节让整个片段原样返回，选项默认 `false`。
 
 ## Mixed text
 
-`markTones` splits on spaces, so pinyin glued to Chinese (`ju是规范写法`) is returned
-untouched. `markTonesInText` scans the whole string and replaces only the runs it can
-resolve:
+Nothing special is needed: Chinese characters are not part of any run, so pinyin glued to
+them is converted in place.
 
 ```javascript
-markTonesInText('ju是规范写法，而ju:1是不规范写法');
+markTones('ju是规范写法，而ju:1是不规范写法');
 // -> 'ju是规范写法，而jǖ是不规范写法'
 ```
 
-Same rules as above: bare tokens give the standard spelling, a colon asks for the literal
-one, unspaced runs are cut at their digits. A run glued to an English word (`abcju1`,
-`ju1abc`) is left alone, and so is a bare `ju` with no tone digit.
+Same rules as above: bare syllables give the standard spelling, a colon asks for the literal
+one, unspaced runs are cut at their digits. A run glued to an ASCII word (`abcju1`, `ju1abc`)
+is left alone, and so is a bare `ju` with no tone digit.
 
-中文：`markTones` 按空格切，所以 `ju是规范写法` 这类粘连会整串原样返回；`markTonesInText` 扫全文，只替换能成词的片段。规则与前面相同（裸写给规范形式、冒号要字面形式、连写按数字切）；粘在英文单词上的 `abcju1`/`ju1abc`，以及没有声调数字的 `ju`，都不动。
+中文：不需要特殊处理——汉字不属于任何片段，紧贴着的拼音就地转换。规则与前面相同（裸写给规范形式、冒号要字面形式、连写按数字切）；粘在英文单词上的 `abcju1`/`ju1abc`，以及没有声调数字的 `ju`，都不动。
 
 ## Migrating from 2.x
 
@@ -204,18 +206,26 @@ On the 13,664 inputs formed by every dictionary key × its seven tone spellings,
 disagree on 11.3% — 3.0 fixes cases where the old one dropped letters (`biou1`: 2.x gives
 `biū`, 3.0 gives `biōu`). Pin `pinyin-tone@2.4.1` if you need the old output.
 
+3.0 also collapses the two 2.x entries into one: pinyin glued to Chinese used to need the
+`Inline` variant, and is now handled by the same function. Nothing is lost on plain pinyin —
+the merged entry returns the same string as the old space-splitting one, except that it no
+longer trims leading/trailing whitespace and no longer converts `ni3_hao3` (an identifier,
+not two syllables).
+
 | 2.x | 3.0 |
 | --- | --- |
 | `pinyin-tone/v2` (alias) | the root entry |
 | `pinyin-tone/v1` | removed |
 | `toPinyinTones(x)` | `markTones(x)` — renamed |
-| `toPinyinTonesInline(x)` | `markTonesInText(x)` — renamed |
+| `toPinyinTonesInline(x)` | `markTones(x)` — merged into the single entry |
 | `pinyin-tone/workaround` | `markTones` (superset of its 36 inputs) |
 | `convertUnspacedPinyin(x)` | `markTones(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
 | `splitUnspacedSyllables(x)` | internal step, no replacement needed |
 
 中文：3.0 的根入口就是 2.x 里 `pinyin-tone/v2` 那份实现。把每个词表键 × 七种声调写法拼成的 13664 个输入逐条对比，两者有 11.3% 不同——3.0 修的是旧实现丢字母的情况（`biou1`：2.x 给 `biū`，3.0 给 `biōu`）。需要旧输出请锁 `pinyin-tone@2.4.1`。
+
+3.0 还把 2.x 的两个入口并成一个：紧贴汉字的拼音以前要换 `Inline` 版本，现在同一个函数就认。纯拼音场景没有损失——结果与旧的按空格切版本逐条相同，只有两处不同：不再裁掉首尾空白，`ni3_hao3` 也不再转（那是标识符，不是两个音节）。
 
 ## Contributors
 
