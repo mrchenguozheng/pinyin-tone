@@ -300,9 +300,15 @@ function makeRandom(seed) {
 
 // ---------------------------------------------------------------- 用例
 
-describe('regex anchoring: 不完整的输入不得被截断', () => {
-    for (const [input, kind] of passThrough) {
-        it(`[${kind}] ${JSON.stringify(input)} 应原样返回`, () => {
+// passThrough 里的 41 条按「为什么不能转」分成两类。两类的断言是同一句
+// （输出 === 输入），但原因不同：这一组是「切了会丢字母」，下一组是「根本不是拼音」。
+// 合在一起跑两遍只会让人以为有 82 个独立用例。
+const TRUNCATION_KINDS = new Set(['unspaced', 'unspaced mixed', 'legacy erhua', 'invalid tone']);
+const NOT_PINYIN_KINDS = new Set(['uppercase', 'symbols', 'colon has no landing', 'not pinyin']);
+
+describe('regex anchoring: 切开会丢字母的输入，整串原样', () => {
+    for (const [input, kind] of passThrough.filter(([, k]) => TRUNCATION_KINDS.has(k))) {
+        it(`[${kind}] ${JSON.stringify(input)}`, () => {
             expect(tones(input)).to.equal(input);
         });
     }
@@ -339,12 +345,27 @@ describe('regex anchoring: 合法与非法 token 混在一句里', () => {
     }
 });
 
-describe('regex anchoring: 非法输入整串原样返回', () => {
-    for (const [input, kind] of passThrough) {
-        it(`[${kind}] ${JSON.stringify(input)} 原样返回`, () => {
+describe('regex anchoring: 根本不是拼音的输入，逐字不动', () => {
+    for (const [input, kind] of passThrough.filter(([, k]) => NOT_PINYIN_KINDS.has(k))) {
+        it(`[${kind}] ${JSON.stringify(input)}`, () => {
             expect(tones(input)).to.equal(input);
         });
     }
+
+    // 上面两个 describe 靠 kind 标签筛选。新加一条数据却忘了归类时，
+    // 它会在两个 describe 里都不出现；归错类则会两边都跑一遍。
+    // 这条断言把这两种情况都挡住。
+    it('两类标签互斥，且覆盖 passThrough 的每一条数据', () => {
+        const both = passThrough.filter(
+            ([, kind]) => TRUNCATION_KINDS.has(kind) && NOT_PINYIN_KINDS.has(kind),
+        );
+        expect(both).to.deep.equal([]);
+
+        const covered = passThrough.filter(
+            ([, kind]) => TRUNCATION_KINDS.has(kind) || NOT_PINYIN_KINDS.has(kind),
+        );
+        expect(covered).to.have.length(passThrough.length);
+    });
 });
 
 describe('regex anchoring: 输出不变量', () => {
@@ -394,7 +415,8 @@ describe('regex anchoring: 输出不变量', () => {
 });
 
 describe('regex anchoring: 全音节表扫描', () => {
-    it('轻声儿化：纯韵母 + r0 也转换（v1 曾漏判）', () => {
+    it('轻声儿化：韵母 + r0 也要转换', () => {
+        // 儿化在轻声下不加调号，但 r 必须留在输出里 —— 2.x 的旧实现曾把 ar0 原样返回。
         expect(tones('ar0')).to.equal('ar');
         expect(tones('bair0')).to.equal('bair');
         expect(tones('huar0')).to.equal('huar');
