@@ -29,8 +29,15 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "v1",
+    "v2",
+    "workaround",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "test": "mocha && tsc --noEmit"
+    "test": "mocha && tsc --noEmit",
+    "pack:check": "node scripts/check-pack.mjs"
   },
   "keywords": [
     "pinyin",

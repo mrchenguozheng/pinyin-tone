@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - master
+# 这个 action 会把生成的 CONTRIBUTORS.svg 提交回 master，
+# 默认的 GITHUB_TOKEN 是只读的，不给 write 就会在 push 那一步失败。
+permissions:
+  contents: write
 jobs:
   contributors:
     runs-on: ubuntu-latest
