@@ -1,17 +1,18 @@
-// engines 下限冒烟：把包真的打出来、装进一个干净工程，再用真实的方式解析
-// import 与 require 两个条件。
+// Smoke test for the engines floor: pack the package for real, install it into a clean
+// project, and resolve both the import and the require condition the way a user would.
 //
-// 为什么不在仓库里直接 require('./dist/index.cjs')：那验的是「文件语法没问题」，
-// 而这里要验的是「用户按 npm 的方式拿到包之后能用」—— 区别在于 exports 字段的
-// 条件选择、files 白名单有没有漏文件、package.json 的 type 会不会让 .cjs 被误判。
-// 这三件事里任何一件错了，仓库内的测试都照样全绿。
+// Why not just require('./dist/index.cjs') in the repository: that only proves the file has
+// valid syntax. What is being checked here is that the package works once a user has it the
+// way npm delivers it — which involves the conditional selection in the exports field, whether
+// the files whitelist missed something, and whether package.json's type makes .cjs be
+// misread. Get any of those three wrong and every test in the repository still passes.
 //
-// 为什么探针文件用 .cjs：Node 14 的 ESM 加载器只会加载 CJS 形式的包（真实用户
-// 就认得 require），而仓库根 package.json 的 type: module 会让不带后缀的 .js 按
-// ESM 解释。.cjs 是唯一在 14 与 22 上含义相同的写法。
+// Why the probe files are .cjs: Node 14's ESM loader only loads packages in CJS form (and
+// real users reach it through require), while type: module in the repository root would make a
+// bare .js be read as ESM. .cjs is the only extension that means the same thing on 14 and 22.
 //
-// 用法：node scripts/smoke-entry.cjs
-//   退出码 0 = 两种加载方式都能拿到 markTones 且输出正确。
+// Usage: node scripts/smoke-entry.cjs
+//   Exit code 0 means both loading styles reach markTones and produce the right output.
 
 const {execFileSync} = require('node:child_process');
 const {mkdtempSync, writeFileSync, rmSync, readdirSync, renameSync} = require('node:fs');
@@ -27,7 +28,7 @@ const SAMPLE = 'ni3 hao3';
 const run = (cmd, args, cwd) => execFileSync(cmd, args, {
     cwd,
     encoding: 'utf8',
-    // Windows 上 npm 是 .cmd，必须经 shell 才能 execFileSync
+    // On Windows npm is a .cmd, which execFileSync can only reach through a shell
     shell: process.platform === 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -35,39 +36,42 @@ const run = (cmd, args, cwd) => execFileSync(cmd, args, {
 const problems = [];
 
 try {
-    // 1. 打包到临时目录（prepack 会先校验 dist/index.cjs 与 lib/ 是否同步）
+    // 1. Pack into a temporary directory (prepack first checks that dist/index.cjs matches lib/)
     //
-    // 这里故意用 `--pack-destination` 之外的老写法：Node 14 自带的 npm 6 会把
-    // 这个参数当成「要安装的路径」（报 ENOLOCAL: ... does not contain a package.json），
-    // 所以只在仓库根目录产出 tgz，再自己搬进临时目录 —— 两代 npm 都认的写法。
+    // The old form without `--pack-destination` is deliberate: npm 6, which ships with Node 14,
+    // reads that flag as "the path to install", reporting ENOLOCAL: ... does not contain a
+    // package.json. So the tgz is produced in the repository root and moved into the temporary
+    // directory here — a form both npm generations understand.
     run('npm', ['pack'], ROOT);
     const tarball = readdirSync(ROOT).filter((name) => name.endsWith('.tgz')).sort().pop();
     if (!tarball) {
-        throw new Error('npm pack 没有在仓库根目录产出 tgz');
+        throw new Error('npm pack did not produce a tgz in the repository root');
     }
     renameSync(join(ROOT, tarball), join(WORK, tarball));
 
-    // 2. 干净工程（不带 type: module，于是 .js 按 CJS 解释 —— 这是最考验 require 条件的情形）
+    // 2. A clean project (no type: module, so .js is read as CJS — the hardest case for the
+    //    require condition)
     writeFileSync(join(WORK, 'package.json'), JSON.stringify({name: 'smoke', private: true}, null, 2));
-    // 用绝对路径：老 npm（Node 14 自带的 6.x）会把 './x.tgz' 当成相对**源目录**的路径，
-    // 于是在临时目录里找不到 —— 换成绝对路径，两代 npm 的解析结果就一致了。
+    // An absolute path: the old npm (6.x, shipped with Node 14) reads './x.tgz' as a path
+    // relative to a source directory and cannot find it in a temporary directory. With an
+    // absolute path both npm generations resolve it the same way.
     run('npm', ['install', '--no-audit', '--no-fund', join(WORK, tarball)], WORK);
 
-    // 3. require 条件：CJS 用法
+    // 3. The require condition: CJS usage
     const cjsProbe = [
         "const {markTones} = require('pinyin-tone');",
         `const got = markTones('${SAMPLE}');`,
-        `if (got !== '${EXPECTED}') throw new Error('require 分支输出不对: ' + JSON.stringify(got));`,
-        "if (typeof require('pinyin-tone').default !== 'undefined') throw new Error('require 回来的模块不该有 default');",
+        `if (got !== '${EXPECTED}') throw new Error('require branch returned the wrong output: ' + JSON.stringify(got));`,
+        "if (typeof require('pinyin-tone').default !== 'undefined') throw new Error('the module require() returns must not have a default export');",
     ].join('\n');
     writeFileSync(join(WORK, 'probe.cjs'), cjsProbe);
     run(process.execPath, ['probe.cjs'], WORK);
 
-    // 4. import 条件：ESM 用法。.mjs 后缀让它在任何 Node 版本上都按 ESM 解释
+    // 4. The import condition: ESM usage. The .mjs extension makes it ESM on any Node version
     const esmProbe = [
         "import {markTones} from 'pinyin-tone';",
         `const got = markTones('${SAMPLE}');`,
-        `if (got !== '${EXPECTED}') throw new Error('import 分支输出不对: ' + JSON.stringify(got));`,
+        `if (got !== '${EXPECTED}') throw new Error('import branch returned the wrong output: ' + JSON.stringify(got));`,
     ].join('\n');
     writeFileSync(join(WORK, 'probe.mjs'), esmProbe);
     run(process.execPath, ['probe.mjs'], WORK);
@@ -79,9 +83,9 @@ try {
 }
 
 if (problems.length > 0) {
-    console.error(`Node ${process.version} 上冒烟失败：`);
+    console.error(`Smoke test failed on Node ${process.version}:`);
     for (const problem of problems) console.error('  - ' + problem.replace(/\n/g, '\n    '));
     process.exit(1);
 }
 
-console.log(`Node ${process.version}: require 与 import 都能拿到 markTones，输出 ${EXPECTED}`);
+console.log(`Node ${process.version}: require and import both reach markTones and return ${EXPECTED}`);

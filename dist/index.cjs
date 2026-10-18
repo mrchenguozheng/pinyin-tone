@@ -1,25 +1,30 @@
-// 构建产物，不要直接改 —— 源在 lib/，用 `npm run build:cjs` 重新生成。
-// 由 scripts/build-cjs.mjs 从 lib/{dict,core,index}.js 逐字包裹而来：
-// 逻辑与 ESM 版本同源，只把 import 换成对包裹结果的引用、把 export 挂到 module.exports。
+// Generated file — do not edit. The source is in lib/; rebuild with `npm run build:cjs`.
+// scripts/build-cjs.mjs wraps lib/{dict,core,index}.js verbatim: the logic is the same as
+// the ESM build, with imports turned into references to the wrapped results and exports
+// attached to module.exports.
 
 'use strict';
 
-// 每个槽位是那个模块一次求值的结果，顺序与 lib/ 里的依赖顺序一致
+// Each slot holds the result of evaluating that module once, in dependency order.
 const __modules = [];
 
 __modules[0] = (function () {
     let module = {exports: {}};
-    // 每个键对应它的无调形式；四个声调由 index.js 里的 applyToneMark 在运行时加上。
-    // 只存基底的理由：9760 条输出（1952 键 × 5 个声调）里有 7808 条（80%）是同一基底的
-    // 机械变形，「a -> ā/á/ǎ/à」这一步是规则，不是数据。存 1 条基底 + 一条规则，
-    // 与存 5 条预生成字符串逐条等价（已对全表 × 5 断言）。
+    // Each key maps to its toneless form; the four tones are added at run time by
+    // applyToneMark in index.js.
+    // Why only the base is stored: of the 9,760 possible outputs (1,952 keys x 5 tones), 7,808
+    // (80%) are a mechanical transform of the same base. "a -> ā/á/ǎ/à" is a rule, not data.
+    // One base plus one rule is equivalent, entry for entry, to five pre-generated strings
+    // (asserted over the whole table x 5).
     //
-    // 1952 个键里，1877 个的基底就是「键把 v 换成 ü」，其余 75 个例外原样写在值里
-    // （74 个键的 v 是辅音字母、e^ 是 ê）。故值仍逐键写出，不做字符串替换推导。
+    // Of the 1,952 keys, 1,877 have a base that is just the key with v read as ü; the other 75
+    // exceptions are written out literally in their values (74 keys where v is a consonant
+    // letter, plus e^ for ê). So values stay spelled out key by key, with no substitution rule.
     //
-    // 键必须能被输入语法命中：纯小写字母，或 e^（^ 表示 ê 的扬抑符）。
-    // 这里原本还有个 'ü' 键，值与 v 完全重复，而 [a-z]+ 永远匹配不到 ü ——
-    // 是条打不中的死数据，已删除。test/test-keys.js 逐键验证这条不变量。
+    // A key has to be reachable by the input syntax: lowercase letters only, or e^ (^ standing
+    // for the circumflex on ê). There used to be a 'ü' key whose value duplicated v exactly,
+    // while /[a-z]+/ can never match ü — dead data that could not be hit. It was removed, and
+    // test/test-keys.js checks this invariant key by key.
     module.exports = {
 
         // b.js
@@ -1505,12 +1510,12 @@ __modules[0] = (function () {
         // v.js
         va: 'va',
         vo: 'vo',
-        ve: 'üe',  // 覆盖: v.js -> yunmu.js
+        ve: 'üe',  // overrides: v.js -> yunmu.js
         vai: 'vai',
         vei: 'vei',
         vao: 'vao',
         vou: 'vou',
-        van: 'üan',  // 覆盖: v.js -> yunmu.js
+        van: 'üan',  // overrides: v.js -> yunmu.js
         ven: 'ven',
         vang: 'vang',
         veng: 'veng',
@@ -1546,12 +1551,12 @@ __modules[0] = (function () {
         // vr.js
         var: 'var',
         vor: 'vor',
-        ver: 'üer',  // 覆盖: vr.js -> yunmur.js
+        ver: 'üer',  // overrides: vr.js -> yunmur.js
         vair: 'vair',
         veir: 'veir',
         vaor: 'vaor',
         vour: 'vour',
-        vanr: 'üanr',  // 覆盖: vr.js -> yunmur.js
+        vanr: 'üanr',  // overrides: vr.js -> yunmur.js
         venr: 'venr',
         vangr: 'vangr',
         vengr: 'vengr',
@@ -2072,41 +2077,48 @@ __modules[0] = (function () {
         zvanr: 'züanr',
         zvnr: 'zünr',
 
-        // 叹词音节：不是「声母 + 韵母」的组合，词典单列。它们没有元音，
-        // 声调由 index.js 的 applyToneMark 兜底标在 m / n 上（ḿ ń ň ǹ）。
-        // ng 在上面的零声母组里已经有了，这里只补缺的四个。
+        // Interjection syllables: not an initial-plus-final combination, so the dictionary
+        // lists them separately. They have no vowel, and applyToneMark in index.js falls back
+        // to marking the m / n instead (ḿ ń ň ǹ). ng is already in the zero-initial group
+        // above; only the four missing ones are added here.
         m: 'm',
         n: 'n',
         hm: 'hm',
         hng: 'hng',
     };
 
-    // 注：以上 4 条在合并前被后出现的文件覆盖（取决于 Object.assign 的实参顺序），
-    // 这里只保留最终生效的值，行尾标出了原本的冲突来源。
+    // Note: before the merge, these four were overwritten by later files (depending on the
+    // argument order of Object.assign). Only the values that ended up in effect are kept here,
+    // with the original conflict noted at the end of each line.
     return module.exports;
 })();
 __modules[1] = (function () {
     let module = {exports: {}};
-    // 严格模式（strict: true）认的音节表：普通话 426 个音节。
+    // The syllable table that `strict: true` accepts: the 426 syllables of Standard Mandarin.
     //
-    // 来源：pypinyin 0.55.0 的 pinyin_dict（1549 条带调音节）去调、去重后得到 425 条，
-    // 与 lib/dict.js 的键取交集得 421 条，再补上词表原先缺的 4 个叹词音节
-    // （pypinyin 里 n / ng 注「唵」、hm 注「噷」、hng 注「哼」，m 只有 m̄ / ḿ / m̀ 三个带调形式）。
-    // 去调这一步不能省 —— 该表里混有无调条目（biang、bong、din），只保留音节本身。
+    // Where it comes from: pypinyin 0.55.0's pinyin_dict (1,549 toned syllables), stripped of
+    // tones and deduplicated, which leaves 425; intersecting that with the keys of lib/dict.js
+    // gives 421, and four interjection syllables the dictionary was missing are added back
+    // (pypinyin glosses n / ng as 唵, hm as 噷, hng as 哼, and gives m only m̄ / ḿ / m̀).
+    // Stripping tones is not optional — that table also carries toneless entries (biang, bong,
+    // din); only the syllable itself is kept.
     //
-    // 另加一条 ê：它在上表里写作 ê，而词表的键是 e^（^ 表示扬抑符），
-    // 两边对不上不是它不存在，是写法不同。这里按词表的键写，才能被输入语法命中。
+    // ê is written ê there, while the dictionary key is e^ (^ stands for the circumflex). The
+    // two do not line up because the spellings differ, not because ê is absent. The key is used
+    // here so that the input syntax can reach it.
     //
-    // 注意 hm 与 hng：它们在这张表里（是音节，词典收了噷与哼），但只有无调形式 ——
-    // 四声在词典里一个都没有，所以严格模式下立得住，却出不了带调字形。
-    // 带调形式的优先表在 index.js 的 NASAL_TONES 里，那才是该查的地方。
+    // Note hm and hng: they are in the table (they are syllables — the dictionary has 噷 and 哼),
+    // but only in toneless form. The dictionary has no tones for either, so they pass in strict
+    // mode and still cannot produce a marked glyph. The table of preferred toned forms is
+    // NASAL_TONES in index.js — that is where to look.
     //
-    // 为什么需要这张表：词表（dict.js）为了宽容收了 1952 个键，其中 1110 条是
-    // 「声母 × 韵母」笛卡尔积的产物（jui、juang、juei、biong），另有 duang、biu
-    // 这类非标准但在用的口语音。默认模式全部放行，严格模式只认这张表。
+    // Why the table is needed at all: dict.js carries 1,952 keys so that input is forgiven, and
+    // 1,110 of those are the cartesian product of initials and finals (jui, juang, juei, biong);
+    // duang and biu are non-standard but spoken. The default mode accepts all of them; strict
+    // mode accepts only this table.
     //
-    // 儿化不单独列：huar 的合法性完全由基底 hua 决定，判定时去掉尾字母 r 再查一次
-    // 即可，所以 418 条儿化音节在这里一条都不用写。
+    // Erhua is not listed: whether huar is legal follows entirely from hua, so the check just
+    // drops the trailing r and looks again. None of the 418 erhua syllables need a line here.
     module.exports = new Set(
         `a ai an ang ao ba bai ban bang bao bei ben beng bi bian biang biao bie bin
     bing bo bong bu ca cai can cang cao ce cei cen ceng cha chai chan chang
@@ -2142,52 +2154,61 @@ __modules[2] = (function () {
     const pinyinDict = __modules[0];
     const coreSyllables = __modules[1];
 
-    // 单个音节必须整串匹配：纯字母（大小写都收）+ 可选的一个带符标记（^ 或 :）+
-    // 可选声调数字。不加锚点会静默截断输入（"ma6" -> "ma"）；旧版只认小写又没有
-    // 锚点，于是 "Hao3" 从 H 后面开始匹配，输出 "ǎo"。
+    // A single syllable has to match the whole string: letters (either case), at most one
+    // diacritic marker (^ or :), then an optional tone digit. Without the anchors the input is
+    // silently truncated ("ma6" -> "ma"); the old version also accepted only lowercase and had
+    // no anchors, so "Hao3" matched from after the H and produced "ǎo".
     const regex = /^(?<abc>[A-Za-z]+)(?<hat>\^?)(?<mark>:?)(?<num>[0-5]?)$/;
 
-    // 连写分词用：一个 token 里可以有若干段「字母 + 可选扬抑符 + 可选冒号 + 可选后续字母
-    // + 可选声调」。
-    // 贪婪的 [A-Za-z]+ 靠声调数字断开，"ni3hao3" 于是自然切成 ni3 | hao3 ——
-    // 声调数字本来就是拼音连写里唯一可靠的分隔符，不需要音节层面的歧义消解。
+    // Splitting a run into syllables: a token is one or more pieces of "letters, optional
+    // circumflex, optional colon, optional trailing letters, optional tone".
+    // The greedy [A-Za-z]+ stops at a tone digit, so "ni3hao3" naturally splits into
+    // ni3 | hao3 — a tone digit is the only reliable separator in unspaced pinyin, and no
+    // syllable-level disambiguation is needed.
     //
-    // 冒号后面的字母（after）属于同一段：冒号只是「这个 u 带两点」的标记，
-    // 不是音节边界。"lu:e4" 因此读作 lü e + 第四声 = lüè，而不是 lü + é。
+    // Letters after the colon (after) belong to the same piece: the colon only says "this u
+    // carries two dots", it is not a syllable boundary. "lu:e4" therefore reads
+    // lü + e + fourth tone = lüè, not lü + é.
     const segment = /(?<abc>[A-Za-z]+)(?<hat>\^?)(?<mark>:?)(?<after>[A-Za-z]*)(?<num>[0-5]?)/g;
 
-    // 音节之间只允许 ASCII 标点 / 空白。一旦间隙里出现字母、数字或汉字，
-    // 说明这个 token 不是「拼音串 + 标点」（英文单词、大小写混排、非法声调、
-    // 汉字混排都在此列），宁可整体原样，也不猜着往下切。
+    // Between syllables only ASCII punctuation and whitespace are allowed. As soon as a gap
+    // holds a letter, a digit or a Han character, this token is not "pinyin plus punctuation"
+    // (English words, mixed case, an illegal tone, text interleaved with Chinese all land
+    // here). The whole token is left as written rather than guessed at and cut up.
     const foreign = /[A-Za-z0-9]|\p{Script=Han}/u;
 
-    // u: 里的冒号代表 ü 上面的两点：ju:1 读作 jü + 第一声，输出 jǖ。
-    // 这是给美式键盘准备的 —— 不离开 ASCII 就能写出保留两点的形式。
-    // 冒号前的 u 与 v 等价：jv:1 同义（v 本来就是 ü 的 ASCII 写法）。
+    // The colon in "u:" stands for the two dots over ü: ju:1 reads jü + first tone and gives
+    // jǖ. It exists for US keyboards — a way to write the two dots without leaving ASCII.
+    // Before the colon u and v are equivalent: jv:1 means the same thing (v already is the
+    // ASCII writing of ü).
     //
-    // e^ 里的 ^ 是同一套办法的另一个用法：它表示 ê 头上那个扬抑符（circumflex）。
-    // ê 是唯一带扬抑符的拼音字母（欸 / 诶 读 ê），所以 ^ 只认 e ——
-    // be^2、x^2 一律整串原样，不做「把 ^ 挪到某个字母上」的猜测。
-    // ê 里没有 u，冒号无处可落，因此 ^ 与 : 互斥（e^:1 不成立）。
+    // The ^ in "e^" is the same idea applied differently: it stands for the circumflex over ê.
+    // ê is the only pinyin letter that carries a circumflex (欸 and 诶 are read ê), so ^ is
+    // accepted only on e — be^2 and x^2 come back as written, with no guessing that "moves ^
+    // onto some letter". ê has no u in it, so the colon has nowhere to land and ^ and : are
+    // mutually exclusive (e^:1 does not exist).
 
-    // ---------------------------------------------------------------- ü 的两种写法
+    // ------------------------------------------------------- the two spellings of ü
     //
-    // 同一个音节在「j/q/x/y + ü」上有两种拼写：
-    //   规范（国标）  ju  jue  juan  jun   ← j/q/x/y 与 ü 相拼时省两点
-    //   字面（保留）  jv  jve  jvan  jvn   ← 词表里用 v 表示 ü（ASCII 输入约定）
-    // 二者是同一音位的两种写法，不是两个音节，因此可以互相投影而不丢信息。
+    // After j/q/x/y a syllable has two spellings:
+    //   standard (GB)    ju  jue  juan  jun   <- the two dots are dropped, as the standard says
+    //   literal (kept)   jv  jve  jvan  jvn   <- the dictionary writes ü as v (ASCII input)
+    // Both spell the same phoneme, not two different syllables, so converting between them
+    // loses nothing.
     //
-    // 只对 j/q/x/y 成立：这四个声母后的 u 永远不是真正的 u（互补分布）。
-    // n/l 后的 u 与 ü 是对立音位（nǔ 努 / nǚ 女、lù 路 / lǜ 绿），不能投影。
+    // This holds only after j/q/x/y: after those four initials a u is never a real u (they are
+    // in complementary distribution). After n/l, u and ü contrast (nǔ 努 / nǚ 女, lù 路 /
+    // lǜ 绿) and must not be converted.
     const UMLAUT_HEADS = 'jqxy';
 
-    // 可省的韵母：ü / üe / üan / ün，及其儿化变体。必须穷举成闭集，
-    // 不能用 /^u/ 之类的前缀匹配 —— 词表里还有 jui/jua/juo/juai/juei/juen/
-    // juang/jueng 这类笛卡尔积产生的假音节，前缀匹配会把它们误转成 jüí/jüá。
+    // The finals that drop the dots: ü / üe / üan / ün, plus their erhua forms. This has to be
+    // an explicit closed set — a prefix test like /^u/ would also match jui/jua/juo/juai/juei/
+    // juen/juang/jueng, the impossible syllables the cartesian product leaves in the
+    // dictionary, and turn them into jüí/jüá.
     const UMLAUT_FINALS = new Set(['u', 'ue', 'uan', 'un', 'ur', 'uer', 'uanr', 'unr']);
 
     /**
-     * 字面写法 -> 规范写法（jv -> ju）。仅在白名单内生效。
+     * Literal spelling -> standard spelling (jv -> ju). Only inside the whitelist.
      * @param {string} abbr
      * @returns {string}
      */
@@ -2200,7 +2221,7 @@ __modules[2] = (function () {
     }
 
     /**
-     * 规范写法 -> 字面写法（ju -> jv）。仅在白名单内生效。
+     * Standard spelling -> literal spelling (ju -> jv). Only inside the whitelist.
      * @param {string} abbr
      * @returns {string}
      */
@@ -2213,20 +2234,23 @@ __modules[2] = (function () {
     }
 
     /**
-     * 这个词表键在严格模式下认不认。
+     * Does strict mode accept this dictionary key?
      *
-     * 词表为了宽容收了 1952 个键，其中 1110 条是「声母 × 韵母」笛卡尔积的产物
-     * （jui、juang、juei、biong），严格模式只认普通话的 426 个音节。
-     * 儿化不单独列：huar 的合法性完全由 hua 决定，去掉尾字母 r 再查一次即可，
-     * 418 条儿化音节因此一条都不用写进 core.js。
+     * The dictionary carries 1,952 keys so that input is forgiven; 1,110 of them come from the
+     * cartesian product of initials and finals (jui, juang, juei, biong), while strict mode
+     * accepts only the 426 syllables of Standard Mandarin.
+     * Erhua is not listed separately: whether huar is legal follows entirely from hua, so the
+     * check drops the trailing r and looks again — none of the 418 erhua syllables needs a line
+     * in core.js.
      * @param {string} key
      * @returns {boolean}
      */
     function isCoreSyllable(key) {
         if (coreSyllables.has(key)) return true;
 
-        // 字面拼写（jv / jve / jvan / jvn）与规范拼写是同一音位，core 只收规范那条。
-        // 投影后再判儿化，jver 才能按 juer -> jue + r 走通。
+        // The literal spellings (jv / jve / jvan / jvn) are the same phoneme as the standard
+        // ones and core.js lists only the standard form. Converting first and then testing for
+        // erhua is what lets jver go through juer -> jue + r.
         const canonical = toCanonicalSpelling(key);
         if (coreSyllables.has(canonical)) return true;
 
@@ -2235,14 +2259,16 @@ __modules[2] = (function () {
     }
 
     /**
-     * 查表取某个音节的**无调形式**。先按请求的拼写查，查不到再用另一种拼写兜底：
-     * j/q/x/y 后的 ü 在词表里两种键都有，投影是安全的；兜底则是为了将来
-     * 清掉冗余的 jv 键时不至于让字面形式直接失效。
+     * Look up the **toneless form** of a syllable. The spelling asked for is tried first, then
+     * the other spelling as a fallback: after j/q/x/y the dictionary has keys in both spellings,
+     * so converting is safe, and the fallback means that clearing the redundant jv keys later
+     * will not break the literal form outright.
      *
-     * strict 时，两种拼写都要过 core 白名单才能查 —— 否则 jv1 走兜底绕过严格模式。
+     * Under strict, both spellings have to pass the core whitelist before the lookup — otherwise
+     * jv1 would slip past strict mode through the fallback.
      * @param {string} abbr
-     * @param {boolean} literal true 取字面拼写（jü），false 取规范拼写（ju）
-     * @param {boolean} strict 只认普通话的 426 个音节
+     * @param {boolean} literal true for the literal spelling (jü), false for standard (ju)
+     * @param {boolean} strict accept only the 426 syllables of Standard Mandarin
      * @returns {string|undefined}
      */
     function lookupBase(abbr, literal, strict) {
@@ -2260,7 +2286,7 @@ __modules[2] = (function () {
     }
 
     /**
-     * 空 / 0 / 5 都表示轻声，对应不加调号
+     * Empty, 0 and 5 all mean the neutral tone, which takes no mark.
      * @param {string} num
      * @returns {number}
      */
@@ -2268,10 +2294,11 @@ __modules[2] = (function () {
         return num === '' || num === '0' || num === '5' ? 0 : Number(num);
     }
 
-    // 一声到四声的调号。轻声不加，所以从 1 开始用。
-    // m / n 两行只给没有元音的叹词音节兜底用 —— 它们标在鼻音本身（ḿ、hńg）。
-    // 用数组而不是字符串做索引：m̄ / m̌ / m̀ / n̄ 是「字母 + 组合符」两个码位，
-    // 按字符串下标取会取到半个字符。
+    // Tone marks for tones 1 to 4. The neutral tone adds nothing, hence the 1-based index.
+    // The m and n rows are the fallback for interjection syllables with no vowel — the mark
+    // goes on the nasal itself (ḿ, hńg).
+    // An array is used instead of a string for indexing: m̄ / m̌ / m̀ / n̄ are two code points
+    // ("letter + combining mark"), and indexing a string would return half a character.
     const TONE_MARKS = {
         a: ['ā', 'á', 'ǎ', 'à'],
         o: ['ō', 'ó', 'ǒ', 'ò'],
@@ -2279,41 +2306,51 @@ __modules[2] = (function () {
         i: ['ī', 'í', 'ǐ', 'ì'],
         u: ['ū', 'ú', 'ǔ', 'ù'],
         'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ'],
-        // ê 自带扬抑符，调号叠在它上面。二声与四声有预组合字符（ế U+1EBF / ề U+1EC1），
-        // 一声与三声没有，只能写成「ê + 组合符」两个码位。
+        // ê already carries a circumflex and the tone mark stacks on top. Tones 2 and 4 have
+        // precomposed characters (ế U+1EBF / ề U+1EC1); tones 1 and 3 do not, so they can only
+        // be written as two code points, "ê + combining mark".
         'ê': ['ê\u0304', 'ế', 'ê\u030c', 'ề'],
         m: ['m\u0304', 'ḿ', 'm\u030c', 'm\u0300'],
         n: ['n\u0304', 'ń', 'ň', 'ǹ'],
     };
 
-    // 主元音的优先级：a > o > e。iu 标 u、ui 标 i 由「取最后一个」自动满足。
-    // ê 必须单列一条 —— 它不是 e，indexOf('e') 在「ê」里找不到任何东西。
-    // 排最后是安全的：含 ê 的音节只有 ê 本身，不会与 a / o / e 同现。
+    // Priority among main vowels: a > o > e. Marking u in iu and i in ui falls out of "take the
+    // last one" for free.
+    // ê needs its own entry — it is not e, and indexOf('e') finds nothing in "ê".
+    // Putting it last is safe: the only syllable containing ê is ê itself, which never occurs
+    // alongside a / o / e.
     const MAIN_VOWELS = ['a', 'o', 'e', 'ê'];
 
-    // 除 a/o/e/ê 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
+    // The vowels other than a/o/e/ê. Marking u in iu and i in ui falls out of "take the last
+    // one" for free.
     const CLOSING_VOWELS = 'iuü';
 
-    // 叹词音节的落调位置：倒数第一个 m 或 n（m -> ḿ、hng -> hńg、ng -> ńg）。
+    // Where the tone lands in an interjection syllable: the last m or n (m -> ḿ, hng -> hńg,
+    // ng -> ńg).
     const NASALS = 'mn';
 
-    // 叹词音节里，词典（pypinyin 的 pinyin_dict，注音取自《现代汉语词典》一系）
-    // 真实出现过的组合。字形逐条抄自该表：
-    //   m   m̄ 嘸 / ḿ 呒呣唔嘸 / m̀ 呣      —— 没有第三声
-    //   n   ń 咹哽唔嗯 / ň 㕶嗯 / ǹ 哏嗯   —— 没有第一声
-    //   ng  ńg 哽唔嗯 / ňg 㕶嗯 / ǹg 嗯   —— 没有第一声
-    //   hm  噷                            —— 只有无调
-    //   hng 哼                            —— 只有无调
+    // The combinations that actually occur for interjection syllables in the dictionary
+    // (pypinyin's pinyin_dict, whose readings follow 现代汉语词典). The glyphs are copied
+    // entry by entry from that table:
+    //   m    m̄ 嘸 / ḿ 呒呣唔嘸 / m̀ 呣      -- no third tone
+    //   n    ń 咹哽唔嗯 / ň 㕶嗯 / ǹ 哏嗯   -- no first tone
+    //   ng   ńg 哽唔嗯 / ňg 㕶嗯 / ǹg 嗯   -- no first tone
+    //   hm   噷                            -- toneless only
+    //   hng  哼                            -- toneless only
     //
-    // 这张表是**优先表**，不是闭集：查得到就用这里的字形，查不到按「标在最后一个
-    // 鼻音上」的规则生成。所以 m3、n1、ng1 以及 hm / hng 的四声照样能转换 ——
-    // `m3` 得到 `m̌`、`hng2` 得到 `hńg`。这 11 个形式是外推，词典里没有；
-    // 它们和上面 9 个有依据的形式走同一个出口，输出上不作区分。
+    // This table is a **preference list**, not a closed set: a glyph listed here is used as
+    // written, and anything else is generated by the rule "mark the last nasal". So m3, n1, ng1
+    // and the four tones of hm / hng still convert — `m3` gives `m̌`, `hng2` gives `hńg`. Those
+    // 11 forms are extrapolated and are not in the dictionary; they leave through the same exit
+    // as the 9 attested forms above, with no difference in the output.
     //
-    // 表里这 9 个值目前与规则算出来的结果逐条相同（所以删掉整张表，测试也不会红）。
-    // 留着它是为了让「有依据的那几格」不随规则一起漂：将来若改落调位置或改码位写法，
-    // 这 9 个字形仍按词典的写法输出，而不是被规则顺手改写。
-    // m̄ / m̀ 是「字母 + 组合符」两个码位，写在这里比在别处拼接更不容易出错。
+    // The 9 values here currently agree with what the rule computes, entry for entry (so the
+    // tests would still pass with this table deleted). It is kept so that the attested cells do
+    // not drift with the rule: if the landing position or the code-point spelling changes later,
+    // these 9 glyphs still come out the way the dictionary writes them instead of being quietly
+    // rewritten by the rule.
+    // m̄ / m̀ are two code points ("letter + combining mark"); writing them here is less
+    // error-prone than assembling them elsewhere.
     const NASAL_TONES = {
         m: {1: 'm\u0304', 2: 'ḿ', 4: 'm\u0300'},
         n: {2: 'ń', 3: 'ň', 4: 'ǹ'},
@@ -2323,21 +2360,23 @@ __modules[2] = (function () {
     };
 
     /**
-     * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e（ê 同 e，
-     * 只是它自带扬抑符，要单独查），否则标最后一个元音（iu -> u、ui -> i）。
-     * 儿化尾 r 不是元音，不影响判断。
+     * Put a tone mark on a toneless syllable: mark a if there is one, else o, else e (ê counts
+     * as e, except that it already has a circumflex and needs its own lookup), else the last
+     * vowel (iu -> u, ui -> i). A trailing erhua r is not a vowel and does not affect the choice.
      *
-     * 一个元音都没有的音节（m、n、ng、hm、hng）先查 NASAL_TONES：词典里收过这个
-     * 声调就用表里的字形；没收录的按同一规则生成 —— 标在倒数第一个 m 或 n 上
-     * （m3 -> m̌、hng2 -> hńg）。查表在前是为了让 m̄ / m̀ 这类「字母 + 组合符」的
-     * 码位固定下来，规则算出来的结果与之一致。
+     * A syllable with no vowel at all (m, n, ng, hm, hng) is looked up in NASAL_TONES first: if
+     * the dictionary has that tone, its glyph is used; otherwise the same rule generates one,
+     * marking the last m or n (m3 -> m̌, hng2 -> hńg). The table is checked first so that the
+     * code points of "letter + combining mark" forms such as m̄ / m̀ stay fixed — the rule
+     * computes the same result.
      *
-     * 词表只存无调形式，四个声调在这里生成 —— 它们是同一条规则的展开，
-     * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1952 × 5 已验证）。
-     * 轻声（tone 0）不加调。
+     * The dictionary stores only toneless forms and the four tones are generated here. They are
+     * the same rule unrolled, so four pre-generated strings and one computed value agree entry
+     * for entry (verified over the whole table, 1,952 x 5). The neutral tone (tone 0) adds
+     * nothing.
      * @param {string} base
      * @param {number} tone 0-4
-     * @returns {string|null} null 表示这个音节加不上调（不是已知的叹词音节）
+     * @returns {string|null} null when no mark can be added (not a known interjection syllable)
      */
     function applyToneMark(base, tone) {
         if (tone === 0) return base;
@@ -2377,9 +2416,11 @@ __modules[2] = (function () {
     }
 
     /**
-     * 查表取无调形式，再加声调。不成词时返回 null，由调用方决定回退成什么。
-     * 默认输出规范拼写：j/q/x/y 后的 ü 一律省两点（jv1 -> jū），
-     * 这是《汉语拼音方案》的要求，字面拼写（jǖ）只在写了冒号时出现。
+     * Look up the toneless form and add the tone. Returns null when the syllable is not
+     * recognised, leaving the fallback to the caller.
+     * The default output is the standard spelling: after j/q/x/y, ü always drops the dots
+     * (jv1 -> jū), as 汉语拼音方案 requires; the literal spelling (jǖ) appears only when a colon
+     * was written.
      * @param {string} abc
      * @param {string} num
      * @param {boolean} literal
@@ -2393,19 +2434,23 @@ __modules[2] = (function () {
     }
 
     /**
-     * 把冒号所在的字母还原成 ü：u -> v（词表用 v 表示 ü）。
+     * Turn the letter the colon sits on back into ü: u -> v (the dictionary writes ü as v).
      *   ju:1   -> jv      juan:1 -> jvan      nu:3 -> nv
      *   gu:1   -> gv      u:1    -> v         u:e1 -> ve
      *
-     * 冒号应当写在 u 上 —— u 就是那个要带两点的字母。`jv:` 里的 v 已经是 ü 的
-     * ASCII 写法，再写冒号是把同一件事说了两遍，但意思并没有歧义，所以照 `ju:`
-     * 处理，不当错误：jv:1 与 ju:1 同义，都是 jǖ。
+     * The colon belongs on the u — u is the letter that takes the two dots. The v in `jv:` is
+     * already the ASCII writing of ü, so the colon says the same thing twice, but it is not
+     * ambiguous and is therefore handled exactly like `ju:` rather than treated as an error:
+     * jv:1 and ju:1 both mean jǖ.
      *
-     * 不按声母筛：冒号是用户明确写下的，写在哪里就是要哪里的 ü。`gu:1` 得到 `gǖ`、
-     * `u:e1` 得到 `üē` 这类不合规范的音节，正是这个包存在的理由之一 —— 它既要输出
-     * 规范拼写，也要输出不规范的拼写。要不要用由调用方决定，转换器不替它判断。
+     * The initial is not filtered: the colon is something the caller wrote explicitly, and it
+     * asks for ü wherever it lands. `gu:1` giving `gǖ` and `u:e1` giving `üē` — syllables that
+     * are not standard — is one of the reasons this package exists: it has to produce non-standard
+     * spellings as well as standard ones. Whether to use them is the caller's decision, not the
+     * converter's.
      *
-     * 音节里没有 u / v 时无处可落（ma:1、ji:1），返回 null，调用方原样返回。
+     * With no u or v in the syllable there is nowhere to land (ma:1, ji:1), so this returns null
+     * and the caller returns the token unchanged.
      * @param {string} abc
      * @returns {string|null}
      */
@@ -2413,29 +2458,32 @@ __modules[2] = (function () {
         const i = abc.search(/[uv]/);
         if (i === -1) return null;
 
-        // v 已经是词表里的写法，直接用；只有 u 需要换成 v
+        // v is already the dictionary's spelling; only u has to become v
         return abc[i] === 'v' ? abc : abc.slice(0, i) + 'v' + abc.slice(i + 1);
     }
 
-    // ---------------------------------------------------------------- 大小写
+    // ------------------------------------------------------------------- letter case
     //
-    // 《汉语拼音方案》只规定字母表（每个字母有大写、小写两种字形），大小写怎么用
-    // 是《汉语拼音正词法基本规则》(GB/T 16159—2012) §6.3 的事：句子开头与诗歌
-    // 每行行首、专名的首字母、多词专名的每个词首字母，以及「某些场合专名可以
-    // 全部大写」（BĚIJĪNG、LǏ HUÁ）。§6.5 的标调规则没有为大写开口子，所以
-    // 这些场合的调号照标在大写元音上 —— Ě Ī Ǎ Ǔ Ǚ Ế 都不是生造的字形。
+    // 汉语拼音方案 only defines the alphabet (each letter has an uppercase and a lowercase
+    // form). How case is used belongs to 汉语拼音正词法基本规则 (GB/T 16159—2012) §6.3: the
+    // start of a sentence and of each line of verse, the first letter of a proper name, the
+    // first letter of every word in a multi-word name, and "in some contexts proper names may
+    // be written entirely in capitals" (BĚIJĪNG, LǏ HUÁ). The tone rules in §6.5 make no
+    // exception for capitals, so tone marks go on the capital vowels in those contexts —
+    // Ě Ī Ǎ Ǔ Ǚ Ế are not invented glyphs.
     //
-    // 因此这里认三种形态：全小写、首字母大写、全大写。音节内部混用（hAo3、HaO3）
-    // 不是标准里的写法，当认不全处理，整串原样返回。形态按**音节**判定而不是按
-    // token：Zhong1guo2 的第二个音节仍算全小写，输出 Zhōngguó。
+    // Three forms are therefore accepted: all lowercase, initial capital, all capitals. Mixing
+    // case inside a syllable (hAo3, HaO3) is not something the standard writes, so it counts as
+    // unrecognised and the whole run comes back as written. The form is decided per **syllable**,
+    // not per token: the second syllable of Zhong1guo2 is still all lowercase, giving Zhōngguó.
     const LOWER = 0;
     const TITLE = 1;
     const UPPER = 2;
 
     /**
-     * 读出一个音节的字母形态。
-     * @param {string} letters 音节里的全部字母（abc + after）
-     * @returns {number} LOWER / TITLE / UPPER；-1 表示大小写混用
+     * Read the letter case of one syllable.
+     * @param {string} letters every letter of the syllable (abc + after)
+     * @returns {number} LOWER / TITLE / UPPER; -1 when the case is mixed
      */
     function readCase(letters) {
         if (letters === letters.toLowerCase()) return LOWER;
@@ -2446,8 +2494,9 @@ __modules[2] = (function () {
     }
 
     /**
-     * 把形态贴回渲染结果。调号已经在元音上（Ǎ、Ǚ、Ế），所以全大写直接
-     * toUpperCase 就够了；首字母大写只动第一个字符，其余保持小写。
+     * Put the case back on the rendered result. The tone mark is already on the vowel (Ǎ, Ǚ, Ế),
+     * so all capitals is just toUpperCase; initial capital only touches the first character and
+     * leaves the rest lowercase.
      * @param {string} syllable
      * @param {number} form
      * @returns {string}
@@ -2459,32 +2508,38 @@ __modules[2] = (function () {
     }
 
     /**
-     * 冒号标记优先于默认拼写：写了 ju:1 就是要 jǖ，与上下文无关
-     * （jv:1 同义，v 就是 ü 的 ASCII 写法）。
-     * 冒号后面的字母属于同一音节（lu:e4 -> lüè），先拼回完整韵母再投影。
-     * 位置只有两个是合法的：紧跟承载两点的那一位，或缀在音节末尾（jvan:1）。
-     * 写在别处（j:van1、jva:n1）当写错，不猜。
+     * The colon marker wins over the default spelling: writing ju:1 asks for jǖ regardless of
+     * context (jv:1 means the same; v is the ASCII writing of ü).
+     * Letters after the colon belong to the same syllable (lu:e4 -> lüè), so the full final is
+     * assembled first and then converted.
+     * There are only two legal positions: right after the letter carrying the two dots, or at the
+     * end of the syllable (jvan:1). Anywhere else (j:van1, jva:n1) is a mistake and is not guessed
+     * at.
      *
-     * 冒号落在 v 上时（vv:1、vai:1、vu:1）：v 本来就是 ü 的 ASCII 写法，
-     * 这个冒号不提供任何新信息。若这一格的值里第一个字母仍是辅音 v，
-     * 照常输出即可 —— 「视作没写冒号」，vv:1 与 vv1 逐字相同。
+     * When the colon lands on v (vv:1, vai:1, vu:1): v already is the ASCII writing of ü, so the
+     * colon adds no information. If the first letter of that entry is still a consonant v, the
+     * output goes through as usual — it is treated as "no colon written", and vv:1 comes out
+     * identical to vv1.
      *
-     * 冒号落在 u 上时（uang:1、shui:3）：u 换成 v 后词表这一格把 v 当辅音
-     * （uang -> vang -> vāng），输出里会冒出用户没写过的辅音字母 v。
-     * 这是落空，不是转换，调用方拿回原串。
+     * When the colon lands on u (uang:1, shui:3): after u becomes v, the dictionary reads v in
+     * that entry as a consonant (uang -> vang -> vāng), so the output would contain a consonant v
+     * the caller never wrote. That is a miss, not a conversion, and the caller gets the run back.
      *
-     * 扬抑符标记（e^）是另一回事：它不挑韵母，而是把 e 本身换成 ê。
-     * ê 里没有 u 可标，所以它与冒号互斥；写在别的字母后面也不成立。
+     * The circumflex marker (e^) is a different thing: it does not pick a final, it turns e into
+     * ê. ê has no u to carry the dots, so it excludes the colon; and it does not work after any
+     * other letter either.
      *
-     * 输出拼写只由 token 自己决定：裸写一律规范形式，只有冒号要字面形式。
-     * 没有「整串切成字面」的开关，所以 literal 不再沿调用链传递 ——
-     * 唯一需要字面形式的那个分支把 true 写死，调用方无从改变它。
+     * The output spelling is decided by the token alone: a bare syllable is always standard, and
+     * only a colon asks for the literal form. There is no "convert the whole run to literal"
+     * switch, so literal is never threaded down the call chain — the one branch that needs the
+     * literal form hardcodes true and the caller cannot change it.
      *
-     * 大小写不影响查表，只影响输出形态：先按小写取词，渲染完再贴回原形态。
+     * Letter case does not affect the lookup, only the output form: the dictionary is read in
+     * lowercase and the original case is put back after rendering.
      * @param {string} abc
-     * @param {string} hat `^` 或空串
+     * @param {string} hat `^` or an empty string
      * @param {string} mark
-     * @param {string} after 冒号之后、声调数字之前的字母
+     * @param {string} after letters between the colon and the tone digit
      * @param {string} num
      * @param {boolean} strict
      * @returns {string|null}
@@ -2493,7 +2548,7 @@ __modules[2] = (function () {
         const form = readCase(abc + after);
         if (form === -1) return null;
 
-        // 词表的键与值都是小写，查表一律用小写
+        // Both keys and values in the dictionary are lowercase; look up in lowercase always
         const lower = abc.toLowerCase();
         const rest = after.toLowerCase();
 
@@ -2512,18 +2567,21 @@ __modules[2] = (function () {
         const key = dottedKey(raw);
         if (key === null) return null;
 
-        // 冒号只有两个合法位置：紧跟承载两点的那一位（u 或 v），或者缀在整个音节末尾。
-        // 前者说明「这两点属于这个字母」（ju:an1 / jv:an1 / lu:e4），
-        // 后者是缩写形式（juan:1 / jv:1）。位置随意的话，j:van1、jva:n1 这类
-        // 明显错位的串也会拿到 jüān —— 那不是宽容，是没在读用户写的东西。
+        // The colon has only two legal positions: right after the letter carrying the two dots
+        // (u or v), or at the very end of the syllable. The first says "these dots belong to this
+        // letter" (ju:an1 / jv:an1 / lu:e4); the second is the short form (juan:1 / jv:1). Allow
+        // any position and obviously misplaced runs like j:van1 and jva:n1 would also get jüān —
+        // that is not leniency, it is failing to read what was written.
         if (rest !== '' && lower.length !== raw.search(/[uv]/) + 1) return null;
 
         const syllable = renderSyllable(key, num, true, strict);
         if (syllable === null) return null;
 
-        // dottedKey 只在把 u 换成 v 时才改串，所以 key === raw 等价于「落点是 v」。
-        // 落点是 v：冒号重复声明同一件事，即使这一格把 v 当辅音也照常输出。
-        // 落点是 u：必须真的产出 ü；还剩 ASCII v 说明这一格没把 u 当 ü，落空。
+        // dottedKey only changes the string when it turns a u into v, so key === raw means the
+        // colon landed on v. Landed on v: the colon restates the same thing, so the output goes
+        // through even if that entry treats v as a consonant. Landed on u: it has to produce a
+        // real ü; an ASCII v left in the result means that entry did not read the u as ü, so the
+        // colon missed.
         const landedOnV = key === raw;
 
         if (!landedOnV && syllable.includes('v')) return null;
@@ -2532,17 +2590,19 @@ __modules[2] = (function () {
     }
 
     /**
-     * 把一个 token 转成拼音。三种情况，其余一律原样返回：
+     * Convert one token to pinyin. Three cases; everything else comes back as written:
      *
-     *   1. 单个音节            ni3          -> nǐ
-     *   2. 若干音节连写        ni3hao3      -> nǐhǎo
-     *   3. 拼音 + ASCII 标点   ni3,hao3     -> nǐ,hǎo
+     *   1. a single syllable          ni3          -> nǐ
+     *   2. several syllables, joined  ni3hao3      -> nǐhǎo
+     *   3. pinyin + ASCII punctuation ni3,hao3     -> nǐ,hǎo
      *
-     * 输出保持输入的分隔方式：连写的音节之间不补空格，写了空格的地方空格还在，
-     * 标点原样留在原位。转换只改字母和声调，不替调用方决定排版。
+     * The output keeps the input's separators: no spaces are added between joined syllables, the
+     * spaces that were written are still there, and punctuation stays where it was. Conversion
+     * touches letters and tones only; layout is not the converter's call.
      *
-     * 认不全就整串原样（"a1b2c3"、"hua1r"、"ma6"）：宁可少转一个 token，
-     * 也不要输出半截结果 —— 半截结果比不转更难发现。
+     * If any part is unrecognised the whole run is returned as written ("a1b2c3", "hua1r", "ma6"):
+     * better to leave a token unconverted than to emit half a result — half a result is harder to
+     * notice than no result.
      * @param {string} str
      * @param {boolean} strict
      * @returns {string}
@@ -2550,7 +2610,7 @@ __modules[2] = (function () {
     function convertToken(str, strict) {
         const single = regex.exec(str);
 
-        // 单音节快路径：绝大多数输入走这里
+        // Single-syllable fast path: almost every input takes this branch
         if (single) {
             const { abc, hat, mark, num } = single.groups;
             return renderToken(abc, hat, mark, '', num, strict) ?? str;
@@ -2581,7 +2641,8 @@ __modules[2] = (function () {
     }
 
     /**
-     * 公开入口的选项只认 strict 与 skip 两个字段，其余一律忽略 —— 传了错的东西不该换算法。
+     * The public options accept only strict and skip; everything else is ignored — passing the
+     * wrong thing should not change the algorithm.
      * @param {{strict?: boolean}|undefined} options
      * @returns {boolean}
      */
@@ -2590,14 +2651,16 @@ __modules[2] = (function () {
     }
 
     /**
-     * 把 skip 的写法统一成「这个片段要不要保持原样」。
+     * Turn the skip option into "should this run be left alone?".
      *
-     * 只收字符串与字符串数组，比的是**整个片段**、区分大小写。看起来粗，但规则能
-     * 打中的只有「与声明一字不差」的片段：`skip: 'M2'` 碰不到 `M20`，也碰不到 `m2`。
-     * 也正因为如此，输入里不需要任何标记字符 —— 想保住的东西全在选项里说，
-     * 正文中的反斜杠、花括号对这里只是普通文本。
+     * Only a string or an array of strings is accepted; the comparison is against the **whole
+     * run** and is case-sensitive. That looks blunt, but the rule can only ever match a run whose
+     * text equals an entry exactly: `skip: 'M2'` cannot touch `M20`, and cannot touch `m2`.
+     * That is also why the input needs no marker characters — everything to be kept is declared
+     * in the options, and a backslash or a brace in the text is just text here.
      *
-     * 传了不认识的东西就当没传：与 readStrict 一样，选项不该改变算法。
+     * Anything unrecognised counts as not passed: like readStrict, an option should not change the
+     * algorithm.
      * @param {{skip?: unknown}|undefined} options
      * @returns {((run: string) => boolean)|null}
      */
@@ -2608,7 +2671,8 @@ __modules[2] = (function () {
 
         if (Array.isArray(spec)) {
             const exact = new Set(spec.filter((item) => typeof item === 'string'));
-            // 空数组（或全是垃圾值）等于没传，省掉每次转换的一次函数调用
+            // An empty array (or one full of junk) counts as not passed, saving a function call
+            // on every conversion
             if (exact.size === 0) return null;
             return (run) => exact.has(run);
         }
@@ -2617,38 +2681,44 @@ __modules[2] = (function () {
     }
 
     /**
-     * 候选片段：连续的字母（大小写都算）/ 冒号 / 扬抑符 / 声调数字。
-     * 前后必须是非 ASCII 字母数字下划线（中文、标点、空白都算边界）。
-     * 没有边界的话，"abcju1" 这种英文单词内部会被切开当成拼音；
-     * 下划线也算词字符，所以 `ni3_hao3` 这种标识符样子的串整体不动。
+     * Candidate runs: consecutive letters (either case), colons, circumflexes, tone digits.
+     * The neighbours must not be ASCII letters, digits or underscores (Chinese, punctuation and
+     * whitespace all count as boundaries). Without that requirement the inside of an English word
+     * like "abcju1" would be cut out and treated as pinyin; an underscore is a word character
+     * too, so an identifier-looking run such as `ni3_hao3` stays whole.
      *
-     * 先按片段整体取出、再交给 convertToken，而不是逐音节匹配：
-     * 这样 "ni3hao3" 也能切开，而 "ju1abc" 仍然整体不动。
+     * The run is taken whole and then handed to convertToken rather than matched syllable by
+     * syllable: that way "ni3hao3" still splits, while "ju1abc" still stays whole.
      */
-    // ^ 写在字符类末尾是字面量（不在首位就不表示取反）。
+    // ^ at the end of a character class is a literal (it only negates when it comes first).
     const inlineRun = /[A-Za-z:0-5^]+/g;
     const wordChar = /[A-Za-z0-9_]/;
 
     /**
-     * 给用 ASCII 写成的拼音标上调号：`hao3` -> `hǎo`。
-     * 混在中文里的也认：`今天ni3hao3` -> `今天nǐhǎo`。
+     * Mark pinyin written in ASCII with tone marks: `hao3` -> `hǎo`.
+     * Pinyin mixed into Chinese is recognised too: `今天ni3hao3` -> `今天nǐhǎo`.
      *
-     * 名字说的是动作 —— 调号字形本来就存在（词表只存无调形式，四个声调由
-     * applyToneMark 现算），这一步做的是把数字换成那个字形，不是「汉字转拼音」，
-     * 也不是「按声调给音节分类」。也不猜声调：没有声调数字就没有调号可标，
-     * 只按规范拼写输出（`jv` -> `jū`、`ma` -> `ma`）。
+     * The name says what the call does. The tone-mark glyphs already exist (the dictionary stores
+     * only toneless forms and applyToneMark computes the four tones on the fly); this step puts
+     * that glyph in place of the digit. It is not "Chinese characters to pinyin", and not
+     * "classify a syllable by tone" either. Nor does it guess a tone: with no tone digit there is
+     * no mark to apply, so the syllable comes out in the standard spelling (`jv` -> `jū`,
+     * `ma` -> `ma`).
      *
-     * 分词不靠空格：先在整段里取出候选片段，片段内部再按声调数字切音节，
-     * 所以 `ni3hao3` 与 `ni3 hao3` 都成立，而粘在单词上的 `abcju1` / `ju1abc`
-     * 不动。非拼音字符（汉字、标点、空白）逐字保留，首尾空白也不替调用方裁掉 ——
-     * 转换只改字母和声调，不接管排版。
+     * Splitting does not rely on spaces: candidate runs are taken from the text first and then
+     * cut into syllables at their tone digits, so both `ni3hao3` and `ni3 hao3` work, while
+     * `abcju1` and `ju1abc`, glued to a word, stay as written. Non-pinyin characters (Chinese,
+     * punctuation, whitespace) are copied through, and leading or trailing whitespace is not
+     * trimmed for the caller — conversion touches letters and tones only, and does not take over
+     * layout.
      *
-     * 大写照收，形态原样带到输出：`Zhong1guo2` -> `Zhōngguó`、
-     * `BEI3JING1` -> `BĚIJĪNG`。音节内部混用大小写（`hAo3`）不是标准里的写法，
-     * 整串原样返回。
+     * Capitals are accepted and their form carried into the output: `Zhong1guo2` -> `Zhōngguó`,
+     * `BEI3JING1` -> `BĚIJĪNG`. Mixing case inside a syllable (`hAo3`) is not something the
+     * standard writes, so the run comes back as written.
      *
-     * 不想转的片段写进 `skip` 选项（见该选项的说明）—— 输入里不带任何标记字符，
-     * 这样含反斜杠或花括号的正文（路径、LaTeX、模板）一个字都不会被吃掉。
+     * Runs that should not be converted go into the `skip` option (see its notes) — the input
+     * carries no marker characters, so text containing a backslash or a brace (paths, LaTeX,
+     * templates) loses nothing.
      * @param {string} text
      * @param {{strict?: boolean, skip?: unknown}} [options]
      * @returns {string}
@@ -2661,12 +2731,13 @@ __modules[2] = (function () {
             const before = offset > 0 ? text[offset - 1] : '';
             const after = offset + run.length < text.length ? text[offset + run.length] : '';
 
-            // 片段粘在字母数字下划线旁边 -> 是英文单词的一部分，本来就不转
+            // Run glued to a letter, digit or underscore -> part of a word, never converted
             const converted = wordChar.test(before) || wordChar.test(after)
                 ? run
                 : convertToken(run, strict);
 
-            // 只对本该转换的片段询问规则：已经原样返回的片段没有东西可挡
+            // Only ask the rule about runs that would convert: a run already left as written has
+            // nothing to keep
             if (skip !== null && converted !== run && skip(run)) return run;
 
             return converted;

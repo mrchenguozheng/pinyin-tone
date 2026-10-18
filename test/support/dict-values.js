@@ -1,19 +1,24 @@
 // test/support/dict-values.js
-// lib/dict.js 只存每个音节的**无调形式**，四个声调由 lib/index.js 在运行时加上。
-// 测试需要独立的期望值，所以这里把标调再实现一遍：
+// lib/dict.js stores only the **toneless form** of each syllable; lib/index.js adds the four
+// tones at run time. The tests need an independent source of expected values, so tone marking
+// is implemented a second time here:
 //
-//   生产代码：indexOf 循环，依次找 a / o / e / ê，找不到再倒着扫 i/u/ü，最后先查
-//             鼻音闭集表、查不到再按规则落到倒数第一个鼻音上。
-//   这里：三条正则，靠位置扫描 + 负数前瞻挑出主元音 / 最后一个鼻音，
-//         鼻音闭集另抄一份做优先。
+//   production code: an indexOf loop looking for a / o / e / ê in turn, then a backwards scan
+//                    of i/u/ü, and finally a closed table of nasals, falling back to a rule
+//                    that marks the last nasal.
+//   here:            three regexes, picking the main vowel / last nasal by position scan plus
+//                    a negative lookahead, with the nasal table copied out separately to take
+//                    priority.
 //
-// 两条路径写法不同，交叉验证才有意义。规则本身是一样的（《汉语拼音方案》的
-// 标调规则）：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，否则标最后一个元音。
-// ê 自成一条 —— 它不是 e，且自带扬抑符，调号叠在扬抑符上（ế）。
-// 一个元音都没有的叹词音节标在最后一个鼻音上（m3 -> m̌、hng2 -> hńg）。
+// Two different writings of the same rule, which is what makes the cross-check meaningful.
+// The rule itself is the one in 汉语拼音方案: a takes the mark, else o, else e, otherwise the
+// last vowel. ê is a case of its own — it is not e, it already carries a circumflex, and the
+// tone mark goes on top of the circumflex (ế). An interjection syllable with no vowel at all
+// is marked on the last nasal (m3 -> m̌, hng2 -> hńg).
 import dict from '../../lib/dict.js';
 
-// 用数组做索引：调号里出现「字母 + 组合符」两个码位时，按字符串下标会取到半个字符。
+// Index with an array: when a marked glyph is two code points ("letter + combining mark"),
+// indexing the string by position would pick up half a character.
 const MARKS = {
     a: ['ā', 'á', 'ǎ', 'à'],
     o: ['ō', 'ó', 'ǒ', 'ò'],
@@ -26,17 +31,19 @@ const MARKS = {
     n: ['n\u0304', 'ń', 'ň', 'ǹ'],
 };
 
-// 先试 a/o/e/ê；否则取一个后面再也没有元音的 i/u/ü —— 即最后一个元音。
-// iu -> u、ui -> i 由「后面没有元音」自动满足。
+// Try a/o/e/ê first; otherwise take the i/u/ü that has no vowel after it — the last vowel.
+// iu -> u and ui -> i fall out of "no vowel after it" automatically.
 const MAIN_VOWEL = /a|o|e|ê|[iuü](?![aoeiuüê])/;
 
-// 一个元音都没有时，取后面不再出现 m/n 的那个 m/n —— 即最后一个鼻音。
-// hng -> 标 n（hńg）、hm -> 标 m（hḿ）、ng -> 标 n（ńg）。
+// With no vowel at all, take the m/n that has no m/n after it — the last nasal.
+// hng -> mark the n (hńg), hm -> mark the m (hḿ), ng -> mark the n (ńg).
 const LAST_NASAL = /[mn](?![a-z]*[mn])/;
 
-// 词典里真实出现过的叹词带调组合，优先于规则。字形与 lib/index.js 的
-// NASAL_TONES 相互独立地抄写，两边对不上就说明有人改错了。
-// m 缺第三声，n 与 ng 缺第一声，hm / hng 只有无调 —— 这些格子由规则补。
+// The toned interjection forms that really occur in the dictionary, taking priority over the
+// rule. The glyphs are copied independently of NASAL_TONES in lib/index.js, so if the two
+// disagree someone has changed one of them by mistake.
+// m has no third tone, n and ng have no first tone, and hm / hng exist only without a tone —
+// the rule fills those cells in.
 const NASAL_TONES = {
     m: {1: 'm\u0304', 2: 'ḿ', 4: 'm\u0300'},
     n: {2: 'ń', 3: 'ň', 4: 'ǹ'},
@@ -45,18 +52,19 @@ const NASAL_TONES = {
     hng: {},
 };
 
-/** 词表里的无调形式，键不存在时抛错（测试里出现笔误要立刻炸） */
+/** The toneless form from the dictionary; throws if the key is missing (a typo in a test should fail at once) */
 function baseOf(key) {
     const base = dict[key];
-    if (base === undefined) throw new Error(`dict 里没有这个键: ${key}`);
+    if (base === undefined) throw new Error(`no such key in dict: ${key}`);
     return base;
 }
 
 /**
- * 给无调形式加上第 tone 声（0 为轻声，不加调号）。
+ * Put tone number `tone` on a toneless form (0 is the neutral tone and adds no mark).
  *
- * 拆不出调号的音节返回 input —— 调用方传进来的原始输入，默认 `key + tone`。
- * 这样「期望值」永远是一个可以直接跟字符串比的输出，不必在调用点到处判 null。
+ * A syllable whose mark cannot be worked out returns `input` — the original input the caller
+ * passed in, defaulting to `key + tone`. That way the "expected value" is always an output
+ * that can be compared to a string directly, with no null checks scattered around call sites.
  */
 export function expectedValue(key, tone, input = key + tone) {
     const base = baseOf(key);

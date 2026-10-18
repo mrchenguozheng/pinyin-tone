@@ -1,18 +1,23 @@
-// dist/index.cjs 是 lib/ 的构建产物，不是第二份实现 —— 这条测试就是把这句话钉住。
+// dist/index.cjs is a build product of lib/, not a second implementation — this test pins
+// that claim down.
 //
-// 两件事分开验：
-//   1. 形状：require 回来只有一个具名 markTones，没有 default（与 ESM 入口一致）
-//   2. 行为：在一批覆盖面较宽的输入上，CJS 与 ESM 的输出必须逐条相同
+// Two things are checked separately:
+//   1. Shape: require returns exactly one named export, markTones, with no default (matching
+//      the ESM entry)
+//   2. Behaviour: over a broad set of inputs, the CJS and ESM outputs must agree line for line
 //
-// 输入集刻意混进各条边界：连写分词、冒号两种合法位置、大小写三形态、汉字紧贴、
-// 数字断句、非法声调、strict 与 skip 的四种组合，以及调号表里 a/o/e/i/u/ü/ê/鼻音
-// 各自的格子。两边只要有一条不同，就说明 dist/ 过期了，或 build-cjs.mjs 的包裹
-// 规则漏了东西（某个分支读了错的变量、TDZ、导出形状不对）。
+// The input set deliberately mixes in every edge: joined syllables, both legal colon
+// positions, the three case forms, Chinese characters pressed against pinyin, digits as
+// separators, illegal tones, the four combinations of strict and skip, and the cells of the
+// tone-mark table for a/o/e/i/u/ü/ê/nasals. One difference anywhere means dist/ is stale, or
+// that build-cjs.mjs missed something in the wrapping (a branch reading the wrong variable,
+// TDZ, a wrong export shape).
 //
-// CJS 侧用 createRequire 载入。测试文件本身是 ESM（package.json 里 type: module），
-// 产物是 .cjs —— 于是这里验的正是 require 条件能解析到它。注意这不等于
-// 「在 Node 14 上 require 得到」：require-ESM 的能力只有 Node 22 有，
-// 而 mocha 跑不起来 Node 14。那一层由 scripts/smoke-entry.cjs 用真实安装验。
+// The CJS side is loaded with createRequire. The test file itself is ESM (type: module in
+// package.json) and the artifact is .cjs, so what is being checked here is precisely that the
+// require condition resolves to it. That is not the same as "require works on Node 14":
+// require-ESM exists only from Node 22, and mocha will not run on Node 14. That layer is
+// covered by scripts/smoke-entry.cjs against a real installation.
 import { createRequire } from 'node:module';
 import { markTones } from '../lib/index.js';
 import { expect } from 'chai';
@@ -20,7 +25,7 @@ import { expect } from 'chai';
 const require = createRequire(import.meta.url);
 const cjs = require('../dist/index.cjs');
 
-// [输入, 选项] —— 覆盖各条分支；选项为 undefined 表示不传
+// [input, options] — covers every branch; undefined means no options passed
 const CASES = [
     ['ni3 hao3', undefined],
     ['ni3hao3', undefined],
@@ -52,9 +57,10 @@ const CASES = [
     ['C:\\Users', undefined],
     ['ni3hao3zi5', undefined],
     ['', undefined],
-    // 调号表：a / o / e / i / u / ü / ê / 鼻音各自的格子都走一遍。
-    // 这一组是「只改 ESM 源、忘了重新生成 dist」时唯一能抓到的地方 ——
-    // 上面那些用例用的是固定的几条音节，未必踩到被改的那一格。
+    // The tone-mark table: walk through every cell for a / o / e / i / u / ü / ê / nasals.
+    // This group is the only thing that catches "edited the ESM source, forgot to rebuild
+    // dist" — the cases above use a fixed handful of syllables and may never touch the cell
+    // that was changed.
     ['a1 a2 a3 a4', undefined],
     ['o1 o2 o3 o4', undefined],
     ['e1 e2 e3 e4', undefined],
@@ -74,20 +80,20 @@ const CASES = [
     ['', undefined],
 ];
 
-describe('dist/index.cjs 与 ESM 入口', () => {
-    it('只暴露一个具名 markTones，没有 default', () => {
+describe('dist/index.cjs against the ESM entry', () => {
+    it('exposes only one named export, markTones, and no default', () => {
         expect(Object.keys(cjs)).to.deep.equal(['markTones']);
         expect(cjs.default).to.equal(undefined);
         expect(cjs.markTones).to.be.a('function');
     });
 
-    it('每条输入都与 ESM 输出逐字相同', () => {
+    it('every input gives exactly the same output as ESM', () => {
         for (const [input, options] of CASES) {
             expect(cjs.markTones(input, options), JSON.stringify(input)).to.equal(markTones(input, options));
         }
     });
 
-    it('非字符串输入的表现与 ESM 一致（同样抛错）', () => {
+    it('non-string input behaves like ESM (throws the same way)', () => {
         for (const bad of [null, undefined, 42, {}]) {
             let esmError = null;
             let cjsError = null;
