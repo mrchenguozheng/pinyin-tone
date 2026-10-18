@@ -7,7 +7,9 @@
 // 两种标记：
 //   裸写 ju1 / jv1  -> 规范形式 jū
 //   ju:1            -> 冒号代表 u 上面那两点，输出 jǖ
-// 冒号只对 ü 真正能出现的声母生效（n/l/j/q/x/y 与零声母 u），其余原样返回。
+// 冒号不看声母允不允许：gu:1 就是 gǖ、u:e1 就是 üē。落空的只有三类 ——
+// 音节里没有 u/v、落点是 u 但词表把换出的 v 当辅音、冒号不在两个合法位置上。
+// （具体哪个键能落点由 test-two-spellings.js 按 32 键 × 5 声调整表扫，这里只测整句。）
 import { expect } from 'chai';
 import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
@@ -36,92 +38,8 @@ describe('混排文本：只换拼音片段', () => {
         });
     });
 
-    describe('裸写：默认规范形式', () => {
-        it('ju1 与 jv1 都输出 jū', () => {
-            expect(markTones('ju1')).to.equal('jū');
-            expect(markTones('jv1')).to.equal('jū');
-        });
-
-        it('同一句里两种写法结果相同', () => {
-            expect(markTones('ju1和jv1')).to.equal('jū和jū');
-            expect(markTones('jue2和jve2')).to.equal('jué和jué');
-            expect(markTones('juan1和jvan1')).to.equal('juān和juān');
-        });
-    });
-
-    describe('冒号：u 上面那两点', () => {
-        it('ju:1 输出 jǖ，而裸 ju1 仍是 jū', () => {
-            expect(markTones('ju:1')).to.equal('jǖ');
-            expect(markTones('ju1')).to.equal('jū');
-        });
-
-        it('四个可省两点的韵母都支持', () => {
-            expect(markTones('ju:1')).to.equal('jǖ');
-            expect(markTones('jue:2')).to.equal('jüé');
-            expect(markTones('juan:1')).to.equal('jüān');
-            expect(markTones('jun:4')).to.equal('jǜn');
-        });
-
-        it('q/x/y 同样生效', () => {
-            expect(markTones('qu:1')).to.equal('qǖ');
-            expect(markTones('xue:3')).to.equal('xüě');
-            expect(markTones('yun:2')).to.equal('yǘn');
-        });
-
-        it('n/l 的 ü 也能用冒号写出来', () => {
-            expect(markTones('nu:3')).to.equal('nǚ');
-            expect(markTones('lu:4')).to.equal('lǜ');
-            // 不带冒号时仍是普通 u
-            expect(markTones('nu3')).to.equal('nǔ');
-            expect(markTones('lu4')).to.equal('lù');
-        });
-
-        it('零声母：u: 是 ü，u:1 是 ǖ', () => {
-            expect(markTones('u:')).to.equal('ü');
-            expect(markTones('u:1')).to.equal('ǖ');
-            expect(markTones('u:4')).to.equal('ǜ');
-        });
-
-        it('冒号与裸写能在同一段里并排', () => {
-            expect(markTones('ju1和ju:1')).to.equal('jū和jǖ');
-            expect(markTones('jv1和ju:1')).to.equal('jū和jǖ');
-        });
-
-        it('冒号前的 v 与 u 等价', () => {
-            expect(markTones('jv:1')).to.equal('jǖ');
-            expect(markTones('jv:1和ju:1')).to.equal('jǖ和jǖ');
-            expect(markTones('jvan:1')).to.equal('jüān');
-        });
-
-        it('音节里没有 u 时不猜，原样返回', () => {
-            expect(markTones('ji:1')).to.equal('ji:1');
-            expect(markTones('ma:1')).to.equal('ma:1');
-        });
-
-        it('冒号写在哪儿就是要哪儿的 ü，不看声母', () => {
-            expect(markTones('gu:1')).to.equal('gǖ');
-            expect(markTones('u:e1')).to.equal('üē');
-        });
-
-        it('词表给不出 ü 时原样', () => {
-            expect(markTones('shui:3')).to.equal('shui:3');
-            expect(markTones('uang:1')).to.equal('uang:1');
-        });
-
-        it('空格模式下同样可用', () => {
-            expect(markTones('ju:1 ju1 jv1')).to.equal('jǖ jū jū');
-        });
-    });
-
-    describe('n/l 不参与自动投影', () => {
-        it('nv / nu 保持原意', () => {
-            expect(markTones('nv3')).to.equal('nǚ');
-            expect(markTones('nu3')).to.equal('nǔ');
-            expect(markTones('lv4')).to.equal('lǜ');
-            expect(markTones('lu4')).to.equal('lù');
-        });
-    });
-
+    // 裸写的默认形式（32 字面键 + 32 规范键 × 5 声调）、冒号的落点与位置、
+    // n/l 的两点由 test-two-spellings.js 逐格负责 —— 这里不再把同一批输入抄一遍。
     describe('边界：不误伤非拼音内容', () => {
         it('英文单词原样保留', () => {
             expect(markTones('hello world')).to.equal('hello world');
@@ -148,6 +66,9 @@ describe('混排文本：只换拼音片段', () => {
 
         it('非法声调 6-9 不转换', () => {
             expect(markTones('ma6 ma9')).to.equal('ma6 ma9');
+            // 6 不在片段字符集里，它自己就是边界；ni3 粘在它左边（数字算词字符）→
+            // 整段哪一段都不动。这是「不吞字符」这条规则的直接后果，不是额外特判。
+            expect(markTones('ni3ma6')).to.equal('ni3ma6');
         });
 
         it('单独一个字母不当作拼音', () => {

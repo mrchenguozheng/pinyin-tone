@@ -309,7 +309,7 @@ function makeRandom(seed) {
 
 // passThrough 里的 35 条按「为什么不能转」分成两类。两类的断言是同一句
 // （输出 === 输入），但原因不同：这一组是「切了会丢字母」，下一组是「根本不是拼音」。
-// 合在一起跑两遍只会让人以为有 82 个独立用例。
+// 合在一起跑两遍只会让人以为有 82 个独立用例，其实是同一批数据各跑一遍（35 × 2）。
 const TRUNCATION_KINDS = new Set(['unspaced', 'unspaced mixed', 'legacy erhua', 'invalid tone']);
 const NOT_PINYIN_KINDS = new Set(['mixed case', 'symbols', 'colon has no landing', 'not pinyin']);
 

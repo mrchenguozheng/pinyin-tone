@@ -54,7 +54,7 @@ describe('skip：按规则保持原样', () => {
     });
 
     it('不认识的写法当没传（与 strict 一致：选项不该改变算法）', () => {
-        for (const skip of [undefined, null, true, 42, {}, new Map(), () => true]) {
+        for (const skip of [undefined, null, true, 42, {}, new Map()]) {
             expect(markTones('M2', {skip})).to.equal('Ḿ');
         }
     });

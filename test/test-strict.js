@@ -232,8 +232,11 @@ describe('严格模式', () => {
 
         it('冒号形式的严格模式：先投影到规范拼写再查白名单', () => {
             assert.equal(markTones('ju:1', {strict: true}), 'jǖ');
-            // 冒号只认 u/ue/uan/un 这几个韵母；jui 不在闭集里，
-            // 两种模式下都无处落点，整串原样 —— 严格模式没有额外放宽或收紧。
+            // jui:1 落空不是因为「冒号不认这个韵母」，而是词表里 j 只收了
+            // jv/jve/jvan/jvn（ju/jue/juan/jun 的同一音位），没有 jvi ——
+            // 冒号要求落点真的产出 ü，而这一格没有字面形式可换。
+            // 两种模式下都无处落点，整串原样。对照：gu:1 在默认模式成立（gǖ），
+            // 严格模式下因为 gǖ 不是音节而落空 —— 那才是白名单在起作用。
             assert.equal(markTones('jui:1', {strict: true}), 'jui:1');
             assert.equal(markTones('jui:1'), 'jui:1');
         });
