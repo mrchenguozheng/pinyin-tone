@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.4.2
+
+2026-10-19
+
+No runtime change: every input produces the same output as 2.4.1.
+
+- Fixed: `v2/index.d.ts` declared `unspacedPinyinSplit(text): string[]`, a name `v2/index.js` never exported — it exports `splitUnspacedSyllables(text): string`. TypeScript accepted an import that failed on the call. The declaration and the type fixture now name what actually ships, and the old name is held out by `@ts-expect-error`.
+- Added: `engines: {"node": ">=14"}`. The package declared no engines until now; 14 is the real floor for the `const` bindings in `v2/index.js`. A new CI job runs the packed tarball on node 14 and 18, where the test matrix (20/22/24) never reached.
+- Changed: CI runs on `release/**` and `fix/**` as well as `master`, so a release branch gets checked from its first push.
+- Docs: the README installation section says that a plain install is 2.4.x and that 3.0.0 lives under the `next` tag, with the three things that break 2.x callers.
+
 ## v2.4.1
 
 2026-10-18
