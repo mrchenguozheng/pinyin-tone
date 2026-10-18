@@ -14,7 +14,8 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "mocha && tsc --noEmit"
+    "test": "mocha && tsc --noEmit",
+    "pack:check": "node scripts/check-pack.mjs"
   },
   "keywords": [
     "pinyin",

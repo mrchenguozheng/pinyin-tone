@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+# 这个 workflow 只读仓库：它不提交任何东西，权限给到最小。
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # mocha 11 要求 ^18.18 || ^20.9 || >=21.1，因此 20 是下界。
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # package.json 的 test = mocha && tsc --noEmit：
+      # 行为靠 mocha，类型层（d.ts 与 fixture）靠 tsc。
+      - run: npm test
+
+  package:
+    name: package contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # 守卫：CONTRIBUTORS.svg（455KB 内嵌头像）曾被打进 tarball，
+      # 占包体四分之三。这里把「包里有什麼、有多大」变成一条会红的断言。
+      - run: npm run pack:check
