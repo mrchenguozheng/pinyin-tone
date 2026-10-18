@@ -14,6 +14,15 @@ npm install pinyin-tone
 
 要 Node.js 14 以上（见 `engines`）。ESM 和 CommonJS 都能用，两种写法都得按名字取 `markTones`，**没有默认导出**。`require()` 加载的是 `dist/index.cjs`，这个文件在发布前由 `lib/` 生成，并且逐条和 `lib/` 比对过，跑的不是另一份代码。
 
+npm 上挂着两个 dist-tag：
+
+| dist-tag | 版本 | 安装 |
+| --- | --- | --- |
+| `latest` | 2.4.1 | `npm install pinyin-tone` |
+| `next` | 3.0.0 | `npm install pinyin-tone@next` |
+
+直接 `npm install` 装到的是 2.x，那个版本的入口叫 `toPinyinTones`——3.0 改了名，也去掉了默认导出。下面讲的都是 3.0，对 2.x 不适用；要切换，先看[从 2.x 迁移](#从-2x-迁移)，想留在旧行为就锁 `npm install pinyin-tone@2.4.1`。
+
 ```javascript
 import {markTones} from 'pinyin-tone';          // ESM
 const {markTones} = require('pinyin-tone');     // CommonJS
@@ -109,6 +118,8 @@ markTones('M2 A4 N3', {skip: ['M2', 'A4']});    // 'M2 A4 Ň'
 | `pinyin-tone/v1`、`splitUnspacedSyllables(x)` | 已删除 |
 
 2.4.1 的根入口有三个名字：默认导出，加上具名的 `v2` 和 `markSinglePinyinVowel`，现在全部并进了 `markTones`。名字漏改会当场报错，不会拖到线上：3.0 没有默认导出，`import anything from 'pinyin-tone'` 是语法错误，不会变成 `undefined` 混过去。
+
+3.0 发布时走的是 `next` 标签，`latest` 还指着 2.4.1，所以手上有 `^2` 的项目不会在 `npm install` 之后突然跳过去。要升级，写 `npm install pinyin-tone@next`；跳过去之后想退回，把版本改回 `2.4.1` 或 `^2` 就行。
 
 ## 细节文档
 
