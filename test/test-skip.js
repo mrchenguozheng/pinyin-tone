@@ -2,8 +2,9 @@
 // skip：按规则声明「哪些片段保持原样」，不必逐处写反斜杠。
 //
 // 为什么不是只有字符串列表：只比片段文本的话，同一个 token 的所有出现都被挡住，
-// 规则一写宽就误伤。所以正则能匹配片段本身，函数还能看到 offset / before / after ——
-// 后者是把规则收窄到「某一次出现」的出口。
+// 规则一写宽就误伤。所以还收一个函数，能看 offset / before / after —— 那是把规则
+// 收窄到「某一次出现」的出口。正则不收：它只看得到单个片段，环视与文本级锚点
+// 都会静默失效，与其给半个语义，不如让人把正则写进谓词里。
 //
 // 两条边界：
 //   1. 只对**本来会转换**的片段询问规则（已经原样的没有东西可挡）。
@@ -28,20 +29,17 @@ describe('skip：按规则保持原样', () => {
         expect(markTones('M2', {skip: []})).to.equal('Ḿ');
     });
 
-    it('正则对片段文本做 test，g / y 不会让结果在两次之间翻转', () => {
-        expect(markTones('M2 A4 N3 BEI3JING1', {skip: /^[A-Z]\d$/})).to.equal('M2 A4 N3 BĚIJĪNG');
-
-        const re = /^M2$/g;
-        expect(markTones('M2 M2 M2', {skip: re})).to.equal('M2 M2 M2');
-        // 同一个正则对象第二次使用仍然一致（lastIndex 已在解析时剥掉）
-        expect(markTones('M2 M2', {skip: re})).to.equal('M2 M2');
+    it('要按模式判断就写进函数', () => {
+        // 正则放在谓词里，作用域就只是这个片段 —— 没有第二个语义要猜
+        const code = (run) => /^[A-Z]\d$/.test(run);
+        expect(markTones('M2 A4 N3 BEI3JING1', {skip: code})).to.equal('M2 A4 N3 BĚIJĪNG');
+        // 每次调用都是新的 test，不存在 lastIndex 这种跨调用的状态
+        expect(markTones('M2 M2 M2', {skip: code})).to.equal('M2 M2 M2');
     });
 
-    it('正则只看到片段自己，看不到前后字符', () => {
-        // 片段是 "M2"，前后是空白与行首，正则里的 lookbehind 拿不到
+    it('直接传正则不算数，当作没传', () => {
+        expect(markTones('M2', {skip: /^M2$/})).to.equal('Ḿ');
         expect(markTones('今天 M2', {skip: /(?<=今天 )M2/})).to.equal('今天 Ḿ');
-        // 片段内部的锚点照常生效：^ / $ 就是片段的两端
-        expect(markTones('今天 M2', {skip: /^M2$/})).to.equal('今天 M2');
     });
 
     it('函数拿到 offset / before / after / text', () => {

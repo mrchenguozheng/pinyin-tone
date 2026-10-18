@@ -13,21 +13,23 @@ export interface SkipContext {
 }
 
 /**
- * 哪些片段保持原样。四种写法：
+ * 哪些片段保持原样。三种写法：
  *
  * - 字符串：这个片段永远别转
  * - 字符串数组：同上，一组
- * - 正则：对片段文本做 `test`，`g` / `y` 会被忽略
  * - 函数：返回 `true` 时保持原样，能看位置与前后字符
  *
  * 字符串与数组只比片段文本，同一个 token 的所有出现都不转；要收窄到某一次出现，
- * 用函数的 `offset`，或用 `text.matchAll` 先算出下标。正则只看片段自己 ——
- * `^` / `$` 锚在片段两端，看不到前后的字符，按上下文判断得用函数。
+ * 用函数的 `offset`，或用 `text.matchAll` 先算出下标。
+ *
+ * 不收 `RegExp`：正则的直觉是「在整段文本里找」，而这里只看得到单个片段 ——
+ * 环视（`(?<=今天 )`）拿不到前后字符，`^` / `$` 锚在片段两端而不是文本两端，
+ * `g` / `y` 的有状态迭代在只 `test` 一次的片段上也没有意义。要按模式判断就写进
+ * 函数：`(run) => /^[A-Z]\d$/.test(run)`。
  */
 export type SkipSpec =
     | string
     | readonly string[]
-    | RegExp
     | ((run: string, context: SkipContext) => boolean);
 
 export interface MarkTonesOptions {
@@ -51,8 +53,9 @@ export interface MarkTonesOptions {
      *
      * ```js
      * markTones('M2 货币供应量', {skip: 'M2'});            // 'M2 货币供应量'
-     * markTones('M2 A4 N3', {skip: /^[A-Z]\d$/});          // 'M2 A4 N3'
-     * markTones(text, {skip: (run, {before}) => before === ''});  // 只跳过行首
+     * markTones('M2 A4 N3', {skip: ['M2', 'A4']});         // 'M2 A4 Ň'
+     * markTones('M2 A4', {skip: (run) => /^[A-Z]\d$/.test(run)});  // 'M2 A4'
+     * markTones(text, {skip: (run, {before}) => before === ''});   // 只跳过行首
      * ```
      *
      * 只对本来会转换的片段询问；转了也是原样的片段不会问。

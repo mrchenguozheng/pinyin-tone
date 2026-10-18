@@ -18,10 +18,9 @@ const options: MarkTonesOptions = {strict: true};
 const strictTyped: string = markTones('jui1', options);
 const strictMixed: string = markTones('你好 jui1', {strict: false});
 
-// skip 的四种写法都要能通过类型检查
+// skip 的三种写法都要能通过类型检查
 const skipOne: string = markTones('M2 hao3', {skip: 'M2'});
 const skipMany: string = markTones('M2 A4', {skip: ['M2', 'A4']});
-const skipRegex: string = markTones('M2 A4', {skip: /^[A-Z]\d$/});
 const skipFn: string = markTones('M2 hao3', {
     skip: (run: string, context: SkipContext) => run === 'M2' && context.before === '',
 });
@@ -36,6 +35,8 @@ markTones('jv1', {literal: true});
 markTones('ju1', {strict: 'yes'});
 // @ts-expect-error skip 不收 boolean
 markTones('M2', {skip: true});
+// @ts-expect-error skip 不收 RegExp（要按模式判断就写进谓词）
+markTones('M2', {skip: /^M2$/});
 // @ts-expect-error skip 的数组只能放字符串
 markTones('M2', {skip: ['M2', 42]});
 // @ts-expect-error 第二参数必须是对象
@@ -84,4 +85,4 @@ import { toToneMarksInText } from 'pinyin-tone';
 // @ts-expect-error 3.0 起没有默认导出，取 markTones 得用具名导入
 import defaultExport from 'pinyin-tone';
 
-export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipRegex, skipFn, skipTyped, bothOptions };
+export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipFn, skipTyped, bothOptions };

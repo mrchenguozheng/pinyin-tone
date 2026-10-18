@@ -49,7 +49,7 @@ describe('README 示例', () => {
     it('Skipping a class of tokens', () => {
         expect(markTones('M2 货币供应量 hao3', {skip: 'M2'})).to.equal('M2 货币供应量 hǎo');
         expect(markTones('M2 A4 N3', {skip: ['M2', 'A4']})).to.equal('M2 A4 Ň');
-        expect(markTones('M2 A4 N3 BEI3JING1', {skip: /^[A-Z]\d$/})).to.equal('M2 A4 N3 BĚIJĪNG');
+        expect(markTones('M2 A4 N3 BEI3JING1', {skip: (run) => /^[A-Z]\d$/.test(run)})).to.equal('M2 A4 N3 BĚIJĪNG');
         expect(markTones('M2 hao3 M2', {skip: (run, {before}) => before === ''})).to.equal('M2 hǎo Ḿ');
         // 正文末句：skip 也匹配时，反斜杠仍然优先
         expect(markTones('\\M2', {skip: 'M2'})).to.equal('M2');
