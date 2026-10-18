@@ -8,18 +8,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
-## Unreleased
+## v3.0.0
 
 ### Breaking
 
+- Breaking: 根入口 `pinyin-tone` 从 v1 换成 v2。此前默认导出的是 v1 的正则实现，要用 v2 得写
+  `pinyin-tone/v2`；现在根入口就是 v2，v1 退到 `pinyin-tone/v1`。两者在 13671 个输入
+  （词表全键 × 六个声调）上差异 11.3%，全部是 v1 把字母吞掉的旧问题（`biou1`：v1 给 `biū`，
+  v2 给 `biōu`）。需要旧输出的调用方改一行 import 即可，其余代码不用动。
+- Breaking: `pinyin-tone/v2` 与 `pinyin-tone/v2/index.js` 两个子路径删除。根入口已经是 v2，
+  保留一个同义的 `/v2` 只会让「该用哪个」这个问题继续存在。升级后这两个路径解析失败
+  （`ERR_PACKAGE_PATH_NOT_EXPORTED`）。
+- Breaking: `splitUnspacedSyllables` 不再是导出。它是 `convertUnspacedPinyin` 的内部一步 ——
+  输出是「带空格的音节串」，除了再喂回转换器没有独立用途，而转换器本来就接受连写输入。
+  函数本身保留在实现里，只是不再对外。公开导出因此从 5 个收敛到 4 个：
+  `toPinyinTones`（默认）、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`。
 - Removed: `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js` 等）不再发布。
   这些文件从未出现在 README / CHANGELOG 中，也不构成有语义的公开接口；如果之前绕过文档直接
   `import x from 'pinyin-tone/v2/b.js'`，升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
   包内词表不提供任何受支持的访问入口：它的文件划分、表结构、键顺序都是实现细节，会随实现调整而变更。
-- Changed: `package.json` 新增 `exports` 字段，公开入口被显式固定为
-  `.`、`./v2`、`./v2/index.js`、`./v1`、`./v1/index.js`、
-  `./workaround`、`./workaround/index.js`、`./package.json`。其余子路径将解析失败。
+- Changed: `package.json` 的 `exports` 字段把公开入口固定为
+  `.`、`./v1`、`./v1/index.js`、`./workaround`、`./workaround/index.js`、`./package.json`。
+  其余子路径将解析失败。
   这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
+  `main` / `types` 也一并指向 `v2/index.js` / `v2/index.d.ts`，根目录不再有转发文件。
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 

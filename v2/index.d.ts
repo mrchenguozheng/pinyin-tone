@@ -36,7 +36,6 @@ export interface PinyinTonesOptions {
  * `n`/`l` 后的 ü 本来就保留两点（`nv3` -> `nǚ`），不受影响。
  */
 export default function toPinyinTones(longString: string, options?: PinyinTonesOptions): string;
-export function splitUnspacedSyllables(text: string): string;
 export function convertUnspacedPinyin(unspacedSyllables: string, options?: PinyinTonesOptions): string;
 /** 一次拿到同一输入的规范形式与字面形式 */
 export function toPinyinTonesVariants(longString: string, options?: PinyinTonesOptions): PinyinTonesVariants;

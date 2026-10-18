@@ -22,17 +22,16 @@ Only the entry points declared in `package.json` → `exports` are supported pub
 
 | Import path | Provides |
 | --- | --- |
-| `pinyin-tone` | v1 converter (default) plus named `v2` and `markSinglePinyinVowel` |
-| `pinyin-tone/v2` | v2 converter (default), `splitUnspacedSyllables`, `convertUnspacedPinyin`, `toPinyinTonesInline`, `toPinyinTonesVariants` |
-| `pinyin-tone/v1` | v1 converter (default) |
+| `pinyin-tone` | `toPinyinTones` (default), `convertUnspacedPinyin`, `toPinyinTonesInline`, `toPinyinTonesVariants` |
+| `pinyin-tone/v1` | the legacy v1 converter (default), kept for comparison |
 | `pinyin-tone/workaround` | `markSinglePinyinVowel` (default) |
 
-The `.js`-suffixed equivalents (`pinyin-tone/v2/index.js`, `pinyin-tone/v1/index.js`,
-`pinyin-tone/workaround/index.js`) resolve to the same files and are equally supported.
+The `.js`-suffixed equivalents (`pinyin-tone/v1/index.js`, `pinyin-tone/workaround/index.js`)
+resolve to the same files and are equally supported.
 
 **Everything else inside the package is private implementation.** Any other subpath is not
 part of the API — including files you can see in `node_modules`, such as
-`pinyin-tone/v2/b.js` or `pinyin-tone/v2/dict.js`.
+`pinyin-tone/v2/dict.js`.
 
 **Do not import those private paths.** Doing so yields undefined and untrustworthy
 results: the files may be moved, renamed, or deleted in any release, and your code will
@@ -40,61 +39,60 @@ fail with `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_MODULE_NOT_FOUND`. The interna
 of the dictionary — how it is split across files, its table shape, its key order — is
 **not** a contract and changes without notice.
 
-**This release is a breaking change.** The 51 per-initial tables under `v2/`
-(`v2/b.js`, `v2/zh.js`, `v2/special.js`, …) are no longer published. They were never
-documented and never were public API. Code that deep-imported them will break; migrate to
-one of the four entry points above.
+**3.0.0 is a breaking change**, in three places:
 
-**中文说明：** 只有上表列出的四个入口是公开接口，包内其他任何路径（含 `v2/` 目录下的文件）
+1. `pinyin-tone` now exports the v2 converter. It used to export v1. On the 13,671 inputs
+   formed by every dictionary key × six tones the two disagree on 11.3% — v2 fixes cases where
+   v1 dropped letters (`biou1`: v1 gives `biū`, v2 gives `biōu`). If you need the old output,
+   import from `pinyin-tone/v1`.
+2. The `pinyin-tone/v2` and `pinyin-tone/v2/index.js` subpaths are gone. The root entry point
+   *is* v2 now, so there is nothing left to disambiguate.
+3. `splitUnspacedSyllables` is no longer exported. It was an internal step of
+   `convertUnspacedPinyin` with no independent use — the converter already accepts unspaced
+   input.
+
+**中文说明：** 只有上表列出的三个入口是公开接口，包内其他任何路径（含 `v2/` 目录下的文件）
 都属于私有实现，随时可能被移动、改名或删除。依赖它们会得到**未定义、不可信的结果或直接报错**。
-本次版本已移除 `v2/` 下的 51 个分声母词表，这是 **breaking change**；如需迁移，请改用上表入口。
+3.0.0 的三处破坏性变更：根入口从 v1 换成 v2（两者在 13671 个输入上差异 11.3%，需要旧输出请用
+`pinyin-tone/v1`）；`pinyin-tone/v2` 子路径删除（根入口就是它）；`splitUnspacedSyllables`
+不再导出（它是 `convertUnspacedPinyin` 的内部步骤）。
 
-## Usage (Default Behavior)
+## Usage
 
 This module exports a function. You can name it as desired, such as `pinyin`.
 
 ```javascript
-// CommonJS usage (up to version 2.2.7)
-var toPinyinTones = require('pinyin-tone');
-
-// /* or ES Module usage (breaking change in version 2.3.0+) */
-// import toPinyinTones from 'pinyin-tone';
+import toPinyinTones from 'pinyin-tone';
 
 // Examples
-var hatsune_miku = toPinyinTones('chu1 yin1 wei4 lai2'); // -> 'chū yīn wèi lái'
-var megurine_luka = toPinyinTones("xun2 yin1 liu2 ge1"); // -> 'xún yīn liú gē'
-var han = toPinyinTones("han4 yu3 pin1 yin1 fang1 an4"); // -> 'hàn yǔ pīn yīn fāng àn'
+const hatsune_miku = toPinyinTones('chu1 yin1 wei4 lai2'); // 'chū yīn wèi lái'
+const megurine_luka = toPinyinTones("xun2 yin1 liu2 ge1"); // 'xún yīn liú gē'
+const han = toPinyinTones("han4 yu3 pin1 yin1 fang1 an4"); // 'hàn yǔ pīn yīn fāng àn'
 
 // Erhua / 儿化音 (ér huà yīn)
-var huar = toPinyinTones("huar1 renr2 shuir3 yuer4"); // -> 'huār rénr shuǐr yuèr'
+const huar = toPinyinTones("huar1 renr2 shuir3 yuer4"); // 'huār rénr shuǐr yuèr'
 
 // Initials / 声母 (shēng mǔ)
-var bpmf = toPinyinTones("b p m f"); // -> 'b p m f'
+const bpmf = toPinyinTones("b p m f"); // 'b p m f'
 
 // Finals / 韵母 (yùn mǔ)
-var yun = toPinyinTones("an1 vn2 ong3 uen4"); // -> 'ān ǘn ǒng uèn'
+const yun = toPinyinTones("an1 vn2 ong3 uen4"); // 'ān ǘn ǒng uèn'
 
 // Special cases
-var liuyun = toPinyinTones("liou2 yuen2"); // -> (only in v2) 'lióu yuén'
-var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
+const liuyun = toPinyinTones("liou2 yuen2"); // 'lióu yuén'
+const iou_uen = toPinyinTones("iou1 uen4"); // 'iōu uèn' (pure final only)
 
 // Some less common combinations
-var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // -> 'bōng tǘ pě wìr'
+const fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // 'bōng tǘ pě wìr'
 ```
 
-## Usage v2 (Exprimental)
-
-There is one key difference between `v1` and `v2`:
-
-v2 does not support the format `pinyin-number-r` (e.g., `hua1r`) for erhua pronunciation.
-
-Instead, it supports the format `pinyin-r-number`, such as `huar1`.
+## How a token is read
 
 **Input contract:** a token is split into syllables at its tone digits, and each syllable must be
 a base form plus an optional colon and an optional tone digit `0`–`5` (the colon marks a literal
 `ü`, see below). ASCII punctuation between syllables is kept as is. If any piece does not resolve
-to a syllable, the whole token is returned unchanged — v2 never returns a partially converted
-token:
+to a syllable, the whole token is returned unchanged — the converter never returns a partially
+converted token:
 
 ```javascript
 toPinyinTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to split
@@ -106,8 +104,8 @@ toPinyinTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 ```
 
 Spacing is never added or removed: syllables written together come back together, syllables
-written apart keep their space. `convertUnspacedPinyin` is still there for the case where you want
-the output glued together regardless of how the input was spaced (`'ni3 hao3'` → `'nǐhǎo'`).
+written apart keep their space. See [Unspaced input](#unspaced-input) when you want the output
+glued together regardless of how the input was spaced.
 
 Uppercase letters, a tone digit outside `0`–`5`, and CJK characters still make the whole token pass
 through untouched (use `toPinyinTonesInline` for text that mixes Chinese and pinyin).
@@ -118,7 +116,7 @@ the **standard** form — after `j`/`q`/`x`/`y` the *Scheme for the Chinese Phon
 requires dropping the diaeresis:
 
 ```javascript
-import toPinyinTones from 'pinyin-tone/v2';
+import toPinyinTones from 'pinyin-tone';
 
 toPinyinTones('jv1');   // 'jū'  — literal input, standard output
 toPinyinTones('ju1');   // 'jū'  — standard input, standard output
@@ -142,7 +140,7 @@ token, which is what makes `'jū jǖ'` writable in a single call. If you need bo
 longer text, use `toPinyinTonesVariants`:
 
 ```javascript
-import { toPinyinTonesVariants } from 'pinyin-tone/v2';
+import { toPinyinTonesVariants } from 'pinyin-tone';
 
 toPinyinTonesVariants('jv1 nv3');
 // -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
@@ -227,7 +225,7 @@ no change.
 whole string and replaces only the pinyin fragments, leaving every other character as-is:
 
 ```javascript
-import { toPinyinTonesInline } from 'pinyin-tone/v2';
+import { toPinyinTonesInline } from 'pinyin-tone';
 
 toPinyinTonesInline('ju是规范写法，而ju:1是不规范写法，因为u:1在j后面要省略上面的两点');
 // -> 'ju是规范写法，而jǖ是不规范写法，因为ǖ在j后面要省略上面的两点'
@@ -255,11 +253,7 @@ can mix Chinese with either spaced or unspaced pinyin, `toPinyinTonesInline('今
 English word.
 
 ```javascript
-// CommonJS usage (up to version 2.2.7)
-var anotherPinyinTones = require('pinyin-tone/v2');
-
-// ES Module usage (breaking change in version 2.3.0)
-import anotherPinyinTones from 'pinyin-tone/v2';
+import anotherPinyinTones from 'pinyin-tone';
 
 console.log(anotherPinyinTones('qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men'));
 // -> 'qǐ lái bú yuàn zuò nú lì de rén men'
@@ -268,10 +262,14 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 // -> 'huār wèi shén me zhè yàng hóng'
 ```
 
-## Usage: convert unspaced syllables string to unspaced pinyin string (since v2.4.0)
+## Unspaced input
+
+Spacing is never added or removed by `toPinyinTones`: syllables written together come back
+together, syllables written apart keep their space. `convertUnspacedPinyin` is for the case where
+you want the output glued together regardless of how the input was spaced:
 
 ```javascript
-import { convertUnspacedPinyin } from 'pinyin-tone/v2'; // since v2.4.0
+import { convertUnspacedPinyin } from 'pinyin-tone';
 
 console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn

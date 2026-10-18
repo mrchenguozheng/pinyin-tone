@@ -408,7 +408,10 @@ function toPinyinTonesInline(text, options) {
 }
 
 /**
- * split syllables string by number
+ * 按声调数字给连写串补空格，只给 convertUnspacedPinyin 内部用。
+ *
+ * 不导出：它的输出是「带空格的音节串」，除了喂给转换器没有任何独立用途，
+ * 而转换器本来就接受连写。把它当 API 卖出去只会让调用方多记一个名字。
  * @param {string} text
  * @returns {string}
  */
@@ -421,6 +424,10 @@ function splitUnspacedSyllables(text){
 
 /**
  * output pinyin string without space like "hànyǔpīnyīn"
+ *
+ * 与 toPinyinTones 的差别不只是去掉空格：这里先按声调数字切分、再逐段转换，
+ * 所以某一段认不出来时只有那一段原样保留，其余照转
+ * （`hanyu3pin1yin1` -> `hanyu3pīnyīn`）；toPinyinTones 是整串全或无。
  * @param {string} unspacedSyllables unspaced pinyin string like "han4yu3pin1yin1"
  * @param {{strict?: boolean}} [options]
  * @returns {string}
@@ -447,7 +454,6 @@ function toPinyinTonesVariants(longString, options) {
 }
 
 export default toPinyinTones;
-export {splitUnspacedSyllables};
 export {convertUnspacedPinyin};
 export {toPinyinTonesVariants};
 export {toPinyinTonesInline};
