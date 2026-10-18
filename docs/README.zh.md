@@ -9,19 +9,10 @@ English: [../README.md](../README.md) —— 发布到 npm 和仓库首页的是
 ## 安装
 
 ```bash
-npm install pinyin-tone
+npm install pinyin-tone@next
 ```
 
 要 Node.js 14 以上（见 `engines`）。ESM 和 CommonJS 都能用，两种写法都得按名字取 `markTones`，**没有默认导出**。`require()` 加载的是 `dist/index.cjs`，这个文件在发布前由 `lib/` 生成，并且逐条和 `lib/` 比对过，跑的不是另一份代码。
-
-npm 上挂着两个 dist-tag：
-
-| dist-tag | 版本 | 安装 |
-| --- | --- | --- |
-| `latest` | 2.4.1 | `npm install pinyin-tone` |
-| `next` | 3.0.0 | `npm install pinyin-tone@next` |
-
-直接 `npm install` 装到的是 2.x，那个版本的入口叫 `toPinyinTones`——3.0 改了名，也去掉了默认导出。下面讲的都是 3.0，对 2.x 不适用；要切换，先看[从 2.x 迁移](#从-2x-迁移)，想留在旧行为就锁 `npm install pinyin-tone@2.4.1`。
 
 ```javascript
 import {markTones} from 'pinyin-tone';          // ESM

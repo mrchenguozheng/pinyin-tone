@@ -10,25 +10,13 @@ dependencies; unspaced or mixed text needs no preprocessing.
 ## Quick start
 
 ```bash
-npm install pinyin-tone
+npm install pinyin-tone@next
 ```
 
 Node.js 14 or later (`engines`). Both module systems work, and both need the named
 `markTones` — **there is no default export**. `require()` resolves to `dist/index.cjs`,
 which is generated from `lib/` at release time and compared against it entry by entry: the
 same code, not a second copy.
-
-Two dist-tags are published:
-
-| Tag | Version | Install |
-| --- | --- | --- |
-| `latest` | 2.4.1 | `npm install pinyin-tone` |
-| `next` | 3.0.0 | `npm install pinyin-tone@next` |
-
-Plain `npm install` resolves to 2.x, whose entry point is `toPinyinTones` — 3.0 renamed that
-function and dropped the default export. Nothing below applies to 2.x; read
-[Migrating from 2.x](#migrating-from-2x) before switching, or pin the old behaviour with
-`npm install pinyin-tone@2.4.1`.
 
 ```javascript
 import {markTones} from 'pinyin-tone';          // ESM
