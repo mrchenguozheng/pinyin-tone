@@ -4,6 +4,9 @@
 // 切分的锚点是声调数字 —— 拼音连写里唯一可靠的分隔信息。
 // 没有数字的连写（hanyu3pin1yin1 里的 "hanyu"）不猜，整串原样返回。
 // 任何一段认不出来，也是整串原样：宁可少转，不出半截。
+//
+// 输出保持输入的分隔方式：连写的音节不补空格（ni3hao3 -> nǐhǎo），
+// 输入里写了空格就还是空格（ni3 hao3 -> nǐ hǎo），标点原样留在原位。
 import { expect } from 'chai';
 import toPinyinTones, {
     toPinyinTonesInline,
@@ -12,33 +15,45 @@ import toPinyinTones, {
 } from '../v2/index.js';
 
 describe('v2 分词：连写音节', () => {
-    it('声调数字就是分隔符', () => {
-        expect(toPinyinTones('ni3hao3')).to.equal('nǐ hǎo');
-        expect(toPinyinTones('wo3ai4ni3')).to.equal('wǒ ài nǐ');
-        expect(toPinyinTones('han4yu3pin1yin1')).to.equal('hàn yǔ pīn yīn');
+    it('声调数字就是分隔符，音节之间不补空格', () => {
+        expect(toPinyinTones('ni3hao3')).to.equal('nǐhǎo');
+        expect(toPinyinTones('wo3ai4ni3')).to.equal('wǒàinǐ');
+        expect(toPinyinTones('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
     });
 
     it('末尾音节没有声调也能切（轻声）', () => {
-        expect(toPinyinTones('ni3hao')).to.equal('nǐ hao');
-        expect(toPinyinTones('ni3hao3ma5')).to.equal('nǐ hǎo ma');
+        expect(toPinyinTones('ni3hao')).to.equal('nǐhao');
+        expect(toPinyinTones('ni3hao3ma5')).to.equal('nǐhǎoma');
     });
 
-    it('连写与带空格得到同一结果', () => {
+    it('输入的空白就是输出的空白', () => {
+        expect(toPinyinTones('ni3 hao3')).to.equal('nǐ hǎo');
+        expect(toPinyinTones('ni3  hao3')).to.equal('nǐ  hǎo');
+    });
+
+    it('连写与带空格只差空格本身', () => {
         for (const s of ['ni3hao3', 'wo3ai4ni3', 'han4yu3pin1yin1', 'xian4dai4hua4']) {
             const spaced = s.replace(/([0-9])/g, '$1 ').trim();
-            expect(toPinyinTones(s), s).to.equal(toPinyinTones(spaced));
+            expect(toPinyinTones(s), s).to.equal(toPinyinTones(spaced).replace(/ /g, ''));
         }
     });
 
     it('冒号标记在连写里同样生效', () => {
-        expect(toPinyinTones('ni3jv:1')).to.equal('nǐ jǖ');
-        expect(toPinyinTones('ni3ju:1')).to.equal('nǐ jǖ');
-        expect(toPinyinTones('ni3nve4')).to.equal('nǐ nüè');
+        expect(toPinyinTones('ni3jv:1')).to.equal('nǐjǖ');
+        expect(toPinyinTones('ni3ju:1')).to.equal('nǐjǖ');
+        expect(toPinyinTones('ni3nve4')).to.equal('nǐnüè');
+    });
+
+    it('冒号后面的字母属于同一音节', () => {
+        expect(toPinyinTones('lu:e4')).to.equal('lüè');
+        expect(toPinyinTones('nu:e4')).to.equal('nüè');
+        expect(toPinyinTones('lu:e')).to.equal('lüe');
+        expect(toPinyinTones('ni3lu:e4')).to.equal('nǐlüè');
     });
 
     it('规范拼写仍然是默认：连写里的 jv 也要省两点', () => {
-        expect(toPinyinTones('ni3jv1')).to.equal('nǐ jū');
-        expect(toPinyinTones('ni3jvan1')).to.equal('nǐ juān');
+        expect(toPinyinTones('ni3jv1')).to.equal('nǐjū');
+        expect(toPinyinTones('ni3jvan1')).to.equal('nǐjuān');
     });
 });
 
@@ -97,10 +112,10 @@ describe('v2 分词：认不全就整串原样', () => {
         expect(toPinyinTones('ma-3')).to.equal('ma-3');
     });
 
-    it('冒号后面紧跟字母时，那个冒号不是两点标记', () => {
-        expect(toPinyinTones('lu:e4')).to.equal('lu:e4');
-        expect(toPinyinTones('nu:e4')).to.equal('nu:e4');
+    it('冒号落不了点时才整串原样', () => {
         expect(toPinyinTones('u:e1')).to.equal('u:e1');
+        expect(toPinyinTones('ha:o3')).to.equal('ha:o3');
+        expect(toPinyinTones('ma:1')).to.equal('ma:1');
     });
 
     it('大小写混排整串不动', () => {
@@ -118,8 +133,8 @@ describe('v2 分词：认不全就整串原样', () => {
 
 describe('v2 分词：混排入口', () => {
     it('中文里夹一段连写拼音', () => {
-        expect(toPinyinTonesInline('今天ni3hao3')).to.equal('今天nǐ hǎo');
-        expect(toPinyinTonesInline('我说ni3hao3')).to.equal('我说nǐ hǎo');
+        expect(toPinyinTonesInline('今天ni3hao3')).to.equal('今天nǐhǎo');
+        expect(toPinyinTonesInline('我说ni3hao3')).to.equal('我说nǐhǎo');
     });
 
     it('标点分隔的两段都换', () => {
@@ -167,12 +182,12 @@ describe('v2 分词：连写等价于分开写', () => {
         'xian4', 'dai4', 'hua4', 'nv3', 'lve4', 'jue2', 'jvan1', 'shui3', 'er2',
     ];
 
-    it('任意两个音节连写，结果等于两者分开写', () => {
+    it('任意两个音节连写，结果等于两者分开写后去掉空格', () => {
         const bad = [];
         for (const a of SYLLABLES) {
             for (const b of SYLLABLES) {
                 const together = toPinyinTones(a + b);
-                const apart = toPinyinTones(a + ' ' + b);
+                const apart = toPinyinTones(a + ' ' + b).replace(/ /g, '');
                 if (together !== apart) bad.push(`${a + b}: ${together} !== ${apart}`);
             }
         }
@@ -180,8 +195,8 @@ describe('v2 分词：连写等价于分开写', () => {
     });
 
     it('三个音节连写也一样', () => {
-        expect(toPinyinTones('ni3hao3ma5')).to.equal(toPinyinTones('ni3 hao3 ma5'));
-        expect(toPinyinTones('wo3ai4ni3')).to.equal(toPinyinTones('wo3 ai4 ni3'));
+        expect(toPinyinTones('ni3hao3ma5')).to.equal(toPinyinTones('ni3 hao3 ma5').replace(/ /g, ''));
+        expect(toPinyinTones('wo3ai4ni3')).to.equal(toPinyinTones('wo3 ai4 ni3').replace(/ /g, ''));
     });
 });
 
@@ -210,8 +225,8 @@ describe('v2 分词：字母守恒', () => {
 describe('v2 分词：两种拼写的批量接口跟着分词走', () => {
     it('toPinyinTonesVariants 对连写同时给出两种拼写', () => {
         expect(toPinyinTonesVariants('ni3jv1')).to.deep.equal({
-            canonical: 'nǐ jū',
-            literal: 'nǐ jǖ',
+            canonical: 'nǐjū',
+            literal: 'nǐjǖ',
         });
     });
 

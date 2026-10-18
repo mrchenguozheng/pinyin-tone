@@ -61,22 +61,32 @@ const SYMBOLS = [
     '...',
 ];
 
-// 冒号后面紧跟字母（lu:e4）说明冒号不是「u:」的两点标记，整串不认识
-const COLON_NOT_MARK = [
-    'lu:e4',
-    'nu:e4',
+// 冒号落不了点的两种情形：零声母后面只有单个 u/v 是音节（u:e 不是），
+// 音节里根本没有 u/v 时也无处可落（ha:o3、ma:1）
+const COLON_NO_LANDING = [
     'u:e1',
+    'ha:o3',
+    'ma:1',
 ];
 
-// 连写：声调数字本身就是可靠的分隔符，现在能切开
+// 连写：声调数字本身就是可靠的分隔符，现在能切开。
+// 输出保持输入的分隔方式 —— 连写的音节之间不补空格。
 const SEGMENTED = [
-    ['ni3hao3', 'nǐ hǎo'],
-    ['hao3hao3', 'hǎo hǎo'],
-    ['ni3hao', 'nǐ hao'],
-    ['han4yu3pin1yin1', 'hàn yǔ pīn yīn'],
-    ['ni3hao3ma5', 'nǐ hǎo ma'],
-    ['ni3jue2', 'nǐ jué'],
-    ['xian4dai4hua4', 'xiàn dài huà'],
+    ['ni3hao3', 'nǐhǎo'],
+    ['hao3hao3', 'hǎohǎo'],
+    ['ni3hao', 'nǐhao'],
+    ['han4yu3pin1yin1', 'hànyǔpīnyīn'],
+    ['ni3hao3ma5', 'nǐhǎoma'],
+    ['ni3jue2', 'nǐjué'],
+    ['xian4dai4hua4', 'xiàndàihuà'],
+];
+
+// 冒号后面还能接字母：lu:e4 是一个音节 lüe + 第四声，不是 lü + é
+const COLON_MID_FINAL = [
+    ['lu:e4', 'lüè'],
+    ['nu:e4', 'nüè'],
+    ['lu:e', 'lüe'],
+    ['jue2 jve:2 lve4', 'jué jüé lüè'],
 ];
 
 // 标点不再阻断转换，留在原位
@@ -127,7 +137,7 @@ const passThrough = [
     ...INVALID_TONE.map((s) => [s, 'invalid tone']),
     ...UPPERCASE.map((s) => [s, 'uppercase']),
     ...SYMBOLS.map((s) => [s, 'symbols']),
-    ...COLON_NOT_MARK.map((s) => [s, 'colon not mark']),
+    ...COLON_NO_LANDING.map((s) => [s, 'colon has no landing']),
     ...NOT_PINYIN.map((s) => [s, 'not pinyin']),
 ];
 
@@ -211,6 +221,7 @@ const conversions = [
     ['', ''],
     // 连写、标点、空白
     ...SEGMENTED,
+    ...COLON_MID_FINAL,
     ...PUNCT_BOUND,
     ...WHITESPACE,
 ];
@@ -220,12 +231,12 @@ const conversions = [
 const mixedSentences = [
     ['ni3 hao3! wo3', 'nǐ hǎo! wǒ'],
     ['wo3 ai4 ni3!', 'wǒ ài nǐ!'],
-    ['ni3hao3 wo3 hen3 hao3', 'nǐ hǎo wǒ hěn hǎo'],
+    ['ni3hao3 wo3 hen3 hao3', 'nǐhǎo wǒ hěn hǎo'],
     ['Hao3 ma5?', 'Hao3 ma?'],
     ['zhong1 guo2 123 ren2', 'zhōng guó 123 rén'],
     ['han4 yu3, pin1 yin1.', 'hàn yǔ, pīn yīn.'],
     ['ni3 hao3 ! wo3', 'nǐ hǎo ! wǒ'],
-    ['ni3hao3.hao3hao3', 'nǐ hǎo.hǎo hǎo'],
+    ['ni3hao3.hao3hao3', 'nǐhǎo.hǎohǎo'],
 ];
 
 // 全表扫描用的声母 / 韵母
@@ -261,7 +272,8 @@ function lettersOf(s) {
  * 两类差异忽略：声调数字会被消费掉（它已经变成符号），v 与 u 是 ü 的两种 ASCII 写法。
  *
  * 这一条同时排除了「半截转换」：ni3hao3 变成 nǐ 会让 hao 三个字母消失，
- * 而错误地多切一刀（lu:e4 -> lü é）会让字母顺序对不上。
+ * 而错误地多切一刀会让字母顺序对不上 —— 现在 lu:e4 -> lüè，
+ * 冒号后的字母属于同一音节。
  */
 function expectNoLoss(input, output, label) {
     expect(lettersOf(output), `${label}: 字母丢失或顺序变化`).to.equal(lettersOf(input));

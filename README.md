@@ -97,17 +97,20 @@ to a syllable, the whole token is returned unchanged — v2 never returns a part
 token:
 
 ```javascript
-toPinyinTones('ni3hao3');        // 'nǐ hǎo'  — one digit per syllable is enough to split
+toPinyinTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to split
+toPinyinTones('ni3 hao3');       // 'nǐ hǎo'  — a space in the input stays a space
 toPinyinTones('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
 toPinyinTones('na3-li3');        // 'nǎ-lǐ'
 toPinyinTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, nothing is touched
 toPinyinTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 ```
 
+Spacing is never added or removed: syllables written together come back together, syllables
+written apart keep their space. `convertUnspacedPinyin` is still there for the case where you want
+the output glued together regardless of how the input was spaced (`'ni3 hao3'` → `'nǐhǎo'`).
+
 Uppercase letters, a tone digit outside `0`–`5`, and CJK characters still make the whole token pass
 through untouched (use `toPinyinTonesInline` for text that mixes Chinese and pinyin).
-`convertUnspacedPinyin` is still there when you want the result glued back together
-(`'ni3hao3'` → `'nǐhǎo'`).
 
 **Two spellings for `ü` after `j`/`q`/`x`/`y`.** Both the standard form (`ju`, `jue`, `juan`,
 `jun`) and the literal form (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is always
@@ -180,9 +183,16 @@ converter, none has to be typed.
 Note that the bare `ju` in that sentence stays `ju`: it is not a syllable with a tone number, so
 it is left as written. Add a tone number (`ju1`) if you want it converted.
 
-Unspaced runs are split at their tone digits here too, so a sentence can mix Chinese with either
-spaced or unspaced pinyin: `toPinyinTonesInline('今天ni3hao3')` gives `'今天nǐ hǎo'`, while
-`'abcju1'` and `'ju1abc'` are still left alone because the run is glued to an English word.
+The colon does not end the syllable — whatever follows it is still part of the same final, so
+`lu:e4` is `lüè` (`l` + `üe`, fourth tone), not `lü` + `é`. The colon only declines to fire when
+there is nothing for it to sit on: `ma:1` and `ha:o3` have no `u`/`v` in the syllable, `u:e1` is
+not a syllable at all, and `gu:1` would need a `ü` after `g`, which does not exist. Those come
+back unchanged.
+
+Unspaced runs are split at their tone digits here too, and keep their original spacing: a sentence
+can mix Chinese with either spaced or unspaced pinyin, `toPinyinTonesInline('今天ni3hao3')` gives
+`'今天nǐhǎo'`, while `'abcju1'` and `'ju1abc'` are still left alone because the run is glued to an
+English word.
 
 ```javascript
 // CommonJS usage (up to version 2.2.7)

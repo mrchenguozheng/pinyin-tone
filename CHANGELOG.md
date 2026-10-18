@@ -30,20 +30,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `n`/`l` 不受影响（`nǚ`、`lǜ` 仍保留两点，那里 `u`/`ü` 是对立音位）。
 
 - Breaking (behavior change): 分词规则放宽。一个 token 不再必须整个是单个音节，而是按
-  **声调数字**切成若干段，每段各转一个音节 —— `ni3hao3 → nǐ hǎo`、
-  `han4yu3pin1yin1 → hàn yǔ pīn yīn`、`ni3hao3ma5 → nǐ hǎo ma`。音节之间的 ASCII 标点
-  只作边界、原样保留：`ni3,hao3 → nǐ,hǎo`、`na3-li3 → nǎ-lǐ`、`hao3! → hǎo!`
+  **声调数字**切成若干段，每段各转一个音节 —— `ni3hao3 → nǐhǎo`、
+  `han4yu3pin1yin1 → hànyǔpīnyīn`、`ni3hao3ma5 → nǐhǎoma`。输出保持输入的分隔方式：
+  连写的音节之间不补空格，输入里写了的空格照留（`ni3 hao3 → nǐ hǎo`）。音节之间的
+  ASCII 标点只作边界、原样保留：`ni3,hao3 → nǐ,hǎo`、`na3-li3 → nǎ-lǐ`、`hao3! → hǎo!`
   （此前这类输入整串原样返回，标点紧贴时连合法音节也不转）。token 内部的 `\n` / `\t`
-  同样当边界。三道闸仍然挡住不该转的东西：任一音节认不出来就整串原样（`a1b2c3`、
-  `ni3b2hao3`）、没有声调数字可切的地方不猜（`hanyu3pin1yin1` 里的 `hanyu`）、
-  冒号后紧跟字母说明它不是两点标记（`lu:e4`、`nu:e4` 原样）。大写字母、非法声调、
-  汉字混排仍整串不动。`toPinyinTonesInline` 同步支持连写（`今天ni3hao3 → 今天nǐ hǎo`），
-  粘在英文单词旁的片段依旧不动（`abcju1`、`ju1abc`、`abc_ju1`）。
-  新增 `test/test-segmentation.js`（28 条）：连写 × 标点 × 边界 × 混排，并对 17 个音节
-  做 289 组两两连写，断言「连写结果 === 分开写结果」；另有一条字母守恒断言
+  同样当边界。两道闸仍然挡住不该转的东西：任一音节认不出来就整串原样（`a1b2c3`、
+  `ni3b2hao3`）、没有声调数字可切的地方不猜（`hanyu3pin1yin1` 里的 `hanyu`）。
+  大写字母、非法声调、汉字混排仍整串不动。`toPinyinTonesInline` 同步支持连写
+  （`今天ni3hao3 → 今天nǐhǎo`），粘在英文单词旁的片段依旧不动（`abcju1`、`ju1abc`、
+  `abc_ju1`）。
+  新增 `test/test-segmentation.js`（30 条）：连写 × 标点 × 边界 × 混排，并对 17 个音节
+  做 289 组两两连写，断言「连写结果 === 分开写后去掉空格」；另有一条字母守恒断言
   （去掉声调符号后输入输出的字母序列必须完全相同），同时排除半截转换与错误多切
-  （`lu:e4` 若被切成 `lü é` 会当场变红）。`test-regex-anchoring.js` 的「整串匹配才转」
-  策略随之更新：`expectNoPartial` 改为 `expectNoLoss`，新增「声调符号数不超过输入数字数」。
+  （`lu:e4` 若被切成 `lü é`，或在音节之间塞了空格，都会当场变红）。
+  `test-regex-anchoring.js` 的「整串匹配才转」策略随之更新：`expectNoPartial` 改为
+  `expectNoLoss`，新增「声调符号数不超过输入数字数」。
+
+- Fixed: 冒号不再被当成音节边界。`lu:e4` 此前整串原样返回（为了不切出 `lü é`），现在按
+  一个音节处理：`lu:e4 → lüè`、`nu:e4 → nüè`、`lu:e → lüe`。冒号只是「这个 u 带两点」
+  的标记，其后的字母仍属同一韵母。只有真的没处落点时才原样：音节里没有 `u`/`v`
+  （`ma:1`、`ha:o3`）、零声母后不是单个 `u`/`v`（`u:e1`）、声母不能接 `ü`（`gu:1`）。
 
 ### Added
 

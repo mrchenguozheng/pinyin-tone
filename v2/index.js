@@ -6,10 +6,13 @@ import pinyin_dict_v2 from './dict.js';
 // 大写字母还会被跳过而错位匹配（"Hao3" -> "ǎo"）。
 const regex = /^(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)$/;
 
-// 连写分词用：一个 token 里可以有若干段「字母 + 可选冒号 + 可选声调」。
+// 连写分词用：一个 token 里可以有若干段「字母 + 可选冒号 + 可选后续字母 + 可选声调」。
 // 贪婪的 [a-z]+ 靠声调数字断开，"ni3hao3" 于是自然切成 ni3 | hao3 ——
 // 声调数字本来就是拼音连写里唯一可靠的分隔符，不需要音节层面的歧义消解。
-const segment = /(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)/g;
+//
+// 冒号后面的字母（after）属于同一段：冒号只是「这个 u 带两点」的标记，
+// 不是音节边界。"lu:e4" 因此读作 lü e + 第四声 = lüè，而不是 lü + é。
+const segment = /(?<abc>[a-z]+)(?<mark>:?)(?<after>[a-z]*)(?<num>[0-5]?)/g;
 
 // 音节之间只允许 ASCII 标点 / 空白。一旦间隙里出现字母、数字或汉字，
 // 说明这个 token 不是「拼音串 + 标点」（英文单词、大小写混排、非法声调、
@@ -139,16 +142,18 @@ function dottedKey(abc) {
 
 /**
  * 冒号标记优先于默认拼写：写了 ju:1 / jv:1 就是要 jǖ，与上下文无关。
+ * 冒号后面的字母属于同一音节（lu:e4 -> lüè），先拼回完整韵母再投影。
  * @param {string} abc
  * @param {string} mark
+ * @param {string} after 冒号之后、声调数字之前的字母
  * @param {string} num
  * @param {boolean} literal
  * @returns {string|null}
  */
-function renderToken(abc, mark, num, literal) {
+function renderToken(abc, mark, after, num, literal) {
     if (mark !== ':') return renderSyllable(abc, num, literal);
 
-    const key = dottedKey(abc);
+    const key = dottedKey(abc + after);
     return key ? renderSyllable(key, num, true) : null;
 }
 
@@ -156,11 +161,11 @@ function renderToken(abc, mark, num, literal) {
  * 把一个 token 转成拼音。三种情况，其余一律原样返回：
  *
  *   1. 单个音节            ni3          -> nǐ
- *   2. 若干音节连写        ni3hao3      -> nǐ hǎo
+ *   2. 若干音节连写        ni3hao3      -> nǐhǎo
  *   3. 拼音 + ASCII 标点   ni3,hao3     -> nǐ,hǎo
  *
- * 连写的音节之间补一个空格：输出是给人读的拼音，音节边界该看得见。
- * 标点原样留在原位，不吞掉也不改成别的字符。
+ * 输出保持输入的分隔方式：连写的音节之间不补空格，写了空格的地方空格还在，
+ * 标点原样留在原位。转换只改字母和声调，不替调用方决定排版。
  *
  * 认不全就整串原样（"a1b2c3"、"hua1r"、"ma6"）：宁可少转一个 token，
  * 也不要输出半截结果 —— 半截结果比不转更难发现。
@@ -173,7 +178,7 @@ function convertToken(str, literal) {
 
     // 单音节快路径：绝大多数输入走这里
     if (single) {
-        return renderToken(single.groups.abc, single.groups.mark, single.groups.num, literal) ?? str;
+        return renderToken(single.groups.abc, single.groups.mark, '', single.groups.num, literal) ?? str;
     }
 
     let out = '';
@@ -184,19 +189,13 @@ function convertToken(str, literal) {
         const gap = str.slice(pos, part.index);
         if (foreign.test(gap)) return str;
 
-        // 冒号后面紧跟字母（lu:e4）说明这个冒号不是「u:」的两点标记，
-        // 整串不认识。不挡的话 lu: 会被当成 lü、后面再切出一个 é。
-        const end = part.index + part[0].length;
-        if (part.groups.mark === ':' && /[a-z]/.test(str[end] ?? '')) return str;
-
-        const piece = renderToken(part.groups.abc, part.groups.mark, part.groups.num, literal);
+        const { abc, mark, after, num } = part.groups;
+        const piece = renderToken(abc, mark, after, num, literal);
         if (piece === null) return str;
 
-        out += gap;
-        if (gap === '' && count > 0) out += ' ';
-        out += piece;
+        out += gap + piece;
 
-        pos = end;
+        pos = part.index + part[0].length;
         count += 1;
     }
 
