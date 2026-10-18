@@ -85,4 +85,15 @@ import { toToneMarksInText } from 'pinyin-tone';
 // @ts-expect-error 3.0 起没有默认导出，取 markTones 得用具名导入
 import defaultExport from 'pinyin-tone';
 
-export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipTyped, bothOptions };
+// CJS 入口（dist/index.cjs）走 `require` 条件，用的是同一份 d.ts。
+// fixtures 本身是 ESM（tsconfig 的 module 是 nodenext），所以这里不引 @types/node，
+// 自己声明一个最小的 require —— 类型检查关心的是导出的形状，不是 node 的运行时 API。
+// `typeof import('pinyin-tone')` 走的是 import 条件，但目录里只有一份 d.ts，
+// 两条分支的形状必然相同，这一点由 build-cjs 的产物对拍守着。
+declare const require: (id: string) => typeof import('pinyin-tone');
+const cjs = require('pinyin-tone');
+const viaRequire: string = cjs.markTones('ni3 hao3');
+// @ts-expect-error require 回来的模块同样没有 default
+const cjsDefault = cjs.default;
+
+export { a, i, mixed, strictOn, strictTyped, strictMixed, skipOne, skipMany, skipTyped, bothOptions, viaRequire, cjsDefault };

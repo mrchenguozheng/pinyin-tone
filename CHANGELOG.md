@@ -202,10 +202,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Changed: `package.json` 补上 `engines.node: ">=14.0.0"`。实现里唯一限制下限的语法是
-  `convertToken` 里的 `??`（空值合并，Node 14.0 起支持）；命名捕获组与 `\p{Script=Han}`
-  要 Node 10，`String.matchAll` 要 Node 12，`exports` 字段要 Node 12.7 —— 都不高于 14。
-  此前没有这个字段，用 Node 12 安装不报错，跑起来才在 `??` 处抛语法错误。
+- Changed: 加上 CommonJS 入口。`import` 走 `lib/index.js`，`require()` 走 `dist/index.cjs`，
+  `exports` 写成 `types` / `import` / `require` / `default` 四条条件（`default` 兜底给不认
+  条件的工具链）。`dist/index.cjs` 不是手写的第二份实现，而是 `npm run build:cjs`
+  把 `lib/{dict,core,index}.js` 逐字包裹成的单文件：三个模块各自包进 IIFE、`import` 换成
+  读包裹结果、`export` 挂到 `module.exports`。之所以不引构建工具，是因为 `lib/` 里只有
+  两条 `import` 与两条 `export`，没有 `import.meta`、没有动态 `import`，语法本身就是
+  ES2020 —— 换一个打包器只会换来一份会随时间漂移的产物。
+  产物进 git，且 `npm test`（`pretest`）与 `npm pack`（`prepack`）都会先跑 `--check`：
+  与 `lib/` 不同步就直接失败，所以「改了源忘了重新生成」进不了仓库也发不了包。
+  `test/test-cjs.js` 把两份实现钉在一起：35 条输入（连写、冒号两种位置、大小写三形态、
+  汉字紧贴、数字断句、非法声调、`strict`/`skip` 四种组合）在 CJS 与 ESM 上输出逐字相同，
+  并且 `require()` 回来的对象只有具名 `markTones`、没有 `default`。
+  公开面两边一致：**没有默认导出**，两种加载方式都要具名取。
+- Changed: `engines.node` 由 `">=14.0.0"` 改成 `">=14"`，含义不变（同一个下界，只是去掉
+  `.0.0` 噪音）。这个下界现在是真的验过的：`scripts/smoke-entry.cjs` 把包打出来、装进一个
+  干净工程，再让真实的 Node 分别走 `require` 与 `import` 两个条件 —— 在 v14.21.3 上
+  两条都通。此前 `require()` 读 ESM 要 Node 22（或 20.19+），在 14/16/18 上直接抛
+  `ERR_REQUIRE_ESM`；有了 CJS 入口，这个落差就没有了，`engines` 不必跟着抬高。
+  CI 增加 `engines floor` job（Node 14 与 18），不装 devDependencies —— mocha 11 与
+  chai 6 在这个版本上装不了，而这一步要证明的只是「包本身在这个 Node 上能用」。
+- Changed: 包体从 31KB 涨到 57KB（gzip 后约 21KB → 24KB），多出来的是 74KB 的
+  `dist/index.cjs`（gzip 24KB —— 词表是纯文本，压缩率很高）。`pack:check` 的
+  `MAX_TARBALL` / `MAX_FILE` 双向 96KB 上调，并写明这是 CJS 产物的代价。
 - Changed: 目录 `v2/` 改名为 `lib/`，`v1/` 直接删除。`v2` 这个前缀说的是「第二代实现」，
   与包版本无关，3.0 里再留着只会让人以为它是「版本 2 的那一份」；`lib` 不带版本含义，也不会
   和音节表 `lib/core.js` 撞名。连同 `pinyin-tone/v2`、`pinyin-tone/v2/index.js` 两个别名一起

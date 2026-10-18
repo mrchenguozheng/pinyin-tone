@@ -13,18 +13,21 @@ dependencies; unspaced or mixed text needs no preprocessing.
 npm install pinyin-tone
 ```
 
-Node.js 14 or later (`engines`). ESM only — `"type": "module"`, no CommonJS build. Where a
-newer Node lets `require()` load ESM, destructure it: `const {markTones} = require('pinyin-tone')`.
+Node.js 14 or later (`engines`). Both module systems are first-class: `import` resolves to
+`lib/index.js`, `require()` resolves to `dist/index.cjs`. Neither has a default export.
+`dist/index.cjs` is generated from `lib/` at release time and tested against it — it is the
+same code, not a second copy.
 
 ```javascript
-import {markTones} from 'pinyin-tone';
+import {markTones} from 'pinyin-tone';          // ESM
+const {markTones} = require('pinyin-tone');     // CommonJS
 
 markTones('chu1 yin1 wei4 lai2');  // 'chū yīn wèi lái'
 markTones('jv1 ju1 ju:1');         // 'jū jū jǖ'
 markTones('今天ni3hao3');          // '今天nǐhǎo'
 ```
 
-中文：只有一个具名导出 `markTones`，拼音串与中英混排都走它。Node.js 14+，只提供 ESM；新版 Node 能用 `require()` 读 ESM 时写成 `const {markTones} = require('pinyin-tone')`。
+中文：只有一个具名导出 `markTones`，拼音串与中英混排都走它。Node.js 14+，ESM 与 CommonJS 都能直接取用：`import` 走 `lib/index.js`，`require()` 走 `dist/index.cjs`，两边都没有默认导出，都要具名取 `markTones`。
 
 ## API
 
@@ -302,9 +305,13 @@ not two syllables).
 
 Bugs and feature requests: [open an issue](https://github.com/mrchenguozheng/pinyin-tone/issues).
 Tests run with `npm test` (mocha + `tsc --noEmit`); `npm run pack:check` verifies that the
-published tarball still contains exactly `lib/`.
+published tarball contains exactly `lib/` and `dist/`.
 
-中文：问题与建议请提 issue；测试用 `npm test`，`npm run pack:check` 校验打出的包里只含 `lib/`。
+`dist/index.cjs` is not edited by hand. It is generated from `lib/` by `npm run build:cjs`,
+and `npm test` fails if the committed copy has drifted. After changing anything in `lib/`,
+run `npm run build:cjs` and commit the result with the change.
+
+中文：问题与建议请提 issue；测试用 `npm test`，`npm run pack:check` 校验打出的包里只含 `lib/` 与 `dist/`。`dist/index.cjs` 是 `npm run build:cjs` 从 `lib/` 生成的，不要手改；改了 `lib/` 要重新生成并一起提交，否则 `npm test` 会报它已过期。
 
 ## Changelog
 

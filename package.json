@@ -9,15 +9,21 @@
   "exports": {
     ".": {
       "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./dist/index.cjs",
       "default": "./lib/index.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "lib"
+    "lib",
+    "dist"
   ],
   "scripts": {
+    "build:cjs": "node scripts/build-cjs.mjs",
+    "pretest": "node scripts/build-cjs.mjs --check",
     "test": "mocha && tsc --noEmit",
+    "prepack": "node scripts/build-cjs.mjs --check",
     "pack:check": "node scripts/check-pack.mjs"
   },
   "keywords": [
@@ -33,7 +39,7 @@
   "author": "Futaba Isshiki",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14"
   },
   "repository": {
     "type": "git",
