@@ -57,6 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   那个字形 —— 给它**标**上调号，不是按声调给音节分类，也不涉及汉字。
   名字里不出现 `pinyin`：包名已经说过一次了，接口说的是自己那一步做了什么。
   3.0.0 从未发布，因此不留别名，2.x 的调用方改 import 即可。
+- Breaking: 冒号的位置收紧为两种 —— 紧跟承载两点的 `u`/`v`，或缀在整个音节末尾。
+  此前任意位置都收：`j:van1`、`jva:n1`、`jua:n1` 都给 `jüān`，因为实现把 `abc + after`
+  拼回整串再查表，冒号只当「这个 token 要不要字面拼写」的开关，位置在分词阶段就丢了。
+  合法的两种写法一个不变：末尾缩写 `ju:1` / `jvan:1`，紧跟承载位 `jv:an1` / `lu:e4`。
+  错位的现在原样返回，与 `ma:1` 同类处理 —— 不替用户猜他想标的是哪一位。
 - Breaking: 只提供**具名导出** `markTones`，没有 `export default`。
   默认导出时函数的公开名不在模块契约里（文档只能写「默认导出叫 `markTones`」这种间接说法），
   而且三条互操作路径都会露出来：`require()` 读到的是 `{default}`（要 `.default` 才拿到函数）、

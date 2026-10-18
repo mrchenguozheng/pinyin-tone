@@ -111,10 +111,12 @@ diaeresis, not a projection.
 
 ### The colon asks for the diaeresis
 
-A colon is the two dots themselves, written after the `u` they sit on. Everything after it
-still belongs to the same final, so `lu:e4` is `lüè`, not `lü` + `é`. It does not check the
-initial — `gu:1` is `gǖ` and `u:e1` is `üē`, neither a valid syllable, both rendered on
-purpose:
+A colon is the two dots themselves. It has exactly two legal positions: right after the
+`u`/`v` it sits on, or at the end of the syllable. Everything after it still belongs to the
+same final, so `lu:e4` is `lüè`, not `lü` + `é`; `jv:an1` and `jvan:1` both give `jüān`.
+Anywhere else (`j:van1`, `jva:n1`) is a misplaced marker, and the token comes back
+unchanged. The initial is not checked — `gu:1` is `gǖ` and `u:e1` is `üē`, neither a valid
+syllable, both rendered on purpose:
 
 ```javascript
 markTones('ju1 ju:1'); // 'jū jǖ'  — both spellings in one line
@@ -126,17 +128,18 @@ markTones('gu:1');     // 'gǖ'
 There is no option that switches a whole string to the literal spelling, and no entry point
 that returns both — ask per token, and call twice if you need the two forms side by side.
 
-It declines in two cases, returning the token unchanged: no `u`/`v` to carry the dots
-(`ma:1`, `ji:1`), or a `u` whose replacement is read as a consonant `v` by that entry, which
-would put a letter you never wrote into the output (`uang:1`, `shui:3`).
+It declines in three cases, returning the token unchanged: no `u`/`v` to carry the dots
+(`ma:1`, `ji:1`); a `u` whose replacement is read as a consonant `v` by that entry, which
+would put a letter you never wrote into the output (`uang:1`, `shui:3`); or a colon that sits
+neither right after its carrier nor at the end of the syllable (`j:van1`, `jva:n1`).
 
 A colon on a `v` is not a request at all: `v` already is the ASCII spelling of `ü`, so
 `jv:1` is exactly `ju:1`. When that leading `v` is a consonant in the entry, the colon adds
 nothing and `vv:1` is `vv1` — both `vǖ`, since the entry's value is `vü`.
 
-中文：冒号就是 `ü` 上面那两点，写在承载它的 `u` 后；其后的字母仍属同一韵母（`lu:e4` → `lüè`）。它不看声母：`gu:1` → `gǖ`、`u:e1` → `üē`，不合规范也照做。没有整串切换字面拼写的开关，也没有一次返回两种形式的入口——按 token 请求，需要并排就调两次。
+中文：冒号就是 `ü` 上面那两点，只有两个合法位置 —— 紧跟承载它的 `u`/`v`，或缀在整个音节末尾；其后的字母仍属同一韵母（`lu:e4` → `lüè`），两种位置结果相同（`jv:an1` = `jvan:1` = `jüān`）。写在别处（`j:van1`、`jva:n1`）当写错，整串原样。它不看声母：`gu:1` → `gǖ`、`u:e1` → `üē`，不合规范也照做。没有整串切换字面拼写的开关，也没有一次返回两种形式的入口——按 token 请求，需要并排就调两次。
 
-两类落空原样返回：音节里没有 `u`/`v`（`ma:1`、`ji:1`）；落点是 `u` 但词表把换出的 `v` 当辅音，会冒出你没写过的字母（`uang:1`、`shui:3`）。冒号落在 `v` 上则视为没写：`jv:1` 就是 `ju:1`，`vv:1` 就是 `vv1`（都是 `vǖ`，词表值是 `vü`）。
+三类落空原样返回：音节里没有 `u`/`v`（`ma:1`、`ji:1`）；落点是 `u` 但词表把换出的 `v` 当辅音，会冒出你没写过的字母（`uang:1`、`shui:3`）；冒号既不在承载位后、也不在音节末尾（`j:van1`、`jva:n1`）。冒号落在 `v` 上则视为没写：`jv:1` 就是 `ju:1`，`vv:1` 就是 `vv1`（都是 `vǖ`，词表值是 `vü`）。
 
 ### `ê` and the vowel-less interjections
 
