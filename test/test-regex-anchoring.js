@@ -61,12 +61,21 @@ const SYMBOLS = [
     '...',
 ];
 
-// 冒号落不了点的两种情形：零声母后面只有单个 u/v 是音节（u:e 不是），
-// 音节里根本没有 u/v 时也无处可落（ha:o3、ma:1）
+// 冒号落不了点：音节里根本没有 u/v 可承载两点（ma:1、ha:o3、ji:1），
+// 以及词表那一格没把 v 当 ü（shui:3 -> shvi，输出会留着辅音 v）
 const COLON_NO_LANDING = [
-    'u:e1',
-    'ha:o3',
     'ma:1',
+    'ha:o3',
+    'ji:1',
+    'shui:3',
+];
+
+// 冒号写在哪儿就是要哪儿的 ü，不看声母允不允许 —— 不规范音节照样输出
+const COLON_ANY_INITIAL = [
+    ['gu:1', 'gǖ'],
+    ['shv:3', 'shǚ'],
+    ['u:e1', 'üē'],
+    ['ku:2', 'kǘ'],
 ];
 
 // 连写：声调数字本身就是可靠的分隔符，现在能切开。
@@ -222,6 +231,7 @@ const conversions = [
     // 连写、标点、空白
     ...SEGMENTED,
     ...COLON_MID_FINAL,
+    ...COLON_ANY_INITIAL,
     ...PUNCT_BOUND,
     ...WHITESPACE,
 ];

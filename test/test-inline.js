@@ -106,8 +106,12 @@ describe('v2 混排：toPinyinTonesInline', () => {
             expect(toPinyinTonesInline('ma:1')).to.equal('ma:1');
         });
 
-        it('ü 不能出现的声母不处理，避免造出 gǖ', () => {
-            expect(toPinyinTonesInline('gu:1')).to.equal('gu:1');
+        it('冒号写在哪儿就是要哪儿的 ü，不看声母', () => {
+            expect(toPinyinTonesInline('gu:1')).to.equal('gǖ');
+            expect(toPinyinTonesInline('u:e1')).to.equal('üē');
+        });
+
+        it('词表给不出 ü 时原样', () => {
             expect(toPinyinTonesInline('shui:3')).to.equal('shui:3');
             expect(toPinyinTonesInline('uang:1')).to.equal('uang:1');
         });

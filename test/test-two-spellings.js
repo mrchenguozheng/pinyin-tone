@@ -140,11 +140,19 @@ describe('v2 两种拼写：冒号表示 u 上的两点', () => {
         expect(toPinyinTones('v:4')).to.equal('ǜ');
     });
 
-    it('v: 同样不能越过白名单', () => {
-        expect(toPinyinTones('gv:1')).to.equal('gv:1');
-        expect(toPinyinTones('shv:3')).to.equal('shv:3');
+    it('冒号写在哪儿就是要哪儿的 ü，不看声母是否允许', () => {
+        // 不规范的音节也照做：这个包既输出规范拼写，也输出不规范拼写
+        expect(toPinyinTones('gu:1')).to.equal('gǖ');
+        expect(toPinyinTones('gv:1')).to.equal('gǖ');
+        expect(toPinyinTones('shv:3')).to.equal('shǚ');
+        expect(toPinyinTones('u:e1')).to.equal('üē');
+    });
+
+    it('词表这一格没把 v 当 ü 时仍然不转', () => {
+        // vai / vv / vu 的值是 vāi / vü / vu，输出里会留着辅音字母 v
         expect(toPinyinTones('vai:1')).to.equal('vai:1');
         expect(toPinyinTones('vv:1')).to.equal('vv:1');
+        expect(toPinyinTones('vu:1')).to.equal('vu:1');
     });
 
     it('冒号与规范值的差别恰好是两点', () => {

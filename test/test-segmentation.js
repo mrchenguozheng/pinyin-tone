@@ -112,10 +112,17 @@ describe('v2 分词：认不全就整串原样', () => {
         expect(toPinyinTones('ma-3')).to.equal('ma-3');
     });
 
+    it('冒号指定了 ü 就不再看声母是否允许', () => {
+        expect(toPinyinTones('gu:1')).to.equal('gǖ');
+        expect(toPinyinTones('u:e1')).to.equal('üē');
+        expect(toPinyinTones('shv:3')).to.equal('shǚ');
+    });
+
     it('冒号落不了点时才整串原样', () => {
-        expect(toPinyinTones('u:e1')).to.equal('u:e1');
-        expect(toPinyinTones('ha:o3')).to.equal('ha:o3');
         expect(toPinyinTones('ma:1')).to.equal('ma:1');
+        expect(toPinyinTones('ha:o3')).to.equal('ha:o3');
+        expect(toPinyinTones('ji:1')).to.equal('ji:1');
+        expect(toPinyinTones('shui:3')).to.equal('shui:3');
     });
 
     it('大小写混排整串不动', () => {

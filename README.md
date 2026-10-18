@@ -144,11 +144,14 @@ toPinyinTonesVariants('jv1 nv3');
 // -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
 ```
 
-The colon only applies where `ü` can actually occur (`n`, `l`, `j`, `q`, `x`, `y`, and the bare
-`u:` for the character itself): `gu:1`, `shui:3` and `ji:1` are returned unchanged rather than
-turned into syllables that do not exist. Either letter may stand before the colon — `jv:1` is
-read exactly like `ju:1`, since `v` is the ASCII spelling of `ü` and the colon settles which
-sound was meant.
+The colon asks for `ü`, not for a syllable that happens to exist, so it does not check the
+initial: `gu:1` gives `gǖ`, `shv:3` gives `shǚ`, and `u:e1` gives `üē`. None of those are valid
+syllables, and rendering them is the point — this package also exists to put non-standard
+spellings next to standard ones, so a written colon is taken at face value. It declines only
+when there is no `u`/`v` in the syllable to carry the dots (`ma:1`, `ha:o3`, `ji:1`), or when the
+dictionary entry does not treat `v` as `ü` and would leave a literal `v` in the output
+(`vai:1`, `vv:1`). Either letter may stand before the colon — `jv:1` is read exactly like
+`ju:1`, since `v` is the ASCII spelling of `ü` and the colon settles which sound was meant.
 
 `n`/`l` never take part in this projection: there `u` and `ü` are distinct sounds, so `nv3` is
 `nǚ` and `nu3` is `nǔ` — the spelling you type is the sound you get. `nu:3` also gives `nǚ`, but
@@ -184,10 +187,10 @@ Note that the bare `ju` in that sentence stays `ju`: it is not a syllable with a
 it is left as written. Add a tone number (`ju1`) if you want it converted.
 
 The colon does not end the syllable — whatever follows it is still part of the same final, so
-`lu:e4` is `lüè` (`l` + `üe`, fourth tone), not `lü` + `é`. The colon only declines to fire when
-there is nothing for it to sit on: `ma:1` and `ha:o3` have no `u`/`v` in the syllable, `u:e1` is
-not a syllable at all, and `gu:1` would need a `ü` after `g`, which does not exist. Those come
-back unchanged.
+`lu:e4` is `lüè` (`l` + `üe`, fourth tone), not `lü` + `é`. It fires wherever a `u`/`v` is there
+to carry the dots, even when the resulting syllable does not exist (`gu:1` → `gǖ`, `u:e1` →
+`üē`). It declines only when the syllable has no `u`/`v` at all (`ma:1`, `ha:o3`) or when the
+dictionary would leave a literal `v` in the output (`vai:1`). Those come back unchanged.
 
 Unspaced runs are split at their tone digits here too, and keep their original spacing: a sentence
 can mix Chinese with either spaced or unspaced pinyin, `toPinyinTonesInline('今天ni3hao3')` gives
