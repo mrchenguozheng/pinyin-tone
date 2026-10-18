@@ -7,6 +7,20 @@ export interface PinyinTonesVariants {
     literal: string;
 }
 
+export interface PinyinTonesOptions {
+    /**
+     * 只认普通话的 425 个音节，另有 418 条儿化由基底决定。
+     *
+     * 默认 `false`：词表 1953 个键全部放行，包括 `jui`、`juang`、`juei` 这类
+     * 「声母 × 韵母」笛卡尔积的产物，也包括 `duang`、`biu`、`biong` 这类非标准
+     * 但在用的口语音，以及 `vai` 这种把 v 当辅音的写法。
+     *
+     * 置 `true` 时，白名单之外的音节整串原样返回（不会输出半截结果）。
+     * 儿化跟着基底走：`huar` 合法是因为 `hua` 合法。
+     */
+    strict?: boolean;
+}
+
 /**
  * 转换拼音串。一个 token 可以是单个音节，也可以是若干音节连写 ——
  * 声调数字就是分隔符，`ni3hao3` -> `nǐhǎo`。输出保持输入的分隔方式：
@@ -21,15 +35,15 @@ export interface PinyinTonesVariants {
  * 韵母：`lu:e4` -> `lüè`。
  * `n`/`l` 后的 ü 本来就保留两点（`nv3` -> `nǚ`），不受影响。
  */
-export default function toPinyinTones(longString: string): string;
+export default function toPinyinTones(longString: string, options?: PinyinTonesOptions): string;
 export function splitUnspacedSyllables(text: string): string;
-export function convertUnspacedPinyin(unspacedSyllables: string): string;
+export function convertUnspacedPinyin(unspacedSyllables: string, options?: PinyinTonesOptions): string;
 /** 一次拿到同一输入的规范形式与字面形式 */
-export function toPinyinTonesVariants(longString: string): PinyinTonesVariants;
+export function toPinyinTonesVariants(longString: string, options?: PinyinTonesOptions): PinyinTonesVariants;
 /**
  * 转换中文与拼音混排的整句，只替换其中的拼音片段，其余字符原样保留。
  * 裸写 `ju1` / `jv1` 输出规范形式 `jū`；
  * `ju:1` 用冒号表示那个 u 上面的两点，输出字面形式 `jǖ`（`jv:1` 同义）；
  * `u:` / `u:1` / `v:` / `v:1` 输出 `ü` / `ǖ`。
  */
-export function toPinyinTonesInline(text: string): string;
+export function toPinyinTonesInline(text: string, options?: PinyinTonesOptions): string;

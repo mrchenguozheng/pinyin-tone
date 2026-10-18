@@ -1,5 +1,6 @@
 'use strict';
 import pinyin_dict_v2 from './dict.js';
+import coreSyllables from './core.js';
 
 // 单个音节必须整串匹配：纯小写字母 + 可选的「两点标记」+ 可选声调数字。
 // 不加锚点会静默截断输入（"ma6" -> "ma"），
@@ -66,19 +67,46 @@ function toLiteralSpelling(abbr) {
 }
 
 /**
+ * 这个词表键在严格模式下认不认。
+ *
+ * 词表为了宽容收了 1953 个键，其中 1110 条是「声母 × 韵母」笛卡尔积的产物
+ * （jui、juang、juei、biong），严格模式只认普通话的 425 个音节。
+ * 儿化不单独列：huar 的合法性完全由 hua 决定，去掉尾字母 r 再查一次即可，
+ * 418 条儿化音节因此一条都不用写进 core.js。
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isCoreSyllable(key) {
+    if (coreSyllables.has(key)) return true;
+
+    // 字面拼写（jv / jve / jvan / jvn）与规范拼写是同一音位，core 只收规范那条。
+    // 投影后再判儿化，jver 才能按 juer -> jue + r 走通。
+    const canonical = toCanonicalSpelling(key);
+    if (coreSyllables.has(canonical)) return true;
+
+    return canonical.length > 1 && canonical.endsWith('r')
+        && coreSyllables.has(canonical.slice(0, -1));
+}
+
+/**
  * 查表取某个音节的**无调形式**。先按请求的拼写查，查不到再用另一种拼写兜底：
  * j/q/x/y 后的 ü 在词表里两种键都有，投影是安全的；兜底则是为了将来
  * 清掉冗余的 jv 键时不至于让字面形式直接失效。
+ *
+ * strict 时，两种拼写都要过 core 白名单才能查 —— 否则 jv1 走兜底绕过严格模式。
  * @param {string} abbr
  * @param {boolean} literal true 取字面拼写（jü），false 取规范拼写（ju）
+ * @param {boolean} strict 只认普通话的 425 个音节
  * @returns {string|undefined}
  */
-function lookupBase(abbr, literal) {
+function lookupBase(abbr, literal, strict) {
     const keys = literal
         ? [toLiteralSpelling(abbr), toCanonicalSpelling(abbr)]
         : [toCanonicalSpelling(abbr), toLiteralSpelling(abbr)];
 
     for (const key of keys) {
+        if (strict && !isCoreSyllable(key)) continue;
+
         const base = pinyin_dict_v2[key];
         if (base !== undefined) return base;
     }
@@ -95,25 +123,34 @@ function toneIndex(num) {
 }
 
 // 一声到四声的调号。轻声不加，所以从 1 开始用。
+// 用数组而不是字符串做索引：m̄ / m̌ / m̀ / n̄ 是「字母 + 组合符」两个码位，
+// 按字符串下标取会取到半个字符（拿到的只剩组合符，叠不出东西）。
 const TONE_MARKS = {
-    a: 'āáǎà',
-    o: 'ōóǒò',
-    e: 'ēéěè',
-    i: 'īíǐì',
-    u: 'ūúǔù',
-    'ü': 'ǖǘǚǜ',
+    a: ['ā', 'á', 'ǎ', 'à'],
+    o: ['ō', 'ó', 'ǒ', 'ò'],
+    e: ['ē', 'é', 'ě', 'è'],
+    i: ['ī', 'í', 'ǐ', 'ì'],
+    u: ['ū', 'ú', 'ǔ', 'ù'],
+    'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ'],
+    m: ['m\u0304', 'ḿ', 'm\u030c', 'm\u0300'],
+    n: ['n\u0304', 'ń', 'ň', 'ǹ'],
 };
 
 // 除 a/o/e 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
 const CLOSING_VOWELS = 'iuü';
 
+// 叹词音节的落调位置：倒数第一个 m 或 n（m -> ḿ、hng -> hńg、ng -> ńg）。
+const NASALS = 'mn';
+
 /**
  * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，
  * 否则标最后一个元音（iu -> u、ui -> i）。儿化尾 r 不是元音，不影响判断。
  *
+ * 一个元音都没有的音节（ng、m、n、hm、hng）走最后一条兜底：标在倒数第一个
+ * m 或 n 上，与词典里这几个叹词的写法一致（ńg、ḿ、hńg）。轻声（tone 0）不加调。
+ *
  * 词表只存无调形式，四个声调在这里生成 —— 它们是同一条规则的展开，
  * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1949 × 5 已验证）。
- * 轻声（tone 0）与没有元音的音节（ng）原样返回。
  * @param {string} base
  * @param {number} tone 0-4
  * @returns {string}
@@ -136,6 +173,15 @@ function markTone(base, tone) {
         }
     }
 
+    if (at === -1) {
+        for (let i = base.length - 1; i >= 0; i -= 1) {
+            if (NASALS.includes(base[i])) {
+                at = i;
+                break;
+            }
+        }
+    }
+
     if (at === -1) return base;
 
     const marks = TONE_MARKS[base[at]];
@@ -149,10 +195,11 @@ function markTone(base, tone) {
  * @param {string} abc
  * @param {string} num
  * @param {boolean} literal
+ * @param {boolean} strict
  * @returns {string|null}
  */
-function renderSyllable(abc, num, literal) {
-    const base = lookupBase(abc, literal);
+function renderSyllable(abc, num, literal, strict) {
+    const base = lookupBase(abc, literal, strict);
     if (base === undefined) return null;
     return markTone(base, toneIndex(num));
 }
@@ -191,15 +238,16 @@ function dottedKey(abc) {
  * @param {string} after 冒号之后、声调数字之前的字母
  * @param {string} num
  * @param {boolean} literal
+ * @param {boolean} strict
  * @returns {string|null}
  */
-function renderToken(abc, mark, after, num, literal) {
-    if (mark !== ':') return renderSyllable(abc, num, literal);
+function renderToken(abc, mark, after, num, literal, strict) {
+    if (mark !== ':') return renderSyllable(abc, num, literal, strict);
 
     const key = dottedKey(abc + after);
     if (key === null) return null;
 
-    const syllable = renderSyllable(key, num, true);
+    const syllable = renderSyllable(key, num, true, strict);
 
     // 词表这一格没把 v 当 ü 时，输出里会留着辅音字母 v（vai -> vāi、vv -> vü）。
     // 冒号要的是 ü，给不出 ü 就当落不了点，原样返回。
@@ -222,14 +270,15 @@ function renderToken(abc, mark, after, num, literal) {
  * 也不要输出半截结果 —— 半截结果比不转更难发现。
  * @param {string} str
  * @param {boolean} literal
+ * @param {boolean} strict
  * @returns {string}
  */
-function convertToken(str, literal) {
+function convertToken(str, literal, strict) {
     const single = regex.exec(str);
 
     // 单音节快路径：绝大多数输入走这里
     if (single) {
-        return renderToken(single.groups.abc, single.groups.mark, '', single.groups.num, literal) ?? str;
+        return renderToken(single.groups.abc, single.groups.mark, '', single.groups.num, literal, strict) ?? str;
     }
 
     let out = '';
@@ -241,7 +290,7 @@ function convertToken(str, literal) {
         if (foreign.test(gap)) return str;
 
         const { abc, mark, after, num } = part.groups;
-        const piece = renderToken(abc, mark, after, num, literal);
+        const piece = renderToken(abc, mark, after, num, literal, strict);
         if (piece === null) return str;
 
         out += gap + piece;
@@ -261,20 +310,31 @@ function convertToken(str, literal) {
  * 公开入口固定走规范拼写。
  * @param {string} longString
  * @param {boolean} literal
+ * @param {boolean} strict
  * @returns {string}
  */
-function convertTokens(longString, literal) {
+function convertTokens(longString, literal, strict) {
     const stringArray = longString.trim().split(' ');
 
-    return stringArray.map((str) => convertToken(str, literal)).join(' ');
+    return stringArray.map((str) => convertToken(str, literal, strict)).join(' ');
+}
+
+/**
+ * 公开入口的选项只认 strict 一个字段，其余一律忽略 —— 传了错的东西不该换算法。
+ * @param {{strict?: boolean}|undefined} options
+ * @returns {boolean}
+ */
+function readStrict(options) {
+    return Boolean(options && options.strict);
 }
 
 /**
  * @param {string} longString
+ * @param {{strict?: boolean}} [options]
  * @return {string}
  */
-function toPinyinTones(longString) {
-    return convertTokens(longString, false);
+function toPinyinTones(longString, options) {
+    return convertTokens(longString, false, readStrict(options));
 }
 
 /**
@@ -296,9 +356,12 @@ const wordChar = /[A-Za-z0-9_]/;
  * 在 u 后面加一个英文冒号（ju:1）表示这个 u 带两点，输出 jǖ。
  * 冒号就是 ü 上面那两点，整段输入因此可以全部用美式键盘敲出。
  * @param {string} text
+ * @param {{strict?: boolean}} [options]
  * @returns {string}
  */
-function toPinyinTonesInline(text) {
+function toPinyinTonesInline(text, options) {
+    const strict = readStrict(options);
+
     return text.replace(inlineRun, (run, offset) => {
         const before = offset > 0 ? text[offset - 1] : '';
         const after = offset + run.length < text.length ? text[offset + run.length] : '';
@@ -307,7 +370,7 @@ function toPinyinTonesInline(text) {
         if (wordChar.test(before) || wordChar.test(after)) return run;
 
         // 不成词（单独的 j、英文单词）-> 原样保留
-        return convertToken(run, false);
+        return convertToken(run, false, strict);
     });
 }
 
@@ -326,10 +389,11 @@ function splitUnspacedSyllables(text){
 /**
  * output pinyin string without space like "hànyǔpīnyīn"
  * @param {string} unspacedSyllables unspaced pinyin string like "han4yu3pin1yin1"
+ * @param {{strict?: boolean}} [options]
  * @returns {string}
  */
-function convertUnspacedPinyin(unspacedSyllables){
-    return toPinyinTones(splitUnspacedSyllables(unspacedSyllables)).split(' ').join('')
+function convertUnspacedPinyin(unspacedSyllables, options){
+    return toPinyinTones(splitUnspacedSyllables(unspacedSyllables), options).split(' ').join('')
 }
 
 /**
@@ -337,12 +401,15 @@ function convertUnspacedPinyin(unspacedSyllables){
  * 只有 j/q/x/y 后的 ü 会不同，n/l 两边一样（nǚ / lǜ 在两种形式下都保留两点）。
  * 这是为了批量比对两种拼写，不是可选项 —— 单次转换一律给规范形式。
  * @param {string} longString
+ * @param {{strict?: boolean}} [options]
  * @returns {{ canonical: string, literal: string }}
  */
-function toPinyinTonesVariants(longString) {
+function toPinyinTonesVariants(longString, options) {
+    const strict = readStrict(options);
+
     return {
-        canonical: convertTokens(longString, false),
-        literal: convertTokens(longString, true),
+        canonical: convertTokens(longString, false, strict),
+        literal: convertTokens(longString, true, strict),
     };
 }
 

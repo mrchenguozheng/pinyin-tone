@@ -1,0 +1,40 @@
+// 严格模式（strict: true）认的音节表：普通话 425 个音节。
+//
+// 来源：pypinyin 0.55.0 的 pinyin_dict（1549 条带调音节）去调、去重后得到 421 条，
+// 再加 4 条词典收录、但该表里没有独立列出的叹词音节（m / n / hm / hng）。
+// 去调这一步不能省 —— 该表里混有无调条目（biang、bong、din），也有 ê 这类无法用
+// ASCII 键表示的，只保留能由 [a-z]+ 拼出的部分。
+//
+// 为什么需要这张表：词表（dict.js）为了宽容收了 1949 个键，其中 1110 条是
+// 「声母 × 韵母」笛卡尔积的产物（jui、juang、juei、biong），另有 duang、biu、
+// biong 这类非标准但在用的口语音。默认模式全部放行，严格模式只认这张表。
+//
+// 儿化不单独列：huar 的合法性完全由基底 hua 决定，判定时去掉尾字母 r 再查一次
+// 即可，所以 418 条儿化音节在这里一条都不用写。
+export default new Set(
+    `a ai an ang ao ba bai ban bang bao bei ben beng bi bian biang biao bie bin
+bing bo bong bu ca cai can cang cao ce cei cen ceng cha chai chan chang
+chao che chen cheng chi chong chou chu chua chuai chuan chuang chui chun
+chuo ci cong cou cu cuan cui cun cuo da dai dan dang dao de dei den deng
+di dia dian diao die din ding diu dong dou du duan dui dun duo e ei en eng
+er fa fan fang fei fen feng fiao fo fou fu ga gai gan gang gao ge gei gen
+geng gong gou gu gua guai guan guang gui gun guo ha hai han hang hao he
+hei hen heng hm hng hong hou hu hua huai huan huang hui hun huo ji jia
+jian jiang jiao jie jin jing jiong jiu ju juan jue jun ka kai kan kang kao
+ke kei ken keng kong kou ku kua kuai kuan kuang kui kun kuo la lai lan
+lang lao le lei len leng li lia lian liang liao lie lin ling liu lo long
+lou lu luan lun luo lv lve m ma mai man mang mao me mei men meng mi mian
+miao mie min ming miu mo mou mu n na nai nan nang nao ne nei nen neng ng
+ni nia nian niang niao nie nin ning niu nong nou nu nuan nun nuo nv nve o
+ou pa pai pan pang pao pei pen peng pi pian piao pie pin ping po pou pu qi
+qia qian qiang qiao qie qin qing qiong qiu qu quan que qun ran rang rao re
+ren reng ri rong rou ru rua ruan rui run ruo sa sai san sang sao se sen
+seng sha shai shan shang shao she shei shen sheng shi shou shu shua shuai
+shuan shuang shui shun shuo si song sou su suan sui sun suo ta tai tan
+tang tao te tei teng ti tian tiao tie ting tong tou tu tuan tui tun tuo wa
+wai wan wang wei wen weng wo wong wu xi xia xian xiang xiao xie xin xing
+xiong xiu xu xuan xue xun ya yan yang yao ye yi yin ying yo yong you yu
+yuan yue yun za zai zan zang zao ze zei zen zeng zha zhai zhan zhang zhao
+zhe zhei zhen zheng zhi zhong zhou zhu zhua zhuai zhuan zhuang zhui zhun
+zhuo zi zong zou zu zuan zui zun zuo`.trim().split(/\s+/),
+);

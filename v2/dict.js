@@ -2057,6 +2057,14 @@ export default {
     zuer: 'zuer',
     zvanr: 'züanr',
     zvnr: 'zünr',
+
+    // 叹词音节：不是「声母 + 韵母」的组合，词典单列。它们没有元音，
+    // 声调由 index.js 的 markTone 兜底标在 m / n 上（ḿ ń ň ǹ）。
+    // ng 在上面的零声母组里已经有了，这里只补缺的四个。
+    m: 'm',
+    n: 'n',
+    hm: 'hm',
+    hng: 'hng',
 };
 
 // 注：以上 4 条在合并前被后出现的文件覆盖（取决于 Object.assign 的实参顺序），

@@ -81,8 +81,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `u:` / `u:1` / `v:` / `v:1` 输出字符本身 `ü` / `ǖ`。
   新增 `test/test-inline.js`（31 条），覆盖混排核心用例、幂等性、边界（英文单词、
   前后紧邻 ASCII 字母、非法声调）、n/l 不受影响、全表逐条与 `toPinyinTones` 对齐。
+- Added: `{ strict: true }` 选项，只认普通话的 **425** 个音节（另加 418 条儿化，由基底决定）。
+  默认仍是宽容的：词表 1953 个键全部放行，包括 `jui`、`juang`、`juei`、`biong` 这类
+  「声母 × 韵母」笛卡尔积的产物，`duang`、`biu` 这类非标准但在用的口语音，以及 `vai`
+  这种把 `v` 当辅音的写法。`strict` 下它们整串原样（`jui1 → jui1`、`duang1 → duang1`），
+  而 `ma1 → mā`、`huar1 → huār` 照常。儿化跟着基底走 —— `huar` 合法是因为 `hua` 合法，
+  所以 418 条儿化一条都不用写进表里；`jv`/`jve`/`jvan`/`jvn` 先投影到
+  `ju`/`jue`/`juan`/`jun` 再判，两种拼写在严格模式下表现一致（`jv1 → jū`）。
+  全表 1953 键：放行 **875**、挡掉 **1078** —— 后者正是 1110 条笛卡尔积噪声去掉 32 条
+  字面拼写之后的数目，没有一条漏网。四个入口（`toPinyinTones`、`toPinyinTonesInline`、
+  `toPinyinTonesVariants`、`convertUnspacedPinyin`）都接受该选项，默认 `false`，
+  现有调用方看不到任何变化。
+  新增 `v2/core.js`（425 条音节表：pypinyin 0.55.0 的 `pinyin_dict` 去调去重得 421 条，
+  加 m/n/hm/hng 四条叹词）与 `test/test-strict.js`（53 条）。
+- Added: 叹词音节 `m`、`n`、`ng`、`hm`、`hng` 进词表（`ng` 原有，本次补齐其余四个）。
+  它们没有元音，调号落在**最后一个鼻音**上：`m2 → ḿ`、`n2 → ń`、`ng4 → ǹg`、
+  `hm2 → hḿ`、`hng1 → hn̄g`。
+  实现上有个坑值得记一笔：`m̄` / `m̌` / `m̀` / `n̄` 是「字母 + 组合符」两个码位，
+  原先把 `TONE_MARKS` 写成 `'m̄ḿm̌m̀'` 再按 `[tone-1]` 取值，取到的是半个字符 ——
+  `m2` 输出变成一个孤立的组合符 `̄`。改成数组后才对。
 
 ### Changed
+
+- Changed: `ng` 的四个声调不再原样返回。此前 `ng2` 输出 `ng` —— `markTone` 找不到元音就直接
+  返回基底，与词典里 `ńg` / `ňg` / `ǹg` 的写法不符。现在它和 `m` / `n` / `hm` / `hng` 一样
+  标在鼻音上。这是本次唯一一处默认行为的变化（全表对拍 84 处差异全部集中在这 5 个叹词音节，
+  其余 1948 个键 × 9 种形态逐条 0 差异）。
 
 - Changed: `v2/dict.js` 的每个键只存**无调形式**，四个声调改由 `v2/index.js` 的 `markTone`
   在运行时生成：有 `a` 标 `a`，无 `a` 有 `o` 标 `o`，无 `a`/`o` 有 `e` 标 `e`，否则标最后

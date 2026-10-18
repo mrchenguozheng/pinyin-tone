@@ -167,6 +167,50 @@ that is an explicit request for the diaeresis rather than a projection.
 > is the ASCII input convention for `ü`. In normal output you should never see `jǖ` unless you
 > asked for it with `:`.
 
+### Interjections without a vowel
+
+`m`, `n`, `ng`, `hm` and `hng` are in the dictionary too. They have no vowel to carry the tone
+mark, so it lands on the last nasal — the way those entries are written in a dictionary:
+
+```javascript
+toPinyinTones('m2');    // 'ḿ'
+toPinyinTones('n2');    // 'ń'
+toPinyinTones('ng4');   // 'ǹg'
+toPinyinTones('hm2');   // 'hḿ'
+toPinyinTones('hng1');  // 'hn̄g'
+```
+
+### Strict mode
+
+The dictionary is deliberately permissive: 1953 keys, of which only 425 are syllables of Standard
+Mandarin (plus 418 erhua forms, which are derived from them at lookup time). The remaining 1078 are
+products of an initial × final cross product (`jui`, `juang`, `juei`, `biong`), non-standard but
+real-world spellings (`duang`, `biu`, `rua` is standard, `biong` is not), or `v` used as a
+consonant (`vai`, `bvan`). All of them convert by default:
+
+```javascript
+toPinyinTones('jui1');    // 'juī'
+toPinyinTones('duang1');  // 'duāng'
+```
+
+Pass `{ strict: true }` to accept only the 425 syllables and their erhua:
+
+```javascript
+toPinyinTones('jui1', {strict: true});    // 'jui1'   — not a syllable, left alone
+toPinyinTones('duang1', {strict: true});  // 'duang1'
+toPinyinTones('ma1', {strict: true});     // 'mā'
+toPinyinTones('huar1', {strict: true});   // 'huār'   — hua is a syllable, so huar is too
+```
+
+Erhua is decided by its base: `huar` is valid exactly because `hua` is. The literal spellings
+`jv`/`jve`/`jvan`/`jvn` are projected onto `ju`/`jue`/`juan`/`jun` before the check, so they behave
+the same in both modes. A rejected syllable makes the whole token pass through unchanged — the same
+all-or-nothing rule as everywhere else.
+
+The option is accepted by every entry point (`toPinyinTones`, `toPinyinTonesInline`,
+`toPinyinTonesVariants`, `convertUnspacedPinyin`). It defaults to `false`, so existing callers see
+no change.
+
 ### Mixing pinyin into Chinese text
 
 `toPinyinTones` splits on spaces, so a sentence with pinyin glued to Chinese characters
