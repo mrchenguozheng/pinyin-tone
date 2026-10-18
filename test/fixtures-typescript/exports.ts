@@ -41,12 +41,18 @@ const variants: PinyinTonesVariants = toPinyinTonesVariants('jv1');
 const vCanonical: string = variants.canonical;
 const vLiteral: string = variants.literal;
 
-// v3 起根入口就是 v2 的实现：`pinyin-tone/v2` 子路径与 splitUnspacedSyllables
-// 都已删除，下面两行必须解析失败 —— 失败才说明破坏性变更真的生效了。
-// @ts-expect-error 子路径 pinyin-tone/v2 在 v3 不存在
-import v2Subpath from 'pinyin-tone/v2';
+// v3 起根入口就是 v2 的实现。`pinyin-tone/v2` 保留为别名 —— 2.x 的 README 教过用户
+// 这样写，删掉会让那些 import 直接失败，所以这里验证它**能**解析且类型正确。
+import v2Default from 'pinyin-tone/v2';
+import v2DefaultFromFile from 'pinyin-tone/v2/index.js';
+
+const k: string = v2Default('ni3hao3');
+const l: string = v2DefaultFromFile('ni3hao3');
+
+// splitUnspacedSyllables 在 v3 不再是导出，这一行必须解析失败 —— 失败才说明
+// 破坏性变更真的生效了。
 // @ts-expect-error splitUnspacedSyllables 在 v3 不再是导出
 import { splitUnspacedSyllables } from 'pinyin-tone';
 
-export { a, c, e, f, g, h, i, j, variants, vCanonical, vLiteral, inlineDefault,
+export { a, c, e, f, g, h, i, j, k, l, variants, vCanonical, vLiteral, inlineDefault,
     strictOn, strictEmpty, strictInline, strictTyped };
