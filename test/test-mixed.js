@@ -9,7 +9,7 @@
 //   ju:1            -> 冒号代表 u 上面那两点，输出 jǖ
 // 冒号只对 ü 真正能出现的声母生效（n/l/j/q/x/y 与零声母 u），其余原样返回。
 import { expect } from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
 import { expectedValue } from './support/dict-values.js';
 

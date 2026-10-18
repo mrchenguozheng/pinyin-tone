@@ -36,4 +36,4 @@ export interface MarkTonesOptions {
  * `ê`（欸 / 诶）写作 `e^`：`^` 就是那个扬抑符。`e^2` -> `ế`、`e^4` -> `ề`，
  * 不带数字则是 `ê`。`^` 只认 `e`，写在别的字母后面（`be^2`）整段原样。
  */
-export default function markTones(text: string, options?: MarkTonesOptions): string;
+export function markTones(text: string, options?: MarkTonesOptions): string;

@@ -5,7 +5,7 @@
 // 这边测的是「文档还准不准」，期望值逐条抄自 README 的注释与表格。
 // 改实现时如果只有这里红，说明代码可能没错、是文档过期了。
 import { expect } from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 
 describe('README 示例', () => {
     it('Quick start', () => {

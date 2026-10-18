@@ -2,7 +2,7 @@
 // 严格模式：只认普通话的 426 个音节（+ 418 条儿化），其余整串原样。
 // 默认模式不受影响 —— 词表还是那 1952 个键，一个都没挡。
 import {assert} from 'chai';
-import markTones from '../lib/index.js';
+import {markTones} from '../lib/index.js';
 import dict from '../lib/dict.js';
 import core from '../lib/core.js';
 
