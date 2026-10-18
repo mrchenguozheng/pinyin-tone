@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.4.3
+
+2026-10-19
+
+- Fixed: `v2`'s three exports threw a `TypeError` on anything that is not a string — `toPinyinTones(undefined)`, `toPinyinTones(null)`, `toPinyinTones(42)` all crashed on `.trim()`. `v1` has always returned the argument untouched. This is a breaking change, which is why it is a second release rather than part of 2.4.2: code that calls v2 with an optional value and *relies on the throw* (wrapped in `try`, or with the argument always defined) now gets nothing back instead of an exception. Everything else keeps working — a string that cannot be converted is still returned as the same string.
+
 ## v2.4.2
 
 2026-10-19
