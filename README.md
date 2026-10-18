@@ -171,9 +171,13 @@ initial: `gu:1` gives `gǖ`, `shv:3` gives `shǚ`, and `u:e1` gives `üē`. None
 syllables, and rendering them is the point — this package also exists to put non-standard
 spellings next to standard ones, so a written colon is taken at face value. It declines only
 when there is no `u`/`v` in the syllable to carry the dots (`ma:1`, `ha:o3`, `ji:1`), or when the
-dictionary entry does not treat `v` as `ü` and would leave a literal `v` in the output
-(`vai:1`, `vv:1`). `jv:1` is read exactly like `ju:1` — `v` is the ASCII spelling of `ü`, so the
-colon adds nothing to the sound, only confirms it.
+`u` it would replace is read as a consonant `v` by that entry and a literal `v` would appear in
+the output (`uang:1`, `shui:3`). Those come back unchanged.
+
+A colon on a `v` is not a request at all: `v` already is the ASCII spelling of `ü`, so `jv:1` is
+read exactly like `ju:1`. When that leading `v` is a consonant in the entry, the colon simply
+adds nothing and `vv:1` is `vv1` — both `vǖ`, because the entry's value is `vü`, where the second
+`v` is the `ü`. Likewise `vai:1` and `vai1` are both `vāi`.
 
 `n`/`l` never take part in this projection: there `u` and `ü` are distinct sounds, so `nv3` is
 `nǚ` and `nu3` is `nǔ` — the spelling you type is the sound you get. `nu:3` also gives `nǚ`, but
@@ -285,8 +289,9 @@ it is left as written. Add a tone number (`ju1`) if you want it converted.
 The colon does not end the syllable — whatever follows it is still part of the same final, so
 `lu:e4` is `lüè` (`l` + `üe`, fourth tone), not `lü` + `é`. It fires wherever a `u`/`v` is there
 to carry the dots, even when the resulting syllable does not exist (`gu:1` → `gǖ`, `u:e1` →
-`üē`). It declines only when the syllable has no `u`/`v` at all (`ma:1`, `ha:o3`) or when the
-dictionary would leave a literal `v` in the output (`vai:1`). Those come back unchanged.
+`üē`). It declines only when the syllable has no `u`/`v` at all (`ma:1`, `ha:o3`) or when the `u`
+it replaces would land on a `v` the entry reads as a consonant (`uang:1`, `shui:3`); those come
+back unchanged. A colon written on an existing `v` asks for nothing new — `vv:1` is `vv1`.
 
 Unspaced runs are split at their tone digits here too, and keep their original spacing: a sentence
 can mix Chinese with either spaced or unspaced pinyin, `toPinyinTonesInline('今天ni3hao3')` gives
