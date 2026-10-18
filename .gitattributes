@@ -1,0 +1,12 @@
+# 一律按 LF 存、按 LF 取出。
+#
+# 起因：仓库没有这个文件，而 `core.autocrlf=true` 会把工作区全部检出成 CRLF，
+# 于是 `npm pack` 打进去的也是 CRLF —— 同一个 commit 在 Windows 与 Linux 上打出的
+# tarball 字节不同、shasum 不同。
+#
+# 这不是体积问题：实测 CRLF 版 34081 字节、LF 版 33879 字节，只差 202 字节
+# （gzip 把 \r 几乎全吃掉了；解包后差 3072 字节 = 行数）。理由只有一个 ——
+# 同一份源码应该只有一个字节形态。
+#
+# `.gitattributes` 本身不进包（npm 默认排除），包内文件清单不变。
+* text=auto eol=lf

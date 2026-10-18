@@ -18,7 +18,8 @@
     "noEmit": true
   },
   "include": [
-    "test/fixtures-typescript/**/*.ts"
+    "test/fixtures-typescript/**/*.ts",
+    "lib/index.d.ts"
   ],
   "exclude": [
     "node_modules"
