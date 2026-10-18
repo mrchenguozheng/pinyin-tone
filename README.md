@@ -93,25 +93,10 @@ so `A4` becomes `À` and `O2` becomes `Ó`. Lowercase the input first if it is m
 
 中文：代价是「全大写拉丁串 + 数字」与拼音无法区分，`A4` 会变成 `À`、`O2` 会变成 `Ó`；输入以英文为主时先转小写。
 
-### Opting out
-
-A backslash directly before a run keeps that run as written — and only that run, the rest of
-the string still converts:
-
-```javascript
-markTones('hao3 \\M2 货币供应量');  // 'hǎo M2 货币供应量'
-```
-
-The backslash disappears only when it actually blocked a conversion, so text that merely
-contains backslashes (`C:\Users`, `\texttt`) comes back unchanged. The escape is one-shot:
-the output carries no marker, so a second pass would convert `M2` after all.
-
-中文：片段前紧邻的反斜杠让这一段原样，且只影响这一段 —— 同一句里其余片段照转（`hao3 \M2 货币供应量` → `hǎo M2 货币供应量`）。反斜杠只在真的挡住一次转换时消失，所以 `C:\Users`、`\texttt` 这类原样不动；被挡下的那段如果本来就不会转（`\ni3_hao3`），反斜杠同样留着。转义是一次性的：输出里不留标记，再跑一遍 `M2` 还是会被转。
-
 ### Skipping a class of tokens
 
-The backslash is per occurrence. When the same shapes keep coming up — `M2`, `A4`, `O2` —
-say it once in the options instead:
+`M2`, `A4`, `O2` collide with pinyin — `m`, `a` and `o` are syllables on their own, so `M2`
+would come out as `Ḿ`. Say which runs to keep as written, once, in the options:
 
 ```javascript
 markTones('M2 货币供应量 hao3', {skip: 'M2'});   // 'M2 货币供应量 hǎo'
@@ -120,23 +105,19 @@ markTones('M2 A4 N3', {skip: ['M2', 'A4']});     // 'M2 A4 Ň'
 
 A string or an array compares the whole run, case-sensitively: `'M2'` cannot touch `M20`
 (a different run) or `m2` (a different string). That is the entire rule — no patterns, no
-predicates. A `RegExp` is deliberately not accepted: a regex reads as "search the text",
-while a rule here only ever sees one run, so a lookbehind such as `(?<=今天 )` could never
-match and `^`/`$` would anchor at the run's ends rather than the text's. Both fail silently,
-which is worse than not being supported at all.
+predicates, and no marker characters inside the text, so a path like `C:\Users` or a LaTeX
+command like `\texttt` passes through exactly as written (`\ni3` still gets its tone,
+though: the backslash is an ordinary character to this library).
 
-The rule works on runs, so it covers every occurrence of that run. To keep one occurrence and
-convert another, go the other way round — drop the rule and put the backslash where you want
-the escape:
+A `RegExp` is deliberately not accepted: a regex reads as "search the text", while a rule
+here only ever sees one run, so a lookbehind such as `(?<=今天 )` could never match and
+`^`/`$` would anchor at the run's ends rather than the text's. Both fail silently, which is
+worse than not being supported at all.
 
-```javascript
-markTones('M2 hao3 M2', {skip: 'M2'});   // 'M2 hǎo M2'  — the rule keeps both
-markTones('\\M2 hao3 M2');               // 'M2 hǎo Ḿ'   — only the first one
-```
+A rule is per run, so it covers every occurrence of that run: one run cannot mean two things
+in the same call. If it does, cut the text and call once per part.
 
-A backslash still wins over `skip`: `\M2` comes out as `M2` even when `skip` matches it too.
-
-中文：反斜杠管的是「这一次出现」，同一类形状反复出现时（`M2`、`A4`、`O2`）改在选项里说一次。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，自然覆盖该片段的每一次出现；**只想保住其中一处就把方向反过来** —— 不写规则，改在那一处前面加反斜杠（上面两行示例结果一样）。行内反斜杠优先于 `skip`：即使 `skip` 也匹配，`\M2` 仍输出 `M2`。
+中文：`M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o` 本身就是音节，`M2` 会变成 `Ḿ`），用 `skip` 在选项里说一次要保留哪些片段。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。输入里不写任何标记字符，所以 `C:\Users` 这样的路径、`\texttt` 这样的 LaTeX 命令一字不改（不过 `\ni3` 仍会被标调：对这里来说反斜杠只是普通字符）。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，覆盖该片段的每一次出现：同一个片段在一次调用里只能有一种处置，要区别对待就把文本切开分别调用。
 
 ### Spacing is yours
 
