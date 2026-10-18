@@ -21,10 +21,20 @@ describe('README 示例', () => {
         expect(markTones('a1b2c3')).to.equal('a1b2c3');
         expect(markTones('hanyu3pin1yin1')).to.equal('hanyu3pin1yin1');
         expect(markTones('今天ni3hao3')).to.equal('今天nǐhǎo');
-        // 正文里的三条断言：大写打断片段、0-5 外的数字不吞、下划线当词字符
-        expect(markTones('Hao3')).to.equal('Hao3');
+        // 正文里的两条断言：0-5 外的数字不吞、下划线当词字符
         expect(markTones('ma6')).to.equal('ma6');
         expect(markTones('ni3_hao3')).to.equal('ni3_hao3');
+    });
+
+    it('Case', () => {
+        expect(markTones('Zhong1guo2')).to.equal('Zhōngguó');
+        expect(markTones('BEI3JING1')).to.equal('BĚIJĪNG');
+        expect(markTones('hAo3')).to.equal('hAo3');
+        // 按音节判形态
+        expect(markTones('ZHONG1guo2')).to.equal('ZHŌNGguó');
+        // 正文点明的代价：全大写拉丁串 + 数字与拼音无法区分
+        expect(markTones('A4')).to.equal('À');
+        expect(markTones('O2')).to.equal('Ó');
     });
 
     it('Spacing is yours', () => {

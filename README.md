@@ -47,13 +47,13 @@ Importing those paths gives you `ERR_PACKAGE_PATH_NOT_EXPORTED` or silently wron
 
 ## How a run is read
 
-The input is scanned for runs of lowercase letters, `:` `^` and digits `0`–`5`. Everything
+The input is scanned for runs of letters, `:` `^` and digits `0`–`5`. Everything
 outside a run — Chinese characters, punctuation, whitespace — is copied through untouched.
 Each run is cut into syllables at its tone digits; each syllable is a base form, an optional
 marker (`^` for `ê`, `:` for a literal `ü`), and an optional digit `0`–`5`. A run that does
 not resolve as a whole is returned as written — never half-converted.
 
-中文：整段扫描「小写字母 / `:` / `^` / `0`–`5`」组成的片段，片段之外的字符（汉字、标点、空白）逐字照抄。片段内部按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。整个片段认不全就原样返回，绝不输出半截。
+中文：整段扫描「字母 / `:` / `^` / `0`–`5`」组成的片段，片段之外的字符（汉字、标点、空白）逐字照抄。片段内部按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。整个片段认不全就原样返回，绝不输出半截。
 
 ```javascript
 markTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to cut
@@ -64,12 +64,34 @@ markTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
 markTones('今天ni3hao3');     // '今天nǐhǎo' — Chinese is not part of any run
 ```
 
-Uppercase letters break a run (`Hao3` stays as written), and so does a digit outside `0`–`5`
-— `ma6` ends up untouched because the `6` would otherwise be dropped. A run touching an
-ASCII word character is left alone as well, which includes `_`: `ni3_hao3` reads as an
-identifier, not two syllables.
+A digit outside `0`–`5` leaves the run untouched — `ma6` comes back as written because the
+`6` would otherwise be dropped. A run touching an ASCII word character is left alone as
+well, which includes `_`: `ni3_hao3` reads as an identifier, not two syllables.
 
-中文：大写字母会打断片段（`Hao3` 原样）；`0`–`5` 之外的数字同样如此（`ma6` 不转，否则那个 `6` 会被吞掉）。紧邻 ASCII 词字符的片段也不动，其中包含下划线：`ni3_hao3` 视作标识符，不是两个音节。
+中文：`0`–`5` 之外的数字让整个片段不动（`ma6` 原样，否则那个 `6` 会被吞掉）；紧邻 ASCII 词字符的片段也不动，其中包含下划线：`ni3_hao3` 视作标识符，不是两个音节。
+
+### Case
+
+Case is part of the spelling, not decoration. The *Basic Rules of Pinyin Orthography*
+(GB/T 16159) puts a capital at the start of a sentence, on the first letter of a proper
+noun, and allows a proper noun in all caps — and its own all-caps examples keep the tone
+marks (`BĚIJĪNG`, `LǏ HUÁ`). All three forms convert, and the form comes back on the output:
+
+```javascript
+markTones('Zhong1guo2'); // 'Zhōngguó'
+markTones('BEI3JING1');  // 'BĚIJĪNG'
+markTones('hAo3');       // 'hAo3'   — no such spelling in the standard
+```
+
+The form is read per syllable, so `ZHONG1guo2` gives `ZHŌNGguó`. Mixed case inside one
+syllable (`hAo3`, `HaO3`) is not a spelling the standard defines and is returned as written.
+
+中文：大小写是拼写的一部分，不是装饰。正词法把大写放在句首、专名首字母，并允许专名全部大写；它自己的全大写例子仍带调号（`BĚIJĪNG`、`LǏ HUÁ`）。三种形态都转换并原样带回：`Zhong1guo2` → `Zhōngguó`、`BEI3JING1` → `BĚIJĪNG`。形态按音节判定，所以 `ZHONG1guo2` → `ZHŌNGguó`；音节内混用（`hAo3`）不是标准里的写法，原样返回。
+
+One consequence: an all-caps Latin token carrying a digit cannot be told apart from pinyin,
+so `A4` becomes `À` and `O2` becomes `Ó`. Lowercase the input first if it is mostly English.
+
+中文：代价是「全大写拉丁串 + 数字」与拼音无法区分，`A4` 会变成 `À`、`O2` 会变成 `Ó`；输入以英文为主时先转小写。
 
 ### Spacing is yours
 
