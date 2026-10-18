@@ -3,8 +3,41 @@
   "version": "2.4.0",
   "description": "A library for converting pinyin tone numbers into pinyin tone marks.",
   "main": "index.js",
+  "types": "index.d.ts",
   "sideEffects": false,
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./v2": {
+      "types": "./v2/index.d.ts",
+      "default": "./v2/index.js"
+    },
+    "./v2/index.js": {
+      "types": "./v2/index.d.ts",
+      "default": "./v2/index.js"
+    },
+    "./v2/dict.js": "./v2/dict.js",
+    "./v1": {
+      "types": "./v1/index.d.ts",
+      "default": "./v1/index.js"
+    },
+    "./v1/index.js": {
+      "types": "./v1/index.d.ts",
+      "default": "./v1/index.js"
+    },
+    "./workaround": {
+      "types": "./workaround/index.d.ts",
+      "default": "./workaround/index.js"
+    },
+    "./workaround/index.js": {
+      "types": "./workaround/index.d.ts",
+      "default": "./workaround/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "test": "mocha && tsc --noEmit"
   },

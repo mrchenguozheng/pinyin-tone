@@ -8,6 +8,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## Unreleased
+
+### Breaking
+
+- Removed: `v2/` 下 51 个按声母切分的内部词表（`v2/b.js`、`v2/zh.js`、`v2/special.js` 等）不再发布。
+  这些文件从未出现在 README / CHANGELOG 中，也不构成有语义的公开接口；如果之前绕过文档直接
+  `import x from 'pinyin-tone/v2/b.js'`，升级后会得到 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
+  需要完整词表请改用 `import dict from 'pinyin-tone/v2/dict.js'`，再按需取键。
+- Changed: `package.json` 新增 `exports` 字段，公开入口被显式固定为
+  `.`、`./v2`、`./v2/index.js`、`./v2/dict.js`、`./v1`、`./v1/index.js`、
+  `./workaround`、`./workaround/index.js`、`./package.json`。其余子路径将解析失败。
+  这同时意味着以后内部文件结构调整不会再意外破坏使用方，但任何新增子路径都需要同步声明。
+
+### Changed
+
+- Refactor: `v2` 的 51 个分词表合并为单文件 `v2/dict.js`（1949 条），`v2/index.js` 由
+  51 行 import + `Object.assign` 改为一行默认导入。键的插入顺序、每条 5 个声调值、
+  43 处重复键的最终取值均与合并前逐字节一致，`toPinyinTones` 行为无变化。
+
+### Fixed
+
+- Fixed: `import ... from 'pinyin-tone/v2'`、`'pinyin-tone/v1'`、`'pinyin-tone/workaround'`
+  在 ESM 下报 `ERR_UNSUPPORTED_DIR_IMPORT`。这是缺少 `exports` 字段导致的既有问题，
+  README 里给出的无扩展名写法此前在 ESM 下一直不可用。
+- Fixed: `v2/index.d.ts` 声明的导出名 `unspacedPinyinSplit` 实际不存在，现更正为
+  `splitUnspacedSyllables`；其返回类型也从 `string[]` 更正为 `string`。
+- Fixed: `v1/index.d.ts`、`workaround/index.d.ts` 使用 `declare module '...'` 写法，
+  导致 TS 报 TS2306（File is not a module），现改为正常的模块导出声明。
+- Fixed: `tsconfig.json` 的 `include` 未覆盖任何 `.d.ts`，类型声明此前不参与 `tsc --noEmit`，
+  上面两类错误因此长期未被发现。现已纳入，并新增 `test/fixtures-typescript/exports.ts`
+  通过包自引用逐一校验各公开入口。
+
 ## v2.4.0
 
 2025-10-30

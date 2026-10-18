@@ -18,7 +18,11 @@
     "noEmit": true
   },
   "include": [
-    "test/fixtures-typescript/**/*.ts"
+    "test/fixtures-typescript/**/*.ts",
+    "index.d.ts",
+    "v1/index.d.ts",
+    "v2/index.d.ts",
+    "workaround/index.d.ts"
   ],
   "exclude": [
     "node_modules"
