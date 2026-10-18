@@ -1,7 +1,10 @@
 'use strict';
 import pinyin_dict_v2 from './dict.js';
 
-const regex = /(?<abc>[a-z]+)(?<num>[01234^]?)/;
+// 整串必须完全匹配：纯小写字母 + 一个可选声调数字。
+// 不加锚点会静默截断输入（"ni3hao3" -> "nǐ"、"ma6" -> "ma"），
+// 大写字母还会被跳过而错位匹配（"Hao3" -> "ǎo"）。
+const regex = /^(?<abc>[a-z]+)(?<num>[0-5]?)$/;
 
 /**
  *
@@ -13,11 +16,24 @@ function toPinyinTones(longString) {
 
     return stringArray.map((str) => {
         const match = regex.exec(str);
-        // if match and not undefined
-        if (match && pinyin_dict_v2[match.groups.abc]) {
-            return pinyin_dict_v2[match.groups.abc][parseInt(match.groups.num) || 0]; // is pinyin
+
+        // 不是完整的拼音串（大写、标点、多音节连写、非法声调）-> 原样返回，与 v1 行为一致
+        if (!match) {
+            return str; // is NOT pinyin
         }
-        return str; // is NOT pinyin
+
+        const syllables = pinyin_dict_v2[match.groups.abc];
+
+        // 形状像拼音但不在词表内 -> 原样返回
+        if (!syllables) {
+            return str; // is NOT pinyin
+        }
+
+        // 空 / 0 / 5 都表示轻声，对应词表下标 0
+        const num = match.groups.num;
+        const tone = num === '' || num === '0' || num === '5' ? 0 : Number(num);
+
+        return syllables[tone] ?? str; // is pinyin
     }).join(' ');
 }
 

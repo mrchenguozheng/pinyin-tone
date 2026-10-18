@@ -90,6 +90,12 @@ v2 does not support the format `pinyin-number-r` (e.g., `hua1r`) for erhua pronu
 
 Instead, it supports the format `pinyin-r-number`, such as `huar1`.
 
+**Input contract:** a token is converted only when the whole token is a syllable plus an
+optional tone digit `0`–`5`. Anything else — uppercase letters, punctuation, unspaced
+syllables, an invalid tone — is returned unchanged. v2 never returns a partially converted
+token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
+`convertUnspacedPinyin` if you need to handle unspaced input.
+
 ```javascript
 // CommonJS usage (up to version 2.2.7)
 var anotherPinyinTones = require('pinyin-tone/v2');

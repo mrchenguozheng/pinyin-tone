@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed (behavior change): v2 的正则没有锚点，任何只被部分匹配的 token 都会被**静默截断**，
+  不给任何提示：`ni3hao3 → nǐ`、`Hao3 → ǎo`、`ma6 → ma`、`hua1r → huā`、`a1b2c3 → ā`。
+  现在整串必须完整匹配 `^[a-z]+[0-5]?$` 才会转换，认不全就原样返回（与 v1 一致），
+  不再输出半截结果。同时把 `5` 纳入合法声调——此前的字符类写成 `[01234^]`（`^` 应为 `5` 的
+  笔误），导致 `ma5` 被当作 `ma` 处理；`0` / `5` / 缺省均按轻声取词表第 0 项。
+  新增 `test/test-regex-anchoring.js`（206 条用例）覆盖截断、大写、标点、连写、非法声调、
+  全音节表扫描与随机 fuzz。对既有输出有影响，建议与本次 breaking 同批发布。
 - Fixed: `import ... from 'pinyin-tone/v2'`、`'pinyin-tone/v1'`、`'pinyin-tone/workaround'`
   在 ESM 下报 `ERR_UNSUPPORTED_DIR_IMPORT`。这是缺少 `exports` 字段导致的既有问题，
   README 里给出的无扩展名写法此前在 ESM 下一直不可用。
