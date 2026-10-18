@@ -84,6 +84,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed: `v2/dict.js` 的每个键只存**无调形式**，四个声调改由 `v2/index.js` 的 `markTone`
+  在运行时生成：有 `a` 标 `a`，无 `a` 有 `o` 标 `o`，无 `a`/`o` 有 `e` 标 `e`，否则标最后
+  一个元音（`iu → u`、`ui → i` 由此自动满足）。原因是 9745 条输出里有 7796 条（80%）是同一
+  基底的机械变形，存 1 条 + 一条规则与存 5 条预生成字符串逐条等价 —— 已对全表 1949 键 ×
+  5 个声调断言 0 差异，另有 1949 × 7 种输入形态（含冒号）的完整比对。
+  `v2/dict.js` 由 110,310 字节降到 38,732 字节（gzip 31,120 → 10,638），公开行为不变：
+  `toPinyinTones`、`convertUnspacedPinyin`、`toPinyinTonesInline`、`toPinyinTonesVariants`
+  的输出逐条相同。
+  值仍逐键写出，不做「键把 `v` 换成 `ü`」的推导：74 个键的 `v` 是辅音字母（`va`、`vai`、
+  `vong`、`vv`），派生会让它们变成 `üā` 这类不存在的音节；另一个例外是 `e^ → ê`。
+  这 74 个键的基底因此原样保留，将来清理假音节时再一起处理。
+  测试侧新增 `test/support/dict-values.js`：用一条正则（`/a|o|e|[iuü](?![aoeiuü])/`）
+  独立实现标调，作为期望值来源，与生产代码的 `indexOf` 循环形成两套实现交叉验证。
+
 - Refactor: `v2` 的 51 个分词表合并为单文件 `v2/dict.js`（1949 条），`v2/index.js` 由
   51 行 import + `Object.assign` 改为一行默认导入。键的插入顺序、每条 5 个声调值、
   43 处重复键的最终取值均与合并前逐字节一致，`toPinyinTones` 行为无变化。

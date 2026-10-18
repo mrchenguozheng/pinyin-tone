@@ -66,27 +66,27 @@ function toLiteralSpelling(abbr) {
 }
 
 /**
- * 查表取某个音节的五个声调。先按请求的拼写查，查不到再用另一种拼写兜底：
+ * 查表取某个音节的**无调形式**。先按请求的拼写查，查不到再用另一种拼写兜底：
  * j/q/x/y 后的 ü 在词表里两种键都有，投影是安全的；兜底则是为了将来
  * 清掉冗余的 jv 键时不至于让字面形式直接失效。
  * @param {string} abbr
- * @param {boolean} literal true 取字面拼写（jǖ），false 取规范拼写（jū）
- * @returns {string[]|undefined}
+ * @param {boolean} literal true 取字面拼写（jü），false 取规范拼写（ju）
+ * @returns {string|undefined}
  */
-function lookupSyllables(abbr, literal) {
+function lookupBase(abbr, literal) {
     const keys = literal
         ? [toLiteralSpelling(abbr), toCanonicalSpelling(abbr)]
         : [toCanonicalSpelling(abbr), toLiteralSpelling(abbr)];
 
     for (const key of keys) {
-        const syllables = pinyin_dict_v2[key];
-        if (syllables) return syllables;
+        const base = pinyin_dict_v2[key];
+        if (base !== undefined) return base;
     }
     return undefined;
 }
 
 /**
- * 空 / 0 / 5 都表示轻声，对应词表下标 0
+ * 空 / 0 / 5 都表示轻声，对应不加调号
  * @param {string} num
  * @returns {number}
  */
@@ -94,8 +94,56 @@ function toneIndex(num) {
     return num === '' || num === '0' || num === '5' ? 0 : Number(num);
 }
 
+// 一声到四声的调号。轻声不加，所以从 1 开始用。
+const TONE_MARKS = {
+    a: 'āáǎà',
+    o: 'ōóǒò',
+    e: 'ēéěè',
+    i: 'īíǐì',
+    u: 'ūúǔù',
+    'ü': 'ǖǘǚǜ',
+};
+
+// 除 a/o/e 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
+const CLOSING_VOWELS = 'iuü';
+
 /**
- * 查表并取对应声调。不成词时返回 null，由调用方决定回退成什么。
+ * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，
+ * 否则标最后一个元音（iu -> u、ui -> i）。儿化尾 r 不是元音，不影响判断。
+ *
+ * 词表只存无调形式，四个声调在这里生成 —— 它们是同一条规则的展开，
+ * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1949 × 5 已验证）。
+ * 轻声（tone 0）与没有元音的音节（ng）原样返回。
+ * @param {string} base
+ * @param {number} tone 0-4
+ * @returns {string}
+ */
+function markTone(base, tone) {
+    if (tone === 0) return base;
+
+    let at = -1;
+    for (const vowel of 'aoe') {
+        at = base.indexOf(vowel);
+        if (at !== -1) break;
+    }
+
+    if (at === -1) {
+        for (let i = base.length - 1; i >= 0; i -= 1) {
+            if (CLOSING_VOWELS.includes(base[i])) {
+                at = i;
+                break;
+            }
+        }
+    }
+
+    if (at === -1) return base;
+
+    const marks = TONE_MARKS[base[at]];
+    return marks ? base.slice(0, at) + marks[tone - 1] + base.slice(at + 1) : base;
+}
+
+/**
+ * 查表取无调形式，再加声调。不成词时返回 null，由调用方决定回退成什么。
  * 默认输出规范拼写：j/q/x/y 后的 ü 一律省两点（jv1 -> jū），
  * 这是《汉语拼音方案》的要求，字面拼写（jǖ）只在写了冒号时出现。
  * @param {string} abc
@@ -104,9 +152,9 @@ function toneIndex(num) {
  * @returns {string|null}
  */
 function renderSyllable(abc, num, literal) {
-    const syllables = lookupSyllables(abc, literal);
-    if (!syllables) return null;
-    return syllables[toneIndex(num)] ?? null;
+    const base = lookupBase(abc, literal);
+    if (base === undefined) return null;
+    return markTone(base, toneIndex(num));
 }
 
 /**

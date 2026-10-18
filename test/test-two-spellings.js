@@ -12,6 +12,7 @@
 import { expect } from 'chai';
 import toPinyinTones, { convertUnspacedPinyin, toPinyinTonesVariants } from '../v2/index.js';
 import dict from '../v2/dict.js';
+import { expectedValue } from './support/dict-values.js';
 
 // ---------------------------------------------------------------- 闭集白名单
 
@@ -40,7 +41,7 @@ function withoutDots(syllable) {
 
 /** 把词表里的规范值按声调加两点（只在声母后的首个元音上） */
 function canonicalValueDotted(abbr, tone) {
-    return withDots(dict[abbr][tone]);
+    return withDots(expectedValue(abbr, tone));
 }
 
 // ---------------------------------------------------------------- 默认行为
@@ -65,7 +66,7 @@ describe('v2 两种拼写：默认输出规范形式', () => {
         for (const literal of LITERAL_KEYS) {
             const canonical = literal.replace('v', 'u');
             for (const tone of TONES) {
-                expect(toPinyinTones(literal + tone)).to.equal(dict[canonical][tone]);
+                expect(toPinyinTones(literal + tone)).to.equal(expectedValue(canonical, tone));
             }
         }
     });
@@ -73,7 +74,7 @@ describe('v2 两种拼写：默认输出规范形式', () => {
     it('规范键逐条等于词表值', () => {
         for (const canonical of CANONICAL_KEYS) {
             for (const tone of TONES) {
-                expect(toPinyinTones(canonical + tone)).to.equal(dict[canonical][tone]);
+                expect(toPinyinTones(canonical + tone)).to.equal(expectedValue(canonical, tone));
             }
         }
     });
@@ -99,7 +100,7 @@ describe('v2 两种拼写：冒号表示 u 上的两点', () => {
         for (const canonical of CANONICAL_KEYS) {
             const literal = canonical.replace('u', 'v');
             for (const tone of TONES) {
-                expect(toPinyinTones(canonical + ':' + tone)).to.equal(dict[literal][tone]);
+                expect(toPinyinTones(canonical + ':' + tone)).to.equal(expectedValue(literal, tone));
             }
         }
     });
@@ -122,7 +123,7 @@ describe('v2 两种拼写：冒号表示 u 上的两点', () => {
                 const viaU = toPinyinTones(canonical + ':' + tone);
                 const viaV = toPinyinTones(literal + ':' + tone);
                 expect(viaV, literal + ':' + tone).to.equal(viaU);
-                expect(viaV).to.equal(dict[literal][tone]);
+                expect(viaV).to.equal(expectedValue(literal, tone));
             }
         }
     });
@@ -175,7 +176,7 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
         expect(nlKeys).to.have.length(16);
         for (const key of nlKeys) {
             for (const tone of TONES) {
-                expect(toPinyinTones(key + tone)).to.equal(dict[key][tone]);
+                expect(toPinyinTones(key + tone)).to.equal(expectedValue(key, tone));
             }
         }
     });
@@ -183,7 +184,7 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
     it('n/l 的 u 形式不会被当成 ü（nu != nv）', () => {
         for (const key of ['nu', 'nue', 'nuan', 'nun', 'lu', 'lue', 'luan', 'lun']) {
             for (const tone of TONES) {
-                expect(toPinyinTones(key + tone)).to.equal(dict[key][tone]);
+                expect(toPinyinTones(key + tone)).to.equal(expectedValue(key, tone));
             }
         }
     });
@@ -195,7 +196,7 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
         expect(fakes.length).to.be.greaterThan(0);
         for (const key of fakes) {
             for (const tone of TONES) {
-                expect(toPinyinTones(key + tone)).to.equal(dict[key][tone]);
+                expect(toPinyinTones(key + tone)).to.equal(expectedValue(key, tone));
             }
         }
     });
@@ -207,7 +208,7 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
         for (const key of Object.keys(dict).filter((k) => /^[a-z]+$/.test(k))) {
             if (allowedToChange.has(key)) continue;
             for (const tone of TONES) {
-                expect(toPinyinTones(key + tone), key + tone).to.equal(dict[key][tone]);
+                expect(toPinyinTones(key + tone), key + tone).to.equal(expectedValue(key, tone));
             }
         }
     });
@@ -286,7 +287,7 @@ describe('v2 两种拼写：toPinyinTonesVariants 一次返回两种', () => {
             for (const tone of TONES) {
                 const v = toPinyinTonesVariants(key + tone);
                 expect(v.canonical).to.equal(v.literal);
-                expect(v.canonical).to.equal(dict[key][tone]);
+                expect(v.canonical).to.equal(expectedValue(key, tone));
             }
         }
     });

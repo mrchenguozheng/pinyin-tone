@@ -11,6 +11,7 @@
 import { expect } from 'chai';
 import toPinyinTones, { toPinyinTonesInline } from '../v2/index.js';
 import dict from '../v2/dict.js';
+import { expectedValue } from './support/dict-values.js';
 
 const HEADS = ['j', 'q', 'x', 'y'];
 const FINALS = ['v', 've', 'van', 'vn', 'vr', 'ver', 'vanr', 'vnr'];
@@ -174,13 +175,13 @@ describe('v2 混排：toPinyinTonesInline', () => {
                 for (const tone of TONES) {
                     // 裸写一律走规范形式
                     expect(toPinyinTonesInline(canonical + tone), canonical + tone)
-                        .to.equal(dict[canonical][tone]);
+                        .to.equal(expectedValue(canonical, tone));
                     expect(toPinyinTonesInline(literal + tone), literal + tone)
-                        .to.equal(dict[canonical][tone]);
+                        .to.equal(expectedValue(canonical, tone));
                     // 冒号才拿字面形式；轻声（0）没有带调字形，跳过
                     if (tone > 0) {
                         expect(toPinyinTonesInline(canonical + ':' + tone), canonical + ':' + tone)
-                            .to.equal(dict[literal][tone]);
+                            .to.equal(expectedValue(literal, tone));
                     }
                 }
             }
