@@ -13,10 +13,7 @@ dependencies; unspaced or mixed text needs no preprocessing.
 npm install pinyin-tone
 ```
 
-Node.js 14 or later (`engines`). Both module systems are first-class: `import` resolves to
-`lib/index.js`, `require()` resolves to `dist/index.cjs`. Neither has a default export.
-`dist/index.cjs` is generated from `lib/` at release time and tested against it — it is the
-same code, not a second copy.
+Node.js 14 or later. Both module systems work; neither has a default export.
 
 ```javascript
 import {markTones} from 'pinyin-tone';          // ESM
@@ -27,308 +24,144 @@ markTones('jv1 ju1 ju:1');         // 'jū jū jǖ'
 markTones('今天ni3hao3');          // '今天nǐhǎo'
 ```
 
-中文：只有一个具名导出 `markTones`，拼音串与中英混排都走它。Node.js 14+，ESM 与 CommonJS 都能直接取用：`import` 走 `lib/index.js`，`require()` 走 `dist/index.cjs`，两边都没有默认导出，都要具名取 `markTones`。
-
-### Why a named export
-
-`markTones` is a named export, not a default one, and there is no `export default` compatibility
-layer. A default export puts the function's public name outside the module contract: the
-documentation can only say "the default export is called `markTones`", while the name a caller
-actually types is free. Three interop paths then have to work around it — `require()` hands back
-`{default}`, re-exporting needs `{default as markTones}`, and any mock has to reproduce the
-`default` shape. With a named export the imported name, the documented name and the completion
-name are the same string. Keeping both would just be a second entry point.
-
-中文：`markTones` 是具名导出，没有 `export default` 兼容层。默认导出会把函数的公开名留在模块契约之外——文档只能写「默认导出叫 `markTones`」，调用方实际敲下的名字却是自由的；而且三条互操作路径都得绕（`require()` 得到 `{default}`、再导出要 `{default as markTones}`、mock 要按 `default` 造形状）。具名之后，import 名、文档名、补全名是同一个。两种取法并存只会变成第二个入口。
+中文：Node.js 14+，`import` 与 `require` 都能用，两边都要具名取 `markTones`（没有默认导出）。拼音串与中英混排都走同一个函数。
 
 ## API
 
-| Export | Signature |
-| --- | --- |
-| `markTones` | `(text, {strict?, skip?}) => string` |
-
-Both options are optional; without them every run that resolves is converted.
-
-| Option | Type | Default | Effect |
-| --- | --- | --- | --- |
-| `strict` | `boolean` | `false` | Convert only the 426 syllables of Standard Mandarin, plus erhua and the literal `jv` spellings |
-| `skip` | `string \| readonly string[]` | none | Keep runs whose text equals an entry verbatim (case-sensitive) |
-
-Anything else is ignored — an unknown field, a `strict` that is not a boolean, a `skip` that is
-not a string or an array — because an option should never change the algorithm by accident.
-
-中文：两个选项都可省略，不写时凡是认得出来的片段都转换。`strict`（默认 `false`）只放行普通话的 426 个音节，外加由基底决定的儿化与字面 `jv` 拼写；`skip` 保持与声明一字不差（区分大小写）的片段原样。其余写法一律当没传 —— 未知字段、非布尔的 `strict`、不是字符串或数组的 `skip` —— 选项不该意外改变算法。
-
-The name says what the call does, not what the package is: it **marks** pinyin you have
-already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese
-characters into pinyin, and does not guess a tone that was not written — `ma` stays `ma`.
-
-It is one-way on purpose. Reading tone marks back into `hao3` needs the reverse of the
-dictionary — 7,808 tone spellings mapped to their keys — and is still lossy, because `jū` can
-come from either `ju1` or `jv1`. That belongs in a package of its own, not behind a second
-export here.
-
-中文：这个名字说的是这个函数做什么，不是这个包是什么 —— 它把你已经用 ASCII 写好的拼音（`hao3`、`jv`、`e^`）**标上**调号。它不把汉字转成拼音，也不猜一个没写出来的声调：`ma` 仍是 `ma`。
-
-反向（带调号读回 `hao3`）是刻意不做的。它需要词表的逆映射（7808 条带调写法 → 键），而且仍是有损的：`jū` 可能来自 `ju1`，也可能来自 `jv1`。那属于另一个包，不该在这里多开第二个导出。
-
-中文：名字说的是这个调用做了什么 —— 给你已经用 ASCII 写好的拼音**标上**调号，不是「汉字转拼音」。它不做汉字转拼音，也不猜没写出来的声调（`ma` 仍是 `ma`）。
-
-Only this function is public. Everything else in the package — including `pinyin-tone/lib/*`,
-which you can see in `node_modules` — is private: files may be renamed or deleted in any
-release, and the dictionary's file layout, table shape and key order are not a contract.
-Importing those paths gives you `ERR_PACKAGE_PATH_NOT_EXPORTED` or silently wrong results.
-
-中文：公开接口只有这一个函数。包内其余路径（含 `node_modules` 里看得见的 `lib/` 文件）都是私有实现，随时可能改名或删除；词表的文件划分、表结构、键顺序都不构成契约。
-
-## How a run is read
-
-The input is scanned for runs of letters, `:` `^` and digits `0`–`5`. Everything
-outside a run — Chinese characters, punctuation, whitespace — is copied through untouched.
-Each run is cut into syllables at its tone digits; each syllable is a base form, an optional
-marker (`^` for `ê`, `:` for a literal `ü`), and an optional digit `0`–`5`. A run that does
-not resolve as a whole is returned as written — never half-converted.
-
-中文：整段扫描「字母 / `:` / `^` / `0`–`5`」组成的片段，片段之外的字符（汉字、标点、空白）逐字照抄。片段内部按声调数字切成音节，每个音节 = 基底 + 可选标记（`^` 表 `ê`、`:` 表字面 `ü`）+ 可选数字 `0`–`5`。整个片段认不全就原样返回，绝不输出半截。
-
-```javascript
-markTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to cut
-markTones('ni3 hao3');       // 'nǐ hǎo'  — a space is just text between runs
-markTones('ni3,hao3');       // 'nǐ,hǎo'  — punctuation stays, both sides convert
-markTones('a1b2c3');         // 'a1b2c3'  — b and c are not syllables, run untouched
-markTones('hanyu3pin1yin1'); // unchanged — "hanyu" has no digit to cut at
-markTones('今天ni3hao3');     // '今天nǐhǎo' — Chinese is not part of any run
+```typescript
+markTones(text: string, options?: {strict?: boolean, skip?: string | readonly string[]}): string
 ```
 
-A digit outside `0`–`5` is not part of any run, so it sits at a boundary and is never dropped
-(`ma6` comes back as written). Digits count as ASCII word characters, so a run butting against
-one is left alone too: `ni3ma6` stays as written, while `ni3 ma6` converts `ni3` on its own.
-The same applies to `_`: `ni3_hao3` reads as an identifier, not two syllables.
+| Option | Default | Effect |
+| --- | --- | --- |
+| `strict` | `false` | Convert only the 426 syllables of Standard Mandarin, plus erhua and the literal `jv` spellings |
+| `skip` | none | Keep runs whose text equals an entry verbatim (case-sensitive) |
 
-中文：`0`–`5` 之外的数字不属于任何片段，它自己就是边界，也不会被吞掉（`ma6` 原样）。数字同样算 ASCII 词字符，紧贴数字的片段也不动，所以 `ni3ma6` 整段原样，而 `ni3 ma6` 里 `ni3` 照转。下划线同理：`ni3_hao3` 视作标识符，不是两个音节。
+Both are optional; without them every run that resolves is converted. Anything else is
+ignored — an unknown field, a `strict` that is not a boolean, a `skip` that is not a string
+or an array — because an option should never change the algorithm by accident.
 
-### Case
+中文：两个选项都可省略。`strict` 只放行普通话的 426 个音节（外加以它们为基底的儿化与字面 `jv` 写法）；`skip` 保持与声明一字不差的片段原样（区分大小写）。其余写法一律当没传——选项不该意外改变算法。
 
-Case is part of the spelling, not decoration. The *Basic Rules of Pinyin Orthography*
-(GB/T 16159) puts a capital at the start of a sentence, on the first letter of a proper
-noun, and allows a proper noun in all caps — and its own all-caps examples keep the tone
-marks (`BĚIJĪNG`, `LǏ HUÁ`). All three forms convert, and the form comes back on the output:
+## How it reads a string
 
-```javascript
-markTones('Zhong1guo2'); // 'Zhōngguó'
-markTones('BEI3JING1');  // 'BĚIJĪNG'
-markTones('hAo3');       // 'hAo3'   — no such spelling in the standard
-```
-
-The form is read per syllable, so `ZHONG1guo2` gives `ZHŌNGguó`. Mixed case inside one
-syllable (`hAo3`, `HaO3`) is not a spelling the standard defines and is returned as written.
-
-中文：大小写是拼写的一部分，不是装饰。正词法把大写放在句首、专名首字母，并允许专名全部大写；它自己的全大写例子仍带调号（`BĚIJĪNG`、`LǏ HUÁ`）。三种形态都转换并原样带回：`Zhong1guo2` → `Zhōngguó`、`BEI3JING1` → `BĚIJĪNG`。形态按音节判定，所以 `ZHONG1guo2` → `ZHŌNGguó`；音节内混用（`hAo3`）不是标准里的写法，原样返回。
-
-One consequence: an all-caps Latin token carrying a digit cannot be told apart from pinyin,
-so `A4` becomes `À`, `O2` becomes `Ó` and `CO2` becomes `CÓ`. Lowercasing the input is one way
-out, but it also flattens the case of names you meant to keep; list the codes instead, as in
-the next section, and everything else keeps its case.
-
-中文：代价是「全大写拉丁串 + 数字」与拼音无法区分：`A4` → `À`、`O2` → `Ó`、`CO2` → `CÓ`。先转小写是一种办法，但会连专名的大小写一起抹平；更精确的做法是下一节那样把这些码列进 `skip`，其余文本照旧保留大小写。
-
-### Skipping a class of tokens
-
-`M2`, `A4`, `O2` collide with pinyin — `m`, `a` and `o` are syllables on their own, so `M2`
-would come out as `Ḿ`. Say which runs to keep as written, once, in the options:
+The input is scanned for runs of letters, `:` `^` and digits `0`–`5`. Everything outside a
+run is copied through untouched; each run is cut into syllables at its tone digits. A run
+that does not resolve as a whole is returned as written — never half-converted.
 
 ```javascript
-markTones('M2 货币供应量 hao3', {skip: 'M2'});   // 'M2 货币供应量 hǎo'
-markTones('M2 A4 N3', {skip: ['M2', 'A4']});     // 'M2 A4 Ň'
+markTones('ni3hao3');         // 'nǐhǎo'    — the digit is the cut point
+markTones('ni3,hao3');        // 'nǐ,hǎo'   — punctuation stays, both sides convert
+markTones('hanyu3pin1yin1');  // unchanged  — nothing to cut at
+markTones('今天ni3hao3');      // '今天nǐhǎo' — Chinese is not part of any run
+markTones('ni3_hao3');        // unchanged  — reads as an identifier
 ```
 
-A string or an array compares the whole run, case-sensitively: `'M2'` cannot touch `M20`
-(a different run) or `m2` (a different string). That is the entire rule — no patterns, no
-predicates, and no marker characters inside the text, so a path like `C:\Users` or a LaTeX
-command like `\texttt` passes through exactly as written (`\ni3` still gets its tone,
-though: the backslash is an ordinary character to this library).
+Spacing is never added, removed or collapsed. In practice, three things matter:
 
-A `RegExp` is deliberately not accepted: a regex reads as "search the text", while a rule
-here only ever sees one run, so a lookbehind such as `(?<=今天 )` could never match and
-`^`/`$` would anchor at the run's ends rather than the text's. Both fail silently, which is
-worse than not being supported at all.
+- **A run with nothing to cut at is left alone.** `hanyu3pin1yin1` has no digit inside
+  `hanyu`, so it comes back as written rather than guessed.
+- **A digit is not optional, except on a run's last syllable.** `ni3hao3ma` gives
+  `nǐhǎoma`; `ni3haoma5` comes back as written.
+- **To glue the output, do it at the call site.** `markTones(x).replace(/ /g, '')`. A `0`
+  after a toneless syllable separates without a space: `han0yu3pin1yin1` → `hanyǔpīnyīn`.
 
-A rule is per run, so it covers every occurrence of that run: the text `M2 M2` gives `M2 M2`,
-never one of each. If a call needs both outcomes, cut the text and call once per part.
+中文：整段扫描「字母 / `:` / `^` / `0`–`5`」组成的片段，片段之外逐字照抄，片段内按数字切音节；认不全就整段原样，绝不半截。空格不增不删。三件实操要点：没有切点的片段（`hanyu3pin1yin1`）不猜；数字只有片段最后一段能省；要粘连就在调用方 `.replace(/ /g, '')`，或补 `0` 分隔而不产生空格。
 
-中文：`M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」与拼音撞车（`m`、`a`、`o` 本身就是音节，`M2` 会变成 `Ḿ`），用 `skip` 在选项里说一次要保留哪些片段。`skip` 只收字符串与字符串数组，比的是**整个片段**、区分大小写 —— `'M2'` 碰不到 `M20`（那是另一个片段），也碰不到 `m2`。输入里不写任何标记字符，所以 `C:\Users` 这样的路径、`\texttt` 这样的 LaTeX 命令一字不改（不过 `\ni3` 仍会被标调：对这里来说反斜杠只是普通字符）。**不收正则**：正则读起来是「在整段文本里找」，而这里只看得到单个片段 —— `(?<=今天 )` 这种环视永远匹配不上，`^`/`$` 锚在片段两端而不是文本两端，两者都是「写得像对的、其实不生效」。规则以片段为单位，覆盖该片段的每一次出现：`M2 M2` 得到 `M2 M2`，不会「保一个转一个」；一次调用里要两种结果就把文本切开分别调用。
+## Two spellings of `ü`
 
-### Spacing is yours
+After `j`/`q`/`x`/`y`, both the standard spelling (`ju`) and the literal one (`jv`) are
+accepted. Output is always standard. `n` and `l` keep the distinction — `nv3` is `nǚ`,
+`nu3` is `nǔ`.
 
-Spacing is never added, removed or collapsed — what you wrote is what you get, including
-double spaces and leading or trailing whitespace. Unspaced input works as-is because the
-digit is the cut point; gluing the output is a call-site decision:
+A colon is the two dots themselves: `ju:1` gives `jǖ`. It sits right after the `u`/`v` it
+belongs to, or at the end of the syllable; anywhere else the token comes back unchanged.
 
 ```javascript
-markTones('han4yu3pin1yin1');                     // 'hànyǔpīnyīn'
-markTones('han4 yu3  pin1   yin1');               // 'hàn yǔ  pīn   yīn'
-markTones('han4 yu3pin1yin1').replace(/ /g, '');  // 'hànyǔpīnyīn'
+markTones('jv1');       // 'jū'    — literal input, standard output
+markTones('jv1 ju1 ju:1'); // 'jū jū jǖ' — both spellings in one line
+markTones('lu:e4');     // 'lüè'   — everything after the colon is the same final
 ```
 
-The digit is not optional, and can only be dropped for the last syllable of a run: `ni3hao3ma`
-gives `nǐhǎoma`, while `ni3haoma5` comes back as written because `haoma` is not a syllable.
-A run with nothing to cut at (`hanyu3pin1yin1`) is returned as written rather than guessed.
-Put a `0` after a toneless syllable to separate without adding a space —
-`han0yu3pin1yin1` gives `hanyǔpīnyīn`; a space separates too, but it stays in the output, so
-`han yu3pin1yin1` gives `han yǔpīnyīn`.
-
-中文：空格不增、不删、不合并，多打的、首尾的也照样保留。连写输入直接可用（数字就是切点）；要粘连就在调用方 `.replace(/ /g, '')`。数字不能省，且只有片段最后一段可以省：`ni3hao3ma` → `nǐhǎoma`，而 `ni3haoma5` 因为 `haoma` 不成音节原样返回。没有切点的 `hanyu3pin1yin1` 也不猜。没有声调的音节后面补 `0` 可以分隔而不产生空格（`han0yu3pin1yin1` → `hanyǔpīnyīn`）；用空格分隔则空格会留在输出里（`han yu3pin1yin1` → `han yǔpīnyīn`）。
-
-### Two spellings of `ü`
-
-After `j`/`q`/`x`/`y`, both the standard spelling (`ju`, `jue`, `juan`, `jun`) and the
-literal one (`jv`, `jve`, `jvan`, `jvn`) are accepted as input. Output is always standard —
-the *Scheme for the Chinese Phonetic Alphabet* requires dropping the diaeresis there:
-
-```javascript
-markTones('jv1'); // 'jū'  — literal input, standard output
-markTones('ju1'); // 'jū'  — standard input, standard output
-```
-
-`n` and `l` are not part of this projection: there `u` and `ü` are distinct sounds, so `nv3`
-is `nǚ` and `nu3` is `nǔ`. `nu:3` also gives `nǚ`, but that is an explicit request for the
-diaeresis, not a projection.
-
-中文：`j`/`q`/`x`/`y` 之后的 `ü` 有规范（`ju`）与字面（`jv`）两种输入，输出一律规范形式。`n`/`l` 不参与投影：`nv3` 是 `nǚ`、`nu3` 是 `nǔ`，两者是对立音位。
-
-### The colon asks for the diaeresis
-
-A colon is the two dots themselves. It has exactly two legal positions: right after the
-`u`/`v` it sits on, or at the end of the syllable. Everything after it still belongs to the
-same final, so `lu:e4` is `lüè`, not `lü` + `é`; `jv:an1` and `jvan:1` both give `jüān`.
-Anywhere else (`j:van1`, `jva:n1`) is a misplaced marker, and the token comes back
-unchanged. The initial is not checked — `gu:1` is `gǖ` and `u:e1` is `üē`, neither a valid
-syllable, both rendered on purpose:
-
-```javascript
-markTones('ju1 ju:1'); // 'jū jǖ'  — both spellings in one line
-markTones('juan:1');   // 'jüān'
-markTones('lu:e4');    // 'lüè'
-markTones('gu:1');     // 'gǖ'
-```
-
-There is no option that switches a whole string to the literal spelling, and no entry point
-that returns both — ask per token, and call twice if you need the two forms side by side.
-
-It declines, returning the token unchanged, when there is no `u`/`v` to carry the dots
-(`ma:1`, `ji:1`), when the `u` it lands on would be replaced by a consonant `v` that entry
-reads as a letter you never wrote (`uang:1`, `shui:3`), or when the colon is in neither legal
-position (already described above: `j:van1`, `jva:n1`).
-
-A colon on a `v` is not a request at all: `v` already is the ASCII spelling of `ü`, so
-`jv:1` is exactly `ju:1`. When that leading `v` is a consonant in the entry, the colon adds
-nothing and `vv:1` is `vv1` — both `vǖ`, since the entry's value is `vü`.
-
-中文：冒号就是 `ü` 上面那两点，只有两个合法位置 —— 紧跟承载它的 `u`/`v`，或缀在整个音节末尾；其后的字母仍属同一韵母（`lu:e4` → `lüè`），两种位置结果相同（`jv:an1` = `jvan:1` = `jüān`）。写在别处（`j:van1`、`jva:n1`）当写错，整串原样。它不看声母：`gu:1` → `gǖ`、`u:e1` → `üē`，不合规范也照做。没有整串切换字面拼写的开关，也没有一次返回两种形式的入口——按 token 请求，需要并排就调两次。
-
-三类落空原样返回：音节里没有 `u`/`v`（`ma:1`、`ji:1`）；落点是 `u` 但词表把换出的 `v` 当辅音，会冒出你没写过的字母（`uang:1`、`shui:3`）；冒号既不在承载位后、也不在音节末尾（`j:van1`、`jva:n1`）。冒号落在 `v` 上则视为没写：`jv:1` 就是 `ju:1`，`vv:1` 就是 `vv1`（都是 `vǖ`，词表值是 `vü`）。
-
-### `ê` and the vowel-less interjections
-
-`ê` is a rime of its own, written `e^` — the caret is the circumflex, the same trick as the
-colon. It belongs to `e` and nothing else (`be^2`, `e^r` stay as written) and is mutually
-exclusive with the colon, since `ê` has no `u` to carry dots:
-
-```javascript
-markTones('e^');   // 'ê'
-markTones('e^2');  // 'ế'
-markTones('e^4');  // 'ề'
-```
-
-`m`, `n`, `ng`, `hm` and `hng` are in the dictionary too. With no vowel, the mark goes on
-the **last nasal**: `m2` is `ḿ`, `ng4` is `ǹg`, `hng1` is `hn̄g`. Nine of the twenty possible
-forms are dictionary entries and are spelled exactly as listed; the rest (`m3`, `n1`, `ng1`,
-all four tones of `hm`/`hng`) come from the same rule and are not distinguished in the
-output.
-
-Some of these glyphs have no precomposed character: `ê̄`, `ê̌`, `m̄`, `m̀`, `m̌`, `n̄` are a
-letter plus U+0304 / U+0300 / U+030C, while `ế`, `ề`, `ḿ`, `ń`, `ň`, `ǹ` are single code
-points.
-
-中文：`ê` 是独立韵母，写作 `e^`（caret 就是那个扬抑符，与冒号同一套思路）；只对 `e` 有效，且与冒号互斥。`m`/`n`/`ng`/`hm`/`hng` 没有元音，调号标在**最后一个鼻音**上（`m2` → `ḿ`、`hng1` → `hn̄g`）。二十种形式里九个是词典收录、其余由同一规则外推，输出不区分。没有预组合字符的字形由「字母 + 组合符」组成。
-
-## Strict mode
-
-The dictionary is deliberately permissive: 1952 keys, of which 876 pass `strict` — the 426
-syllables of Standard Mandarin plus their erhua forms and the literal `jv` spellings,
-resolved by projection. The other 1076 are initial × final cross products (`jui`, `juang`,
-`biong`), real-world non-standard spellings (`duang`, `biu`), or `v` used as a consonant
-(`vai`, `bvan`). All of them convert by default:
-
-```javascript
-markTones('jui1');                  // 'juī'
-markTones('duang1');                // 'duāng'
-markTones('jui1', {strict: true});  // 'jui1'  — not a syllable, left alone
-markTones('huar1', {strict: true}); // 'huār'  — hua is a syllable, so huar is too
-markTones('e^2', {strict: true});   // 'ế'     — ê is a rime of its own
-```
-
-Erhua is decided by its base: `huar` is valid exactly because `hua` is. Literal spellings
-are projected onto the standard ones before the check, so they behave the same in both
-modes. A rejected syllable makes the whole run pass through. The option defaults to `false`.
-
-中文：词表故意宽松——1952 个键里 876 个通过 `strict`（426 个普通话音节，加上由投影得到的儿化与字面 `jv` 写法），其余 1076 个是声母×韵母的笛卡尔积、现实中存在的非标准拼写、或把 `v` 当辅音的组合。默认全转，`{strict: true}` 只放行前者。儿化由基底决定（`huar` 成立是因为 `hua` 成立），字面拼写先投影再判定；被挡掉的音节让整个片段原样返回，选项默认 `false`。
+中文：`j`/`q`/`x`/`y` 之后的 `ü` 有规范（`ju`）与字面（`jv`）两种输入，输出一律规范形式；`n`/`l` 保持对立（`nv3` = `nǚ`，`nu3` = `nǔ`）。冒号就是那两点：`ju:1` → `jǖ`，它只能紧跟所属的 `u`/`v` 或缀在音节末尾，写在别处整串原样。
 
 ## Mixed text
 
-Nothing special is needed: Chinese characters are not part of any run, so pinyin glued to
-them is converted in place.
+Chinese characters are not part of any run, so pinyin glued to them converts in place — no
+preprocessing, no separate entry point.
 
 ```javascript
 markTones('ju是规范写法，而ju:1是不规范写法');
 // -> 'ju是规范写法，而jǖ是不规范写法'
 ```
 
-Same rules as above: bare syllables give the standard spelling, a colon asks for the literal
-one, unspaced runs are cut at their digits. A run glued to an ASCII word (`abcju1`, `ju1abc`)
-is left alone, and so is a bare `ju` with no tone digit.
+A run glued to an ASCII word (`abcju1`, `ju1abc`) is left alone, and so is a bare `ju` with
+no tone digit.
 
-中文：不需要特殊处理——汉字不属于任何片段，紧贴着的拼音就地转换。规则与前面相同（裸写给规范形式、冒号要字面形式、连写按数字切）；粘在英文单词上的 `abcju1`/`ju1abc`，以及没有声调数字的 `ju`，都不动。
+中文：汉字不属于任何片段，紧贴着的拼音就地转换，不需要预处理也不需要另一个入口。粘在英文单词上的 `abcju1`/`ju1abc` 和没有声调数字的 `ju` 都不动。
+
+## Errors you may need to fix
+
+**All-caps tokens collide with pinyin.** `M2`, `A4`, `O2` look like pinyin to this library,
+because `m`, `a` and `o` are syllables on their own: `M2` becomes `Ḿ`, `CO2` becomes `CÓ`.
+List the codes instead — the rules are declarative, and the text carries no marker
+characters:
+
+```javascript
+markTones('M2 货币供应量 hao3', {skip: 'M2'});  // 'M2 货币供应量 hǎo'
+markTones('M2 A4 N3', {skip: ['M2', 'A4']});    // 'M2 A4 Ň'
+```
+
+中文：`M2`、`A4`、`O2` 这类「全大写拉丁串 + 数字」会与拼音撞车（`M2` → `Ḿ`、`CO2` → `CÓ`），因为 `m`、`a`、`o` 本身就是音节。用 `skip` 把这些码列出来即可，输入里不用写任何标记字符。
+
+**A rule covers every occurrence of that run.** `M2 M2` gives `M2 M2`, never one of each.
+If a call needs both outcomes, cut the text and call once per part.
+
+中文：规则以片段为单位，覆盖它的每一次出现；一次调用里要两种结果就把文本切开分别调用。
 
 ## Migrating from 2.x
 
-3.0 is the dictionary-based implementation that 2.x reached only through `pinyin-tone/v2`.
-On the 13,664 inputs formed by every dictionary key × its seven tone spellings, the two
-disagree on 11.3% — 3.0 fixes cases where the old one dropped letters (`biou1`: 2.x gives
-`biū`, 3.0 gives `biōu`). Pin `pinyin-tone@2.4.1` if you need the old output.
-
-3.0 also collapses the two 2.x entries into one: pinyin glued to Chinese used to need the
-`Inline` variant, and is now handled by the same function. Nothing is lost on plain pinyin —
-the merged entry returns the same string as the old space-splitting one, except that it no
-longer trims leading/trailing whitespace and no longer converts `ni3_hao3` (an identifier,
-not two syllables).
+3.0 is the dictionary-based implementation that 2.x reached only through `pinyin-tone/v2`,
+and it collapses the two 2.x entries into one: pinyin glued to Chinese no longer needs the
+`Inline` variant. On the 13,664 inputs formed by every dictionary key × its seven tone
+spellings, the two disagree on 11.3% — 3.0 fixes cases where the old one dropped letters
+(`biou1`: 2.x gives `biū`, 3.0 gives `biōu`). Pin `pinyin-tone@2.4.1` if you need the old
+output.
 
 | 2.x | 3.0 |
 | --- | --- |
 | `pinyin-tone/v2` (alias) | the root entry |
-| `pinyin-tone/v1` | removed |
-| `import toPinyinTones from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
-| `import {v2} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
-| `import {markSinglePinyinVowel} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
-| `toPinyinTones(x)` | `markTones(x)` — renamed |
-| `toPinyinTonesInline(x)` | `markTones(x)` — merged into the single entry |
+| `import {v2} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
+| `import toPinyinTones from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
+| `import {markSinglePinyinVowel} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
 | `pinyin-tone/workaround` | `markTones` (superset of its 36 inputs) |
-| `pinyin-tone/v2` (default import) | `markTones` — same rename as `toPinyinTones` |
+| `toPinyinTones(x)` / `toPinyinTonesInline(x)` | `markTones(x)` — renamed and merged |
 | `convertUnspacedPinyin(x)` | `markTones(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
-| `splitUnspacedSyllables(x)` | internal step, no replacement needed |
+| `pinyin-tone/v1`, `splitUnspacedSyllables(x)` | removed |
 
-(#1) The 2.4.1 root entry had three names: the default export, plus the named `v2` and
-`markSinglePinyinVowel`. All three collapse into `markTones`. Getting the rename wrong is loud
-rather than silent — 3.0 has no default export, so `import anything from 'pinyin-tone'` is a
-syntax error, not an `undefined` you find in production. See
-[Why a named export](#why-a-named-export).
+The 2.4.1 root entry had three names — a default export plus the named `v2` and
+`markSinglePinyinVowel`. All three collapse into `markTones`, and getting the rename wrong is
+loud rather than silent: 3.0 has no default export, so `import anything from 'pinyin-tone'`
+is a syntax error, not an `undefined` you find in production.
 
-中文：3.0 的根入口就是 2.x 里 `pinyin-tone/v2` 那份实现。把每个词表键 × 七种声调写法拼成的 13664 个输入逐条对比，两者有 11.3% 不同——3.0 修的是旧实现丢字母的情况（`biou1`：2.x 给 `biū`，3.0 给 `biōu`）。需要旧输出请锁 `pinyin-tone@2.4.1`。
+中文：3.0 的根入口就是 2.x 里 `pinyin-tone/v2` 那份实现，并把两个入口并成一个（紧贴汉字不再需要 `Inline` 版本）。与 2.x 逐条对拍 13664 个输入，11.3% 不同——修的是旧实现丢字母（`biou1`：2.x 给 `biū`，3.0 给 `biōu`）。需要旧输出请锁 `pinyin-tone@2.4.1`。
 
-3.0 还把 2.x 的两个入口并成一个：紧贴汉字的拼音以前要换 `Inline` 版本，现在同一个函数就认。纯拼音场景没有损失——结果与旧的按空格切版本逐条相同，只有两处不同：不再裁掉首尾空白，`ni3_hao3` 也不再转（那是标识符，不是两个音节）。
+2.4.1 根入口有三个名字（默认导出 + 具名 `v2`、`markSinglePinyinVowel`），全部并到 `markTones`。改漏了会当场报错：3.0 没有默认导出，默认导入是语法错误，不会留到线上变成 `undefined`。
 
-迁移表把 2.4.1 根入口的三个名字都列了出来：默认导出，加上具名导出 `v2` 与 `markSinglePinyinVowel`，全部并到 `markTones`。改名改漏了会当场报错而不是静默失效——3.0 没有默认导出，`import anything from 'pinyin-tone'` 是语法错误，不会留到线上变成 `undefined`。
+## Further reading
+
+Edge cases live in [`docs/`](docs/) — the README keeps to what most calls need.
+
+- [`docs/edge-cases.md`](docs/edge-cases.md) — digits, `_`, spacing, a run that cannot be cut
+- [`docs/case.md`](docs/case.md) — capitalisation, and why `CO2` becomes `CÓ`
+- [`docs/uu.md`](docs/uu.md) — `ü`, the colon's legal positions, `ê`, the vowel-less interjections
+- [`docs/strict.md`](docs/strict.md) — what `strict` lets through, and the 1,076 keys it rejects
+- [`docs/skip.md`](docs/skip.md) — `skip` in full, including why `RegExp` is not accepted
+
+Chinese summaries of each page are at the top of the file.
+
+中文：边界情况移到了 [`docs/`](docs/)，README 只留多数调用需要知道的部分——数字与 `_` 的边界、大小写、`ü` 的两种拼写与冒号规则、`strict` 放行什么、`skip` 的完整语义。每页开头都有一段中文摘要。
 
 ## Contributors
 
@@ -337,14 +170,13 @@ syntax error, not an `undefined` you find in production. See
 ## Contributing
 
 Bugs and feature requests: [open an issue](https://github.com/mrchenguozheng/pinyin-tone/issues).
-Tests run with `npm test` (mocha + `tsc --noEmit`); `npm run pack:check` verifies that the
-published tarball contains exactly `lib/` and `dist/`.
 
-`dist/index.cjs` is not edited by hand. It is generated from `lib/` by `npm run build:cjs`,
-and `npm test` fails if the committed copy has drifted. After changing anything in `lib/`,
-run `npm run build:cjs` and commit the result with the change.
+`npm test` runs mocha and `tsc --noEmit`; `npm run pack:check` verifies that the published
+tarball contains exactly `lib/` and `dist/`. `dist/index.cjs` is generated from `lib/` by
+`npm run build:cjs` — do not edit it by hand, and after changing anything in `lib/` run that
+script and commit the result with the change (`npm test` fails if the committed copy drifted).
 
-中文：问题与建议请提 issue；测试用 `npm test`，`npm run pack:check` 校验打出的包里只含 `lib/` 与 `dist/`。`dist/index.cjs` 是 `npm run build:cjs` 从 `lib/` 生成的，不要手改；改了 `lib/` 要重新生成并一起提交，否则 `npm test` 会报它已过期。
+中文：问题与建议请提 issue。`npm test` 跑 mocha 与 `tsc --noEmit`；`npm run pack:check` 校验包里只含 `lib/` 与 `dist/`。`dist/index.cjs` 由 `npm run build:cjs` 生成，不要手改；改了 `lib/` 要重新生成并一起提交，否则 `npm test` 会报它已过期。
 
 ## Changelog
 
