@@ -19,8 +19,7 @@
   },
   "include": [
     "test/fixtures-typescript/**/*.ts",
-    "v1/index.d.ts",
-    "v2/index.d.ts",
+    "lib/index.d.ts",
     "workaround/index.d.ts"
   ],
   "exclude": [

@@ -10,9 +10,9 @@ import toPinyinTones, {
     convertUnspacedPinyin,
     toPinyinTonesInline,
     toPinyinTonesVariants,
-} from '../v2/index.js';
-import dict from '../v2/dict.js';
-import core from '../v2/core.js';
+} from '../lib/index.js';
+import dict from '../lib/dict.js';
+import core from '../lib/core.js';
 
 describe('e^：ê 的 ASCII 写法', () => {
     it('四个声调', () => {

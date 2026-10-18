@@ -12,9 +12,9 @@ import toPinyinTones, {
     toPinyinTonesInline,
     toPinyinTonesVariants,
     convertUnspacedPinyin,
-} from '../v2/index.js';
+} from '../lib/index.js';
 
-describe('v2 分词：连写音节', () => {
+describe('分词：连写音节', () => {
     it('声调数字就是分隔符，音节之间不补空格', () => {
         expect(toPinyinTones('ni3hao3')).to.equal('nǐhǎo');
         expect(toPinyinTones('wo3ai4ni3')).to.equal('wǒàinǐ');
@@ -57,7 +57,7 @@ describe('v2 分词：连写音节', () => {
     });
 });
 
-describe('v2 分词：标点只当边界', () => {
+describe('分词：标点只当边界', () => {
     it('标点原样保留，两侧各转各的', () => {
         expect(toPinyinTones('ni3,hao3')).to.equal('nǐ,hǎo');
         expect(toPinyinTones('ni3/hao3')).to.equal('nǐ/hǎo');
@@ -86,7 +86,7 @@ describe('v2 分词：标点只当边界', () => {
     });
 });
 
-describe('v2 分词：认不全就整串原样', () => {
+describe('分词：认不全就整串原样', () => {
     it('中间夹着不认识的音节', () => {
         expect(toPinyinTones('a1b2c3')).to.equal('a1b2c3');
         expect(toPinyinTones('ni3b2hao3')).to.equal('ni3b2hao3');
@@ -138,7 +138,7 @@ describe('v2 分词：认不全就整串原样', () => {
     });
 });
 
-describe('v2 分词：混排入口', () => {
+describe('分词：混排入口', () => {
     it('中文里夹一段连写拼音', () => {
         expect(toPinyinTonesInline('今天ni3hao3')).to.equal('今天nǐhǎo');
         expect(toPinyinTonesInline('我说ni3hao3')).to.equal('我说nǐhǎo');
@@ -167,7 +167,7 @@ describe('v2 分词：混排入口', () => {
     });
 });
 
-describe('v2 分词：无空格入口的分工', () => {
+describe('分词：无空格入口的分工', () => {
     it('convertUnspacedPinyin 输出仍然不带空格', () => {
         expect(convertUnspacedPinyin('ni3hao3')).to.equal('nǐhǎo');
         expect(convertUnspacedPinyin('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
@@ -181,7 +181,7 @@ describe('v2 分词：无空格入口的分工', () => {
     });
 });
 
-describe('v2 分词：连写等价于分开写', () => {
+describe('分词：连写等价于分开写', () => {
     // ng 是唯一没有韵母的键（表里 5 格都是 ng），连写时无法从字母流里切出来，
     // 因此不在这一组里 —— 它属于「没有数字锚点就切不开」的已知限制。
     const SYLLABLES = [
@@ -207,7 +207,7 @@ describe('v2 分词：连写等价于分开写', () => {
     });
 });
 
-describe('v2 分词：字母守恒', () => {
+describe('分词：字母守恒', () => {
     // 转换只消费声调数字、只替换字母，不应该吃掉任何字母
     const letters = (s) => s
         .normalize('NFD')
@@ -229,7 +229,7 @@ describe('v2 分词：字母守恒', () => {
     });
 });
 
-describe('v2 分词：两种拼写的批量接口跟着分词走', () => {
+describe('分词：两种拼写的批量接口跟着分词走', () => {
     it('toPinyinTonesVariants 对连写同时给出两种拼写', () => {
         expect(toPinyinTonesVariants('ni3jv1')).to.deep.equal({
             canonical: 'nǐjū',

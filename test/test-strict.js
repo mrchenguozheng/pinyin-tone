@@ -6,14 +6,14 @@ import toPinyinTones, {
     convertUnspacedPinyin,
     toPinyinTonesInline,
     toPinyinTonesVariants,
-} from '../v2/index.js';
-import dict from '../v2/dict.js';
-import core from '../v2/core.js';
+} from '../lib/index.js';
+import dict from '../lib/dict.js';
+import core from '../lib/core.js';
 
 /** 儿化键：去掉尾字母 r 就是基底。er 本身是音节，不算儿化。 */
 const isErhua = (key) => key !== 'er' && key.length > 1 && key.endsWith('r');
 
-describe('v2 严格模式', () => {
+describe('严格模式', () => {
     describe('默认模式什么都不变', () => {
         // 这些在普通话里都不是音节，默认模式照转不误 —— 这是既有的宽容行为
         const EXTENDED = ['jui1', 'juang1', 'juei2', 'jua4', 'biong2', 'duang1', 'biu1', 'vai1'];

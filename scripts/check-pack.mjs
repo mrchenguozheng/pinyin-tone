@@ -16,16 +16,17 @@ const FORBIDDEN = [
     ['scripts/', '守卫脚本自身不进包'],
     ['.travis.yml', '已废弃的 CI 配置'],
     ['tsconfig.json', '类型检查配置，运行时不读'],
+    ['v1/', 'v1 实现已在 3.0 删除'],
+    ['legacy/', 'v1 实现已在 3.0 删除'],
+    ['v2/', '目录已改名 lib/，旧名字不应回来'],
 ];
 
 // 包里必须有的文件：少一个就说明 files 白名单写漏了
 const REQUIRED = [
-    'v1/index.js',
-    'v1/index.d.ts',
-    'v2/index.js',
-    'v2/core.js',
-    'v2/dict.js',
-    'v2/index.d.ts',
+    'lib/index.js',
+    'lib/core.js',
+    'lib/dict.js',
+    'lib/index.d.ts',
     'workaround/index.js',
     'workaround/index.d.ts',
     'README.md',
