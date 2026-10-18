@@ -1,6 +1,6 @@
 // test/test-strict.js
-// 严格模式：只认普通话的 425 个音节（+ 418 条儿化），其余整串原样。
-// 默认模式不受影响 —— 词表还是那 1953 个键，一个都没删。
+// 严格模式：只认普通话的 426 个音节（+ 418 条儿化），其余整串原样。
+// 默认模式不受影响 —— 词表还是那 1952 个键，一个都没挡。
 import {assert} from 'chai';
 import toPinyinTones, {
     convertUnspacedPinyin,
@@ -160,19 +160,20 @@ describe('v2 严格模式', () => {
             (tone) => toPinyinTones(key + tone, {strict: true}) !== key + tone,
         );
 
-        // 词表 1953 个键，严格模式放行 875、挡掉 1078。
-        // 放行的 875 = core 425 + 儿化 418 + jv 系列的字面拼写 32。
+        // 词表 1952 个键，严格模式放行 876、挡掉 1076。
+        // 放行的 876 = core 426 + 儿化 418 + jv 系列的字面拼写 32。
         //   jv/jve/jvan/jvn 及其儿化变体与 ju/jue/juan/jun 是同一音位，投影后照样是音节。
-        // 挡掉的 1078 = 1110 条笛卡尔积噪声减去那 32 条字面拼写。
-        it('放行 875 个键，挡掉 1078 个', () => {
+        // 挡掉的 1076 = 1110 条笛卡尔积噪声减去那 32 条字面拼写，再减去 e^
+        //   （它先前是死键，进了 core 才在严格模式下立得住）。
+        it('放行 876 个键，挡掉 1076 个', () => {
             const passed = keys.filter(passes);
-            assert.equal(passed.length, 875);
-            assert.equal(keys.length - passed.length, 1078);
+            assert.equal(passed.length, 876);
+            assert.equal(keys.length - passed.length, 1076);
         });
 
-        it('非儿化 441，儿化 434', () => {
+        it('非儿化 442，儿化 434', () => {
             const passed = keys.filter(passes);
-            assert.equal(passed.filter((k) => !isErhua(k)).length, 441);
+            assert.equal(passed.filter((k) => !isErhua(k)).length, 442);
             assert.equal(passed.filter(isErhua).length, 434);
         });
 

@@ -202,10 +202,9 @@ describe('v2 两种拼写：投影不能越过白名单', () => {
     });
 
     it('全表扫描：白名单之外的值与词表逐条一致', () => {
-        // 只取能被 ASCII 输入命中的键；词表里另有 'e^' 与 'ü' 两个键，
-        // 正则永远匹配不到它们，属于无法输入的死数据，此处不覆盖。
+        // 词表里每个键都能被输入语法命中（纯小写字母，或 e^），所以整表都扫。
         const allowedToChange = new Set([...LITERAL_KEYS, ...CANONICAL_KEYS]);
-        for (const key of Object.keys(dict).filter((k) => /^[a-z]+$/.test(k))) {
+        for (const key of Object.keys(dict)) {
             if (allowedToChange.has(key)) continue;
             for (const tone of TONES) {
                 expect(toPinyinTones(key + tone), key + tone).to.equal(expectedValue(key, tone));

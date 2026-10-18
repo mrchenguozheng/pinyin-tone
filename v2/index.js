@@ -2,18 +2,19 @@
 import pinyin_dict_v2 from './dict.js';
 import coreSyllables from './core.js';
 
-// 单个音节必须整串匹配：纯小写字母 + 可选的「两点标记」+ 可选声调数字。
+// 单个音节必须整串匹配：纯小写字母 + 可选的一个带符标记（^ 或 :）+ 可选声调数字。
 // 不加锚点会静默截断输入（"ma6" -> "ma"），
 // 大写字母还会被跳过而错位匹配（"Hao3" -> "ǎo"）。
-const regex = /^(?<abc>[a-z]+)(?<mark>:?)(?<num>[0-5]?)$/;
+const regex = /^(?<abc>[a-z]+)(?<hat>\^?)(?<mark>:?)(?<num>[0-5]?)$/;
 
-// 连写分词用：一个 token 里可以有若干段「字母 + 可选冒号 + 可选后续字母 + 可选声调」。
+// 连写分词用：一个 token 里可以有若干段「字母 + 可选扬抑符 + 可选冒号 + 可选后续字母
+// + 可选声调」。
 // 贪婪的 [a-z]+ 靠声调数字断开，"ni3hao3" 于是自然切成 ni3 | hao3 ——
 // 声调数字本来就是拼音连写里唯一可靠的分隔符，不需要音节层面的歧义消解。
 //
 // 冒号后面的字母（after）属于同一段：冒号只是「这个 u 带两点」的标记，
 // 不是音节边界。"lu:e4" 因此读作 lü e + 第四声 = lüè，而不是 lü + é。
-const segment = /(?<abc>[a-z]+)(?<mark>:?)(?<after>[a-z]*)(?<num>[0-5]?)/g;
+const segment = /(?<abc>[a-z]+)(?<hat>\^?)(?<mark>:?)(?<after>[a-z]*)(?<num>[0-5]?)/g;
 
 // 音节之间只允许 ASCII 标点 / 空白。一旦间隙里出现字母、数字或汉字，
 // 说明这个 token 不是「拼音串 + 标点」（英文单词、大小写混排、非法声调、
@@ -23,6 +24,11 @@ const foreign = /[A-Za-z0-9]|\p{Script=Han}/u;
 // u: 里的冒号代表 ü 上面的两点：ju:1 读作 jü + 第一声，输出 jǖ。
 // 这是给美式键盘准备的 —— 不离开 ASCII 就能写出保留两点的形式。
 // 冒号前的 u 与 v 等价：jv:1 同义（v 本来就是 ü 的 ASCII 写法）。
+//
+// e^ 里的 ^ 是同一套办法的另一个用法：它表示 ê 头上那个扬抑符（circumflex）。
+// ê 是唯一带扬抑符的拼音字母（欸 / 诶 读 ê），所以 ^ 只认 e ——
+// be^2、x^2 一律整串原样，不做「把 ^ 挪到某个字母上」的猜测。
+// ê 里没有 u，冒号无处可落，因此 ^ 与 : 互斥（e^:1 不成立）。
 
 // ---------------------------------------------------------------- ü 的两种写法
 //
@@ -69,8 +75,8 @@ function toLiteralSpelling(abbr) {
 /**
  * 这个词表键在严格模式下认不认。
  *
- * 词表为了宽容收了 1953 个键，其中 1110 条是「声母 × 韵母」笛卡尔积的产物
- * （jui、juang、juei、biong），严格模式只认普通话的 425 个音节。
+ * 词表为了宽容收了 1952 个键，其中 1110 条是「声母 × 韵母」笛卡尔积的产物
+ * （jui、juang、juei、biong），严格模式只认普通话的 426 个音节。
  * 儿化不单独列：huar 的合法性完全由 hua 决定，去掉尾字母 r 再查一次即可，
  * 418 条儿化音节因此一条都不用写进 core.js。
  * @param {string} key
@@ -96,7 +102,7 @@ function isCoreSyllable(key) {
  * strict 时，两种拼写都要过 core 白名单才能查 —— 否则 jv1 走兜底绕过严格模式。
  * @param {string} abbr
  * @param {boolean} literal true 取字面拼写（jü），false 取规范拼写（ju）
- * @param {boolean} strict 只认普通话的 425 个音节
+ * @param {boolean} strict 只认普通话的 426 个音节
  * @returns {string|undefined}
  */
 function lookupBase(abbr, literal, strict) {
@@ -133,11 +139,19 @@ const TONE_MARKS = {
     i: ['ī', 'í', 'ǐ', 'ì'],
     u: ['ū', 'ú', 'ǔ', 'ù'],
     'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ'],
+    // ê 自带扬抑符，调号叠在它上面。二声与四声有预组合字符（ế U+1EBF / ề U+1EC1），
+    // 一声与三声没有，只能写成「ê + 组合符」两个码位。
+    'ê': ['ê\u0304', 'ế', 'ê\u030c', 'ề'],
     m: ['m\u0304', 'ḿ', 'm\u030c', 'm\u0300'],
     n: ['n\u0304', 'ń', 'ň', 'ǹ'],
 };
 
-// 除 a/o/e 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
+// 主元音的优先级：a > o > e。iu 标 u、ui 标 i 由「取最后一个」自动满足。
+// ê 必须单列一条 —— 它不是 e，indexOf('e') 在「ê」里找不到任何东西。
+// 排最后是安全的：含 ê 的音节只有 ê 本身，不会与 a / o / e 同现。
+const MAIN_VOWELS = ['a', 'o', 'e', 'ê'];
+
+// 除 a/o/e/ê 之外的元音。iu 标 u、ui 标 i 由「取最后一个」自动满足。
 const CLOSING_VOWELS = 'iuü';
 
 // 叹词音节的落调位置：倒数第一个 m 或 n（m -> ḿ、hng -> hńg、ng -> ńg）。
@@ -169,8 +183,9 @@ const NASAL_TONES = {
 };
 
 /**
- * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e，
- * 否则标最后一个元音（iu -> u、ui -> i）。儿化尾 r 不是元音，不影响判断。
+ * 给无调音节加声调符号：有 a 标 a，无 a 有 o 标 o，无 a/o 有 e 标 e（ê 同 e，
+ * 只是它自带扬抑符，要单独查），否则标最后一个元音（iu -> u、ui -> i）。
+ * 儿化尾 r 不是元音，不影响判断。
  *
  * 一个元音都没有的音节（m、n、ng、hm、hng）先查 NASAL_TONES：词典里收过这个
  * 声调就用表里的字形；没收录的按同一规则生成 —— 标在倒数第一个 m 或 n 上
@@ -178,7 +193,7 @@ const NASAL_TONES = {
  * 码位固定下来，规则算出来的结果与之一致。
  *
  * 词表只存无调形式，四个声调在这里生成 —— 它们是同一条规则的展开，
- * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1949 × 5 已验证）。
+ * 存 4 条预生成字符串和存 1 条再算，结果逐条相同（全表 1952 × 5 已验证）。
  * 轻声（tone 0）不加调。
  * @param {string} base
  * @param {number} tone 0-4
@@ -188,7 +203,7 @@ function markTone(base, tone) {
     if (tone === 0) return base;
 
     let at = -1;
-    for (const vowel of 'aoe') {
+    for (const vowel of MAIN_VOWELS) {
         at = base.indexOf(vowel);
         if (at !== -1) break;
     }
@@ -266,7 +281,11 @@ function dottedKey(abc) {
  * 冒号标记优先于默认拼写：写了 ju:1 就是要 jǖ，与上下文无关
  * （jv:1 同义，v 就是 ü 的 ASCII 写法）。
  * 冒号后面的字母属于同一音节（lu:e4 -> lüè），先拼回完整韵母再投影。
+ *
+ * 扬抑符标记（e^）是另一回事：它不挑韵母，而是把 e 本身换成 ê。
+ * ê 里没有 u 可标，所以它与冒号互斥；写在别的字母后面也不成立。
  * @param {string} abc
+ * @param {string} hat `^` 或空串
  * @param {string} mark
  * @param {string} after 冒号之后、声调数字之前的字母
  * @param {string} num
@@ -274,7 +293,12 @@ function dottedKey(abc) {
  * @param {boolean} strict
  * @returns {string|null}
  */
-function renderToken(abc, mark, after, num, literal, strict) {
+function renderToken(abc, hat, mark, after, num, literal, strict) {
+    if (hat === '^') {
+        if (abc !== 'e' || after !== '' || mark === ':') return null;
+        return renderSyllable('e^', num, literal, strict);
+    }
+
     if (mark !== ':') return renderSyllable(abc, num, literal, strict);
 
     const key = dottedKey(abc + after);
@@ -311,7 +335,8 @@ function convertToken(str, literal, strict) {
 
     // 单音节快路径：绝大多数输入走这里
     if (single) {
-        return renderToken(single.groups.abc, single.groups.mark, '', single.groups.num, literal, strict) ?? str;
+        const { abc, hat, mark, num } = single.groups;
+        return renderToken(abc, hat, mark, '', num, literal, strict) ?? str;
     }
 
     let out = '';
@@ -322,8 +347,8 @@ function convertToken(str, literal, strict) {
         const gap = str.slice(pos, part.index);
         if (foreign.test(gap)) return str;
 
-        const { abc, mark, after, num } = part.groups;
-        const piece = renderToken(abc, mark, after, num, literal, strict);
+        const { abc, hat, mark, after, num } = part.groups;
+        const piece = renderToken(abc, hat, mark, after, num, literal, strict);
         if (piece === null) return str;
 
         out += gap + piece;
@@ -371,14 +396,15 @@ function toPinyinTones(longString, options) {
 }
 
 /**
- * 混排文本里的候选片段：连续的字母 / 冒号 / 声调数字。
+ * 混排文本里的候选片段：连续的字母 / 冒号 / 扬抑符 / 声调数字。
  * 前后必须是非 ASCII 字母数字下划线（中文、标点、空白都算边界）。
  * 没有边界的话，"abcju1" 这种英文单词内部会被切开当成拼音。
  *
  * 先按片段整体取出、再交给 convertToken，而不是逐音节匹配：
  * 这样 "ni3hao3" 在混排里也能切开，而 "ju1abc" 仍然整体不动。
  */
-const inlineRun = /[a-z:0-5]+/g;
+// ^ 写在字符类末尾是字面量（不在首位就不表示取反）。
+const inlineRun = /[a-z:0-5^]+/g;
 const wordChar = /[A-Za-z0-9_]/;
 
 /**

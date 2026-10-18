@@ -188,9 +188,8 @@ describe('v2 混排：toPinyinTonesInline', () => {
         });
 
         it('全表扫描：混排里的裸写与 toPinyinTones 逐条一致', () => {
-            // 只取能被 ASCII 输入命中的键；词表里另有 'e^' 与 'ü' 两个键，
-            // 正则永远匹配不到它们，属于无法输入的死数据，此处不覆盖。
-            for (const key of Object.keys(dict).filter((k) => /^[a-z]+$/.test(k))) {
+            // 词表里每个键都能被输入语法命中（纯小写字母，或 e^），所以整表都扫。
+            for (const key of Object.keys(dict)) {
                 for (const tone of TONES) {
                     const input = key + tone;
                     expect(toPinyinTonesInline(`前缀${input}后缀`), input)

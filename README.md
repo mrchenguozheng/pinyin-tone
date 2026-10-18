@@ -89,10 +89,10 @@ const fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // 'bōng tǘ pě wìr'
 ## How a token is read
 
 **Input contract:** a token is split into syllables at its tone digits, and each syllable must be
-a base form plus an optional colon and an optional tone digit `0`–`5` (the colon marks a literal
-`ü`, see below). ASCII punctuation between syllables is kept as is. If any piece does not resolve
-to a syllable, the whole token is returned unchanged — the converter never returns a partially
-converted token:
+a base form plus an optional diacritic marker (`^` for `ê`, `:` for a literal `ü` — both see
+below) and an optional tone digit `0`–`5`. ASCII punctuation between syllables is kept as is.
+If any piece does not resolve to a syllable, the whole token is returned unchanged — the
+converter never returns a partially converted token:
 
 ```javascript
 toPinyinTones('ni3hao3');        // 'nǐhǎo'   — one digit per syllable is enough to split
@@ -165,6 +165,27 @@ that is an explicit request for the diaeresis rather than a projection.
 > is the ASCII input convention for `ü`. In normal output you should never see `jǖ` unless you
 > asked for it with `:`.
 
+### `ê` (欸 / 诶)
+
+`ê` is a rime of its own, not an `e` carrying a tone mark. It is written `e^`: the caret **is**
+the circumflex, the same trick as the colon for `ü`, so the whole input stays typeable on a US
+keyboard.
+
+```javascript
+toPinyinTones('e^');    // 'ê'
+toPinyinTones('e^1');   // 'ê̄'
+toPinyinTones('e^2');   // 'ế'
+toPinyinTones('e^3');   // 'ê̌'
+toPinyinTones('e^4');   // 'ề'
+```
+
+The caret belongs to `e` and to nothing else: `be^2`, `x^2` and `e^r` come back untouched rather
+than having the caret moved onto some other letter. It is also mutually exclusive with the colon
+— `ê` has no `u` to carry the diaeresis, so `e^:1` is left alone.
+
+The tone mark sits on top of the circumflex. `ế` (U+1EBF) and `ề` (U+1EC1) are single code
+points; `ê̄` and `ê̌` have no precomposed character and are written as `ê` plus U+0304 / U+030C.
+
 ### Interjections without a vowel
 
 `m`, `n`, `ng`, `hm` and `hng` are in the dictionary too — 呣 / 嗯 / 噷 / 哼. They have no vowel
@@ -189,8 +210,8 @@ those have no precomposed character. `ḿ`, `ń`, `ň` and `ǹ` are single code 
 
 ### Strict mode
 
-The dictionary is deliberately permissive: 1953 keys, of which only 425 are syllables of Standard
-Mandarin (plus 418 erhua forms, which are derived from them at lookup time). The remaining 1078 are
+The dictionary is deliberately permissive: 1952 keys, of which only 426 are syllables of Standard
+Mandarin (plus 418 erhua forms, which are derived from them at lookup time). The remaining 1076 are
 products of an initial × final cross product (`jui`, `juang`, `juei`, `biong`), non-standard but
 real-world spellings (`duang`, `biu`, `rua` is standard, `biong` is not), or `v` used as a
 consonant (`vai`, `bvan`). All of them convert by default:
@@ -200,13 +221,14 @@ toPinyinTones('jui1');    // 'juī'
 toPinyinTones('duang1');  // 'duāng'
 ```
 
-Pass `{ strict: true }` to accept only the 425 syllables and their erhua:
+Pass `{ strict: true }` to accept only the 426 syllables and their erhua:
 
 ```javascript
 toPinyinTones('jui1', {strict: true});    // 'jui1'   — not a syllable, left alone
 toPinyinTones('duang1', {strict: true});  // 'duang1'
 toPinyinTones('ma1', {strict: true});     // 'mā'
 toPinyinTones('huar1', {strict: true});   // 'huār'   — hua is a syllable, so huar is too
+toPinyinTones('e^2', {strict: true});     // 'ế'      — ê is a rime of its own
 ```
 
 Erhua is decided by its base: `huar` is valid exactly because `hua` is. The literal spellings
