@@ -33,8 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: `toPinyinTones` 与 `convertUnspacedPinyin` 新增可选第二参数 `{ umlaut }`，用于显式选择
   `j`/`q`/`x`/`y` 之后 `ü` 的拼写方式：
   - `'auto'`（默认）/ `'omit'`：规范形式，一律省两点，`jv1 → jū`、`ju1 → jū`；
-  - `'keep'`：字面形式，一律保留两点，`ju1 → jǖ`、`jv1 → jǖ`。
-  该选项只影响 `j`/`q`/`x`/`y`；`n`/`l` 后的 `ü` 在三种模式下都保留两点（`nǚ`、`lǜ`），
+  - `'keep'`：字面形式，一律保留两点，`ju1 → jǖ`、`jv1 → jǖ`；
+  - `'as-written'`：跟随每一处输入的写法，`ju1 → jū`、`jv1 → jǖ`。
+  该选项只影响 `j`/`q`/`x`/`y`；`n`/`l` 后的 `ü` 在所有模式下都保留两点（`nǚ`、`lǜ`），
   因为那里的 `u` 与 `ü` 是对立音位（`nǔ` 努 / `nǚ` 女）。非法取值抛 `TypeError`。
   新增 `test/test-umlaut-style.js`（23 条），用「换查表键」与「字符级替换」两套独立实现
   交叉验证 32 个白名单音节 × 5 个声调 × 3 种模式，并对全表 1949 条断言投影不越界
@@ -42,6 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: `toPinyinTonesVariants(text)` 一次返回 `{ canonical, literal }`，省掉调用方自己
   按 `omit` / `keep` 各调一次的样板代码。两者只可能差 `ü` 的两点，`n`/`l` 与不含 `ü`
   的音节两边相同（已对全表逐一断言）。
+- Added: `toPinyinTonesInline(text, options?)` 转换**中文与拼音混排**的整句：不按空格切分，
+  而是在整段里扫，只替换能成词的拼音片段，其余字符逐字保留。`toPinyinTones` 遇到
+  `ju是规范写法` 这类粘连会整串原样返回，混排场景需要用它。
+  裸写 `ju1` / `jv1` 按 `umlaut` 选项输出（默认规范形式 `jū`）；
+  `ju:1` 用英文冒号表示 `u` 上面的两点，输出字面形式 `jǖ`（`juan:1 → jüān`、
+  `jun:4 → jǜn`），优先级高于 `umlaut`；`u:` / `u:1` 输出字符本身 `ü` / `ǖ`。
+  冒号只在 `ü` 真正能出现的声母上生效（n/l/j/q/x/y 与零声母 u），`gu:1`、`shui:3`、
+  `ji:1` 一律原样返回，不会产出 `gǖ` 这类不存在的音节。整段输入因此可以全部用
+  美式键盘敲出，非 ASCII 只出现在输出里。
+  新增 `test/test-inline.js`（31 条），覆盖混排核心用例、幂等性、边界（英文单词、
+  前后紧邻 ASCII 字母、非法声调）、n/l 不受影响、全表逐条与 `toPinyinTones` 对齐。
 
 ### Changed
 

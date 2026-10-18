@@ -91,8 +91,9 @@ v2 does not support the format `pinyin-number-r` (e.g., `hua1r`) for erhua pronu
 Instead, it supports the format `pinyin-r-number`, such as `huar1`.
 
 **Input contract:** a token is converted only when the whole token is a syllable plus an
-optional tone digit `0`–`5`. Anything else — uppercase letters, punctuation, unspaced
-syllables, an invalid tone — is returned unchanged. v2 never returns a partially converted
+optional colon and an optional tone digit `0`–`5` (the colon marks a literal `ü`, see below).
+Anything else — uppercase letters, punctuation, unspaced syllables, an invalid tone — is
+returned unchanged. v2 never returns a partially converted
 token, so `ni3hao3` stays `ni3hao3` rather than becoming `nǐ`; use
 `convertUnspacedPinyin` if you need to handle unspaced input.
 
@@ -123,8 +124,31 @@ toPinyinTonesVariants('jv1 nv3');
 // -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
 ```
 
+### Mixing pinyin into Chinese text
+
+`toPinyinTones` splits on spaces, so a sentence with pinyin glued to Chinese characters
+(`ju是规范写法`) is returned untouched. Use `toPinyinTonesInline` for mixed text — it scans the
+whole string and replaces only the pinyin fragments, leaving every other character as-is:
+
+```javascript
+import { toPinyinTonesInline } from 'pinyin-tone/v2';
+
+toPinyinTonesInline('ju是规范写法，而ju:1是不规范写法，因为u:1在j后面要省略上面的两点');
+// -> 'ju是规范写法，而jǖ是不规范写法，因为ǖ在j后面要省略上面的两点'
+```
+
+Bare tokens follow the same default as `toPinyinTones` — the standard spelling, so `ju1` and
+`jv1` both give `jū`. To ask for the literal form at one particular place, put a colon right
+after the `u`: `ju:1` gives `jǖ`, `juan:1` gives `jüān`, `jun:4` gives `jǜn`. The colon stands
+for the two dots above `ü`, so the whole sentence can be typed on a US keyboard — every
+non-ASCII character is produced by the converter, none has to be typed.
+
+A colon only takes effect where `ü` can actually occur (`n`, `l`, `j`, `q`, `x`, `y`, and the
+bare `u:` for the character itself). `gu:1`, `shui:3` and `ji:1` are returned unchanged rather
+than turned into syllables that do not exist. It also wins over the `umlaut` option.
+
 > Before this change `jv1` produced `jǖ`. That was a non-standard spelling leaking through as the
-> default; it is now opt-in via `{ umlaut: 'keep' }`.
+> default; it is now opt-in via `{ umlaut: 'keep' }` or the `ju:1` notation.
 
 > `jǖ` is not a second *valid* spelling — GB/T 16159 and the *Scheme for the Chinese Phonetic
 > Alphabet* require omitting the diaeresis after `j`/`q`/`x`. It is kept because this package is
