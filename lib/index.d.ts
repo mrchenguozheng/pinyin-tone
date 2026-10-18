@@ -1,6 +1,6 @@
 // lib/index.d.ts
 
-export interface ToneMarksOptions {
+export interface MarkTonesOptions {
     /**
      * 只认普通话的 426 个音节，另有 418 条儿化由基底决定。
      *
@@ -31,7 +31,7 @@ export interface ToneMarksOptions {
  * `ê`（欸 / 诶）写作 `e^`：`^` 就是那个扬抑符。`e^2` -> `ế`、`e^4` -> `ề`，
  * 不带数字则是 `ê`。`^` 只认 `e`，写在别的字母后面（`be^2`）整串原样。
  */
-export default function toToneMarks(longString: string, options?: ToneMarksOptions): string;
+export default function markTones(longString: string, options?: MarkTonesOptions): string;
 
 /**
  * 转换中文与拼音混排的整句，只替换其中的拼音片段，其余字符原样保留。
@@ -39,4 +39,4 @@ export default function toToneMarks(longString: string, options?: ToneMarksOptio
  * `ju:1` 用冒号表示那个 u 上面的两点，输出字面形式 `jǖ`（`jv:1` 同义）；
  * `u:` / `u:1` / `v:` / `v:1` 输出 `ü` / `ǖ`。
  */
-export function toToneMarksInText(text: string, options?: ToneMarksOptions): string;
+export function markTonesInText(text: string, options?: MarkTonesOptions): string;
