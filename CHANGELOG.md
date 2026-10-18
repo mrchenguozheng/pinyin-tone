@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.5.0
+
+2026-10-19
+
+- Fixed: `v2`'s syllable pattern had no anchors, so it matched a slice of the input and discarded the rest. A piece that starts with anything other than a lower case letter lost its head and came back as the tail end of itself: `'Hao3'` -> `'ǎo'`, `'aX1'` -> `'a'`, `'1ma'` -> `'ma'`, `'ma1.5'` -> `'mā'`, `'toString'` -> `'to'`. The piece now has to match in full or it is returned untouched.
+- Added: a syllable written with a capital (`'Hao3'` -> `'Hǎo'`, `'MA1'` -> `'MĀ'`) is converted instead of being cut at the capital. The three spellings are the all-lower, first-letter-capital and all-caps forms; mixed case inside one syllable (`'hAo3'`) is not a spelling, so it is left alone.
+- Added: the one case that is left alone now says so on `console.warn`, once per spelling. It still returns the input rather than throwing, but a caller who passes `'hAo3'` no longer gets an unchanged string that looks like a successful conversion.
+- Breaking: the output for the shapes in the first item changes — `'Hao3'` used to be `'ǎo'` and is now `'Hǎo'`. Nothing that converted correctly before changed: 9730 syllable-and-tone combinations from the dictionary produce byte-identical output in 2.4.3 and 2.5.0.
+- Notes: `toPinyinTones` still trims the input and splits it on single spaces, so `'  '` comes back as `''`. That is older than this release and is untouched.
+
 ## v2.4.3
 
 2026-10-19

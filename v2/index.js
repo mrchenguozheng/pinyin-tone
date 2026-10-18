@@ -55,7 +55,60 @@ const pinyin_dict_v2 = Object.assign({}, b, br, c, ch, chr, cr, d, dr, f, fr, g,
 
 // console.log(pinyin_dict_v2)
 
-const regex = /(?<abc>[a-z]+)(?<num>[01234^]?)/;
+// The whole piece has to be a syllable. Without the anchors this matched a slice of the
+// text and threw the rest away: 'Hao3' became 'ǎo', 'aX1' became 'a', '  ' became ''.
+// Upper case is part of the match so that 'Hao3' converts instead of being cut at 'H'.
+const regex = /^(?<abc>[A-Za-z]+)(?<num>[01234^]?)$/;
+
+// How a syllable was capitalised. A syllable is written all lower case, or with its first
+// letter capitalised, or all caps. Anything else ('hAo3', 'HaO3') is not a spelling anyone
+// writes, and guessing which letter the writer meant would be inventing a rule.
+const LOWER = 0;
+const TITLE = 1;
+const UPPER = 2;
+const MIXED = -1;
+
+function readCase(abc) {
+    if (abc === abc.toLowerCase()) {
+        return LOWER;
+    }
+    if (abc === abc.toUpperCase()) {
+        return UPPER;
+    }
+    if (abc[0].toUpperCase() + abc.slice(1).toLowerCase() === abc) {
+        return TITLE;
+    }
+    return MIXED;
+}
+
+function applyCase(toned, shape) {
+    if (shape === UPPER) {
+        return toned.toUpperCase();
+    }
+    if (shape === TITLE) {
+        return toned[0].toUpperCase() + toned.slice(1);
+    }
+    return toned;
+}
+
+// One warning per spelling, so that a caller looping over a thousand lines gets one line of
+// console noise and not a thousand. Warnings are advisory: the return value is the same
+// either way, and nothing here throws.
+//
+// Exported for tests only, as a way to reset the memory between cases; it is not part of
+// the package's declared surface, so nothing should depend on it staying here.
+const warned = new Set();
+
+function warnOnce(abc) {
+    if (warned.has(abc)) {
+        return;
+    }
+    warned.add(abc);
+    console.warn(
+        'pinyin-tone: "' + abc + '" was left as is. A syllable is written all lower case, ' +
+        'with its first letter capitalised, or in all caps; anything else was not converted.'
+    );
+}
 
 /**
  *
@@ -74,11 +127,30 @@ function toPinyinTones(longString) {
 
     return stringArray.map((str) => {
         const match = regex.exec(str);
-        // if match and not undefined
-        if (match && pinyin_dict_v2[match.groups.abc]) {
-            return pinyin_dict_v2[match.groups.abc][parseInt(match.groups.num) || 0]; // is pinyin
+        if (!match) {
+            return str; // is NOT pinyin
         }
-        return str; // is NOT pinyin
+
+        // The table is keyed by lower case syllables, so case is a property of the input
+        // rather than of the key: read which shape the piece was written in, look up the
+        // lower case form, then put the shape back on the result.
+        const abc = match.groups.abc;
+        const shape = readCase(abc);
+        if (shape === MIXED) {
+            // A syllable has three spellings and this is none of them, so leave it alone and
+            // say so: the text comes back unchanged, which looks like success, and the only
+            // sign of trouble is a tone mark missing much later.
+            warnOnce(abc);
+            return str; // is NOT pinyin
+        }
+        if (!Array.isArray(pinyin_dict_v2[abc.toLowerCase()])) {
+            // An ordinary word ('hello', 'constructor'). Saying anything here would warn on
+            // most of the input a caller feeds in, so it stays quiet.
+            return str; // is NOT pinyin
+        }
+
+        const toned = pinyin_dict_v2[abc.toLowerCase()][parseInt(match.groups.num) || 0];
+        return applyCase(toned, shape);
     }).join(' ');
 }
 
@@ -114,3 +186,4 @@ function convertUnspacedPinyin(unspacedSyllables){
 export default toPinyinTones;
 export {splitUnspacedSyllables};
 export {convertUnspacedPinyin};
+export {warned as __warnedSpellings}; // tests only, see the comment on `warned`
