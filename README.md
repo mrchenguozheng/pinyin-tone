@@ -93,6 +93,21 @@ so `A4` becomes `À` and `O2` becomes `Ó`. Lowercase the input first if it is m
 
 中文：代价是「全大写拉丁串 + 数字」与拼音无法区分，`A4` 会变成 `À`、`O2` 会变成 `Ó`；输入以英文为主时先转小写。
 
+### Opting out
+
+A backslash directly before a run keeps that run as written — and only that run, the rest of
+the string still converts:
+
+```javascript
+markTones('hao3 \\M2 货币供应量');  // 'hǎo M2 货币供应量'
+```
+
+The backslash disappears only when it actually blocked a conversion, so text that merely
+contains backslashes (`C:\Users`, `\texttt`) comes back unchanged. The escape is one-shot:
+the output carries no marker, so a second pass would convert `M2` after all.
+
+中文：片段前紧邻的反斜杠让这一段原样，且只影响这一段 —— 同一句里其余片段照转（`hao3 \M2 货币供应量` → `hǎo M2 货币供应量`）。反斜杠只在真的挡住一次转换时消失，所以 `C:\Users`、`\texttt` 这类原样不动；被挡下的那段如果本来就不会转（`\ni3_hao3`），反斜杠同样留着。转义是一次性的：输出里不留标记，再跑一遍 `M2` 还是会被转。
+
 ### Spacing is yours
 
 Spacing is never added, removed or collapsed — what you wrote is what you get, including
