@@ -131,6 +131,20 @@ function convertUnspacedPinyin(unspacedSyllables, options){
     return toPinyinTones(splitUnspacedSyllables(unspacedSyllables), options).split(' ').join('')
 }
 
+/**
+ * 同时给出同一输入的规范形式与字面形式。
+ * 只有 j/q/x/y 后的 ü 会不同，n/l 两边一样（nǚ / lǜ 在两种形式下都保留两点）。
+ * @param {string} longString
+ * @returns {{ canonical: string, literal: string }}
+ */
+function toPinyinTonesVariants(longString) {
+    return {
+        canonical: toPinyinTones(longString, { umlaut: 'omit' }),
+        literal: toPinyinTones(longString, { umlaut: 'keep' }),
+    };
+}
+
 export default toPinyinTones;
 export {splitUnspacedSyllables};
 export {convertUnspacedPinyin};
+export {toPinyinTonesVariants};

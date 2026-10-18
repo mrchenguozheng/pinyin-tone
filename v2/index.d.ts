@@ -14,6 +14,15 @@ export interface ToPinyinTonesOptions {
     umlaut?: UmlautStyle;
 }
 
+export interface PinyinTonesVariants {
+    /** 规范形式：j/q/x/y 后的 ü 省两点（jū） */
+    canonical: string;
+    /** 字面形式：保留 ü 的两点（jǖ） */
+    literal: string;
+}
+
 export default function toPinyinTones(longString: string, options?: ToPinyinTonesOptions): string;
 export function splitUnspacedSyllables(text: string): string;
 export function convertUnspacedPinyin(unspacedSyllables: string, options?: ToPinyinTonesOptions): string;
+/** 一次拿到同一输入的规范形式与字面形式 */
+export function toPinyinTonesVariants(longString: string): PinyinTonesVariants;

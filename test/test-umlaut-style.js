@@ -8,8 +8,7 @@
 // 方法：实现层用「换查表键」做投影，测试层用「字符级替换」独立算出期望值。
 // 两条路径不同，交叉验证才有效。
 import { expect } from 'chai';
-import toPinyinTones from '../v2/index.js';
-import { convertUnspacedPinyin } from '../v2/index.js';
+import toPinyinTones, { convertUnspacedPinyin, toPinyinTonesVariants } from '../v2/index.js';
 import dict from '../v2/dict.js';
 
 // ---------------------------------------------------------------- 闭集白名单
@@ -268,5 +267,72 @@ describe('v2 ü 风格：convertUnspacedPinyin 透传选项', () => {
         expect(toPinyinTones('jv1 nv3', { umlaut: 'omit' })).to.equal('jū nǚ');
         expect(toPinyinTones('ju1 nv3', { umlaut: 'keep' })).to.equal('jǖ nǚ');
         expect(toPinyinTones('ju1 nv3', { umlaut: 'omit' })).to.equal('jū nǚ');
+    });
+});
+
+// ---------------------------------------------------------------- 一次取两种
+
+describe('v2 ü 风格：toPinyinTonesVariants 一次返回两种', () => {
+    it('字面输入同时给出规范与字面', () => {
+        expect(toPinyinTonesVariants('jv1')).to.deep.equal({ canonical: 'jū', literal: 'jǖ' });
+        expect(toPinyinTonesVariants('ju1')).to.deep.equal({ canonical: 'jū', literal: 'jǖ' });
+        expect(toPinyinTonesVariants('jvan1')).to.deep.equal({ canonical: 'juān', literal: 'jüān' });
+        expect(toPinyinTonesVariants('jvn4')).to.deep.equal({ canonical: 'jùn', literal: 'jǜn' });
+    });
+
+    it('与分别传 omit / keep 完全等价（32 键 × 5 声调）', () => {
+        for (const canonical of CANONICAL_KEYS) {
+            for (const tone of TONES) {
+                const input = canonical + tone;
+                const v = toPinyinTonesVariants(input);
+                expect(v.canonical).to.equal(toPinyinTones(input, { umlaut: 'omit' }));
+                expect(v.literal).to.equal(toPinyinTones(input, { umlaut: 'keep' }));
+            }
+        }
+    });
+
+    it('literal 去两点后等于 canonical（32 键 × 5 声调）', () => {
+        for (const canonical of CANONICAL_KEYS) {
+            for (const tone of TONES) {
+                const v = toPinyinTonesVariants(canonical + tone);
+                expect(withoutDots(v.literal)).to.equal(v.canonical);
+                expect(v.canonical).to.not.match(/[üǖǘǚǜ]/);
+                expect(v.literal).to.match(/[üǖǘǚǜ]/);
+            }
+        }
+    });
+
+    it('n/l 的 ü 两种形式相同', () => {
+        for (const key of ['nv', 'nve', 'nvan', 'nvn', 'lv', 'lve', 'lvan', 'lvn']) {
+            for (const tone of TONES) {
+                const v = toPinyinTonesVariants(key + tone);
+                expect(v.canonical).to.equal(v.literal);
+                expect(v.canonical).to.equal(dict[key][tone]);
+            }
+        }
+    });
+
+    it('不含 ü 的音节两种形式相同（全表扫描）', () => {
+        const allowedToDiffer = new Set([...CANONICAL_KEYS, ...LITERAL_KEYS]);
+        for (const key of Object.keys(dict)) {
+            if (allowedToDiffer.has(key)) continue;
+            for (const tone of TONES) {
+                const v = toPinyinTonesVariants(key + tone);
+                expect(v.canonical, key + tone).to.equal(v.literal);
+            }
+        }
+    });
+
+    it('多音节句子各自保持 token 边界', () => {
+        expect(toPinyinTonesVariants('jv1 nv3 jvan2')).to.deep.equal({
+            canonical: 'jū nǚ juán',
+            literal: 'jǖ nǚ jüán',
+        });
+    });
+
+    it('非拼音 token 原样出现在两边', () => {
+        const v = toPinyinTonesVariants('jv1 hello 123');
+        expect(v.canonical).to.equal('jū hello 123');
+        expect(v.literal).to.equal('jǖ hello 123');
     });
 });

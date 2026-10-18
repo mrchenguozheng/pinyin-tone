@@ -114,6 +114,15 @@ diaeresis is omitted, as required by the *Scheme for the Chinese Phonetic Alphab
 only affects `j`/`q`/`x`/`y`: after `n`/`l` the diaeresis is kept in every mode (`nǚ`, `lǜ`),
 because there `u` and `ü` are distinct sounds (`nǔ` 努 vs `nǚ` 女).
 
+To get both spellings in one call:
+
+```javascript
+import { toPinyinTonesVariants } from 'pinyin-tone/v2';
+
+toPinyinTonesVariants('jv1 nv3');
+// -> { canonical: 'jū nǚ', literal: 'jǖ nǚ' }
+```
+
 > Before this change `jv1` produced `jǖ`. That was a non-standard spelling leaking through as the
 > default; it is now opt-in via `{ umlaut: 'keep' }`.
 

@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   新增 `test/test-umlaut-style.js`（23 条），用「换查表键」与「字符级替换」两套独立实现
   交叉验证 32 个白名单音节 × 5 个声调 × 3 种模式，并对全表 1949 条断言投影不越界
   （假音节 `jui`/`jua`/`juo` 等 80 条、`n`/`l` 的 16 条在 `keep` 下必须保持不变）。
+- Added: `toPinyinTonesVariants(text)` 一次返回 `{ canonical, literal }`，省掉调用方自己
+  按 `omit` / `keep` 各调一次的样板代码。两者只可能差 `ü` 的两点，`n`/`l` 与不含 `ü`
+  的音节两边相同（已对全表逐一断言）。
 
 ### Changed
 
