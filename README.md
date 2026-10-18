@@ -29,6 +29,18 @@ markTones('今天ni3hao3');          // '今天nǐhǎo'
 
 中文：只有一个具名导出 `markTones`，拼音串与中英混排都走它。Node.js 14+，ESM 与 CommonJS 都能直接取用：`import` 走 `lib/index.js`，`require()` 走 `dist/index.cjs`，两边都没有默认导出，都要具名取 `markTones`。
 
+### Why a named export
+
+`markTones` is a named export, not a default one, and there is no `export default` compatibility
+layer. A default export puts the function's public name outside the module contract: the
+documentation can only say "the default export is called `markTones`", while the name a caller
+actually types is free. Three interop paths then have to work around it — `require()` hands back
+`{default}`, re-exporting needs `{default as markTones}`, and any mock has to reproduce the
+`default` shape. With a named export the imported name, the documented name and the completion
+name are the same string. Keeping both would just be a second entry point.
+
+中文：`markTones` 是具名导出，没有 `export default` 兼容层。默认导出会把函数的公开名留在模块契约之外——文档只能写「默认导出叫 `markTones`」，调用方实际敲下的名字却是自由的；而且三条互操作路径都得绕（`require()` 得到 `{default}`、再导出要 `{default as markTones}`、mock 要按 `default` 造形状）。具名之后，import 名、文档名、补全名是同一个。两种取法并存只会变成第二个入口。
+
 ## API
 
 | Export | Signature |
@@ -50,6 +62,15 @@ not a string or an array — because an option should never change the algorithm
 The name says what the call does, not what the package is: it **marks** pinyin you have
 already written in ASCII (`hao3`, `jv`, `e^`) with tone marks. It does not turn Chinese
 characters into pinyin, and does not guess a tone that was not written — `ma` stays `ma`.
+
+It is one-way on purpose. Reading tone marks back into `hao3` needs the reverse of the
+dictionary — 7,808 tone spellings mapped to their keys — and is still lossy, because `jū` can
+come from either `ju1` or `jv1`. That belongs in a package of its own, not behind a second
+export here.
+
+中文：这个名字说的是这个函数做什么，不是这个包是什么 —— 它把你已经用 ASCII 写好的拼音（`hao3`、`jv`、`e^`）**标上**调号。它不把汉字转成拼音，也不猜一个没写出来的声调：`ma` 仍是 `ma`。
+
+反向（带调号读回 `hao3`）是刻意不做的。它需要词表的逆映射（7808 条带调写法 → 键），而且仍是有损的：`jū` 可能来自 `ju1`，也可能来自 `jv1`。那属于另一个包，不该在这里多开第二个导出。
 
 中文：名字说的是这个调用做了什么 —— 给你已经用 ASCII 写好的拼音**标上**调号，不是「汉字转拼音」。它不做汉字转拼音，也不猜没写出来的声调（`ma` 仍是 `ma`）。
 
@@ -286,16 +307,28 @@ not two syllables).
 | --- | --- |
 | `pinyin-tone/v2` (alias) | the root entry |
 | `pinyin-tone/v1` | removed |
+| `import toPinyinTones from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
+| `import {v2} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
+| `import {markSinglePinyinVowel} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` (#1) |
 | `toPinyinTones(x)` | `markTones(x)` — renamed |
 | `toPinyinTonesInline(x)` | `markTones(x)` — merged into the single entry |
 | `pinyin-tone/workaround` | `markTones` (superset of its 36 inputs) |
+| `pinyin-tone/v2` (default import) | `markTones` — same rename as `toPinyinTones` |
 | `convertUnspacedPinyin(x)` | `markTones(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
 | `splitUnspacedSyllables(x)` | internal step, no replacement needed |
 
+(#1) The 2.4.1 root entry had three names: the default export, plus the named `v2` and
+`markSinglePinyinVowel`. All three collapse into `markTones`. Getting the rename wrong is loud
+rather than silent — 3.0 has no default export, so `import anything from 'pinyin-tone'` is a
+syntax error, not an `undefined` you find in production. See
+[Why a named export](#why-a-named-export).
+
 中文：3.0 的根入口就是 2.x 里 `pinyin-tone/v2` 那份实现。把每个词表键 × 七种声调写法拼成的 13664 个输入逐条对比，两者有 11.3% 不同——3.0 修的是旧实现丢字母的情况（`biou1`：2.x 给 `biū`，3.0 给 `biōu`）。需要旧输出请锁 `pinyin-tone@2.4.1`。
 
 3.0 还把 2.x 的两个入口并成一个：紧贴汉字的拼音以前要换 `Inline` 版本，现在同一个函数就认。纯拼音场景没有损失——结果与旧的按空格切版本逐条相同，只有两处不同：不再裁掉首尾空白，`ni3_hao3` 也不再转（那是标识符，不是两个音节）。
+
+迁移表把 2.4.1 根入口的三个名字都列了出来：默认导出，加上具名导出 `v2` 与 `markSinglePinyinVowel`，全部并到 `markTones`。改名改漏了会当场报错而不是静默失效——3.0 没有默认导出，`import anything from 'pinyin-tone'` 是语法错误，不会留到线上变成 `undefined`。
 
 ## Contributors
 
