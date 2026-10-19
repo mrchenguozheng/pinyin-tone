@@ -29,15 +29,20 @@ const REQUIRED = [
     'v2/index.d.ts',
     'workaround/index.js',
     'workaround/index.d.ts',
+    'dist/index.cjs',
+    'dist/v1.cjs',
+    'dist/v2.cjs',
+    'dist/workaround.cjs',
     'README.md',
     'LICENSE',
     'package.json',
 ];
 
-// 上限按当前实测值留出余量（实测 tarball 约 43KB、单文件最大 v1/index.js 约 9KB）。
-// 触顶说明有东西被误打包，或词表真的长大了 —— 两种都该有人看一眼。
-const MAX_TARBALL = 80 * 1024;
-const MAX_FILE = 60 * 1024;
+// 上限按当前实测值留出余量（tarball 约 86KB；单文件最大的是 dist/index.cjs —— 它把 54 个
+// 源文件包进一个文件，是 v1/index.js 的十几倍）。触顶说明有东西被误打包，或词表真的长大了
+// —— 两种都该有人看一眼。
+const MAX_TARBALL = 128 * 1024;
+const MAX_FILE = 192 * 1024;
 
 const raw = execFileSync('npm', ['pack', '--json', '--dry-run'], {
     encoding: 'utf8',

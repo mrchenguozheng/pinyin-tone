@@ -24,19 +24,22 @@ npm install pinyin-tone@next
 ```
 
 3.0.0 replaces the default export with a named one (`import {markTones} from 'pinyin-tone'`),
-merges `v2` and `workaround` into that single function, and adds a CommonJS entry. Code written
-for 2.x does **not** run against it unchanged; the `npm install pinyin-tone` line above keeps
-2.4.1.
+merges `v2` and `workaround` into that single function, and adds a CommonJS entry of its own.
+Code written for 2.x does **not** run against it unchanged; the `npm install pinyin-tone` line
+above keeps 2.4.1.
 
 ## Usage (Default Behavior)
 
 This module exports a function. You can name it as desired, such as `pinyin`.
 
+Both module systems get that function: `import` reads the ES module, `require` reads a
+CommonJS copy generated from it, and the two give the same answers.
+
 ```javascript
-// CommonJS usage (up to version 2.2.7)
+// CommonJS
 var toPinyinTones = require('pinyin-tone');
 
-// /* or ES Module usage (breaking change in version 2.3.0+) */
+// ES module
 // import toPinyinTones from 'pinyin-tone';
 
 // Examples
@@ -63,6 +66,20 @@ var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
 
 // Some less common combinations
 var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // -> 'bōng tǘ pě wìr'
+```
+
+`v1`, `v2` and `workaround` are also available as subpaths, in both systems:
+
+```javascript
+// ES module
+// import v2, {convertUnspacedPinyin} from 'pinyin-tone/v2';
+
+// CommonJS — the subpath is callable, and its named exports hang off it
+var v2 = require('pinyin-tone/v2');
+var convertUnspacedPinyin = require('pinyin-tone/v2').convertUnspacedPinyin;
+
+v2('ni3 hao3'); // -> 'nǐ hǎo'
+convertUnspacedPinyin('han4yu3pin1yin1'); // -> 'hànyǔpīnyīn'
 ```
 
 ## Usage v2 (Experimental)

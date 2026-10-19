@@ -25,6 +25,12 @@ describe('toPinyinTones v2', () => {
     it('issue #8: should convert characters to pinyin with tones', () => {
         expect(toPinyinTones('makkai')).to.equal('makkai'); // 根据实际期望值进行调整
     });
+
+    // README，`v1` / `v2` / `workaround` 子路径那一段
+    it('example: the subpaths', () => {
+        expect(toPinyinTones('ni3 hao3')).to.equal('nǐ hǎo');
+        expect(convertUnspacedPinyin('han4yu3pin1yin1')).to.equal('hànyǔpīnyīn');
+    });
 });
 
 describe('toPinyinTones v1', () => {
