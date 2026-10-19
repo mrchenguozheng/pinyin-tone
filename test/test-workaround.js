@@ -49,4 +49,25 @@ describe('markTheVowel', () => {
         expect(_('v4')).to.eq('ǜ')
     });
 
+    it('5 is the neutral tone, the same as 0', () => {
+        // v1 and v2 both read 5 as the neutral tone; this table only had 0.
+        expect(_('a5')).to.eq('a')
+        expect(_('o5')).to.eq('o')
+        expect(_('e5')).to.eq('e')
+        expect(_('i5')).to.eq('i')
+        expect(_('u5')).to.eq('u')
+        expect(_('v5')).to.eq('ü')
+    });
+
+    it('a name that lives on Object.prototype comes back as a string', () => {
+        // The table is a plain object literal, so a bare lookup used to walk up to
+        // Object.prototype: 'toString' returned the built-in function, '__proto__' returned
+        // an object. This function is declared to return a string.
+        for (const key of ['toString', 'constructor', 'valueOf', 'hasOwnProperty', '__proto__']) {
+            const result = _(key)
+            expect(result).to.be.a('string')
+            expect(result).to.eq(key)
+        }
+    });
+
 });

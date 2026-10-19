@@ -174,14 +174,12 @@ function pinyin_v1(args) {
                     return _韵母表[_韵母][1];
 
                 case "r1":
-                case "1r":
                     return _韵母表[_韵母][1] + r;
 
                 // 2=阳平
                 case "2":
                     return _韵母表[_韵母][2];
 
-                case "2r":
                 case "r2":
                     return _韵母表[_韵母][2] + r;
 
@@ -189,7 +187,6 @@ function pinyin_v1(args) {
                 case "3":
                     return _韵母表[_韵母][3];
 
-                case "3r":
                 case "r3":
                     return _韵母表[_韵母][3] + r;
 
@@ -197,7 +194,6 @@ function pinyin_v1(args) {
                 case "4":
                     return _韵母表[_韵母][4];
 
-                case "4r":
                 case "r4":
                     return _韵母表[_韵母][4] + r;
 
@@ -265,7 +261,6 @@ function alter(_儿化音和声调, _韵母) {
 
         case "r":
         case "r0":
-        case "0r":
         case "r5":
         case "5r":
             return _韵母[0] + r;
@@ -274,28 +269,24 @@ function alter(_儿化音和声调, _韵母) {
             return _韵母[1];
 
         case "r1":
-        case "1r":
             return _韵母[1] + r;
 
         case "2":
             return _韵母[2];
 
         case "r2":
-        case "2r":
             return _韵母[2] + r;
 
         case "3":
             return _韵母[3];
 
         case "r3":
-        case "3r":
             return _韵母[3] + r;
 
         case "4":
             return _韵母[4];
 
         case "r4":
-        case "4r":
             return _韵母[4] + r;
 
         default:
