@@ -9,17 +9,6 @@ const prototypeNames = ['toString', 'constructor', 'valueOf', 'hasOwnProperty', 
 const prototypeNamesWithTone = ['toString1', 'constructor2', 'valueOf3'];
 
 describe('v2: a name that lives on Object.prototype is not a syllable', () => {
-    // Most of these spellings are mixed case, so they warn by design. The warning itself has
-    // its own file; here it would only be noise in the test output.
-    let original;
-    before(() => {
-        original = console.warn;
-        console.warn = () => {};
-    });
-    after(() => {
-        console.warn = original;
-    });
-
     for (const key of [...prototypeNames, ...prototypeNamesWithTone]) {
         it(`'${key}' comes back unchanged`, () => {
             expect(toPinyinTones(key)).to.equal(key);
