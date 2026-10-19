@@ -49,7 +49,12 @@ const ORDER = [
     'index.js',
 ];
 
-const source = (file) => readFileSync(join(ROOT, file), 'utf8');
+// The sources arrive with whatever line ending the checkout gave them — CRLF on a Windows
+// working copy with core.autocrlf, LF in CI. Normalising on read makes the output depend on
+// the source text rather than on the machine that built it, and it is what --check needs:
+// git stores and checks out LF, so a file written with CRLF would disagree with the working
+// copy on every clean checkout and fail prepack for everyone on the build machine.
+const source = (file) => readFileSync(join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
 
 // Indentation is added line by line and empty lines stay empty; otherwise the diff fills up
 // with lines that differ only in whitespace.
@@ -280,7 +285,9 @@ for (const [name, file] of [['v1', 'v1/index.js'], ['v2', 'v2/index.js'], ['work
 
 const stale = [];
 for (const [path, next] of outputs) {
-    const current = existsSync(path) ? readFileSync(path, 'utf8') : null;
+    // Normalised the same way as the sources: what is compared is the text, so a checkout
+    // that gave the file CRLF and one that gave it LF both compare equal.
+    const current = existsSync(path) ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n') : null;
     if (current !== next) stale.push([path, next]);
 }
 
@@ -299,7 +306,12 @@ if (checkOnly) {
 }
 
 mkdirSync(join(ROOT, 'dist'), {recursive: true});
-for (const [path, next] of stale) writeFileSync(path, next);
+for (const [path, next] of stale) {
+    // Written as bytes with LF on purpose. Write it as a string and Windows keeps the \n as
+    // it is, but the point is that the file on disk matches what git stores, so `git status`
+    // stays clean after a build instead of showing the whole file as modified.
+    writeFileSync(path, Buffer.from(next, 'utf8'));
+}
 for (const [path, next] of outputs) {
     console.log(`dist/${path.slice(join(ROOT, 'dist').length + 1).replace(/\\/g, '/')} ` +
         `(${next.split('\n').length} lines, ${(Buffer.byteLength(next) / 1024).toFixed(1)}KB)`);
