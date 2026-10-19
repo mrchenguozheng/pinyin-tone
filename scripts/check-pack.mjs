@@ -16,6 +16,7 @@ const FORBIDDEN = [
     ['scripts/', '守卫脚本自身不进包'],
     ['.travis.yml', '已废弃的 CI 配置'],
     ['tsconfig.json', '类型检查配置，运行时不读'],
+    ['tsconfig.types.json', '类型检查配置，运行时不读'],
 ];
 
 // 包里必须有的文件：少一个就说明 files 白名单写漏了

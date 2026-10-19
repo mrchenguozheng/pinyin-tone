@@ -48,6 +48,18 @@ describe('v2: a piece left alone says why, once', () => {
         expect(lines).to.have.length(0);
     });
 
+    it('a mixed-case ordinary word is returned quietly too', () => {
+        // Mixed case was the only condition at first, so every brand name in the input got a
+        // warning: 'iPhone', 'McDonald', 'JavaScript'. The point of the warning is a mistyped
+        // syllable, and none of these is one -- 'iphone' is not in the table either.
+        expect(toPinyinTones('iPhone')).to.equal('iPhone');
+        expect(toPinyinTones('McDonald')).to.equal('McDonald');
+        expect(toPinyinTones('JavaScript')).to.equal('JavaScript');
+        expect(lines).to.have.length(0);
+        // Nothing was remembered either, so the set cannot grow with the caller's text.
+        expect(__warnedSpellings.size).to.equal(0);
+    });
+
     it('a converted piece says nothing', () => {
         expect(toPinyinTones('chu1 yin1 wei4 lai2')).to.equal('chū yīn wèi lái');
         expect(toPinyinTones('Hao3')).to.equal('Hǎo');

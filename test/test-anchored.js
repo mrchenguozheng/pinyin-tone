@@ -50,6 +50,58 @@ describe('v2: a piece is converted whole or not at all', () => {
     });
 });
 
+describe('v2: the digit at the end says which tone', () => {
+    it('0 and 5 both mean the neutral tone', () => {
+        // They are the same thing in every notation this library follows, but only 0 used to
+        // be accepted: 'ma5' came back as 'ma5' while 'ma0' came back as 'ma'.
+        expect(toPinyinTones('ma5')).to.equal('ma');
+        expect(toPinyinTones('ma0')).to.equal('ma');
+        expect(toPinyinTones('ni3 hao5')).to.equal('nǐ hao');
+    });
+
+    it("'^' is not a tone", () => {
+        // It used to be accepted by the pattern and then dropped, because parseInt('^') is
+        // NaN and the fallback read that as the neutral tone: 'e^' came back as 'e'. The
+        // table has no ê, so the piece is left as written instead of losing the marker.
+        expect(toPinyinTones('e^')).to.equal('e^');
+        expect(toPinyinTones('ma^')).to.equal('ma^');
+    });
+
+    it('a digit outside 0-5 is not a tone either', () => {
+        expect(toPinyinTones('ma6')).to.equal('ma6');
+        expect(toPinyinTones('ma9')).to.equal('ma9');
+    });
+});
+
+describe('v2: the text comes back the shape it went in', () => {
+    it('leading and trailing spaces survive', () => {
+        // The input used to be trimmed, so '  ma1  ' came back as 'mā' -- the surrounding
+        // text a caller had written was gone.
+        expect(toPinyinTones('  ma1  ')).to.equal('  mā  ');
+        expect(toPinyinTones(' ma1')).to.equal(' mā');
+        expect(toPinyinTones('ma1 ')).to.equal('mā ');
+    });
+
+    it('the spaces between syllables survive as written', () => {
+        expect(toPinyinTones('ma1  ma2')).to.equal('mā  má');
+    });
+
+    it('a line break or a tab does not stop the conversion', () => {
+        // Splitting on a single space made the whole input one piece, which then failed to
+        // match, so nothing converted at all: one syllable per line is a normal way to feed
+        // a word list, and it used to come back untouched with no sign of trouble.
+        expect(toPinyinTones('ma1\nma2')).to.equal('mā\nmá');
+        expect(toPinyinTones('ma1\tma2')).to.equal('mā\tmá');
+        expect(toPinyinTones('ma1\r\nma2')).to.equal('mā\r\nmá');
+    });
+
+    it('whitespace on its own is returned unchanged', () => {
+        expect(toPinyinTones('  ')).to.equal('  ');
+        expect(toPinyinTones('\n')).to.equal('\n');
+        expect(toPinyinTones('')).to.equal('');
+    });
+});
+
 describe('v2: the three spellings of a syllable', () => {
     it('lower case, capitalised, and all caps all convert', () => {
         expect(toPinyinTones('hao3')).to.equal('hǎo');
