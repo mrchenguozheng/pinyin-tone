@@ -6,16 +6,6 @@ import v1 from '../v1/index.js';
 // rest. 'Hao3' came back as 'ǎo' -- the leading H was silently discarded, and nothing in
 // the return value said so. These are the shapes that used to lose characters.
 describe('v2: a piece is converted whole or not at all', () => {
-    // 'hAo3' and friends warn by design; the warning has its own file.
-    let original;
-    before(() => {
-        original = console.warn;
-        console.warn = () => {};
-    });
-    after(() => {
-        console.warn = original;
-    });
-
     const lostCharacters = {
         Hao3: 'Hǎo',
         Lv4: 'Lǜ',
@@ -119,5 +109,23 @@ describe('v2: the three spellings of a syllable', () => {
         // rule to apply and no tone mark to place. It stays exactly as it came in.
         expect(toPinyinTones('hAo3')).to.equal('hAo3');
         expect(toPinyinTones('HaO3')).to.equal('HaO3');
+    });
+
+    it('nothing is reported, whatever the piece', () => {
+        // A mixed-case piece used to print a line on console.warn -- once per spelling, and
+        // at first on every brand name in the input too. The return value is the whole
+        // answer now: a piece that comes back unchanged means it was left unchanged.
+        const lines = [];
+        const original = console.warn;
+        console.warn = (...args) => lines.push(args.join(' '));
+        try {
+            expect(toPinyinTones('hAo3')).to.equal('hAo3');
+            expect(toPinyinTones('iPhone McDonald JavaScript'))
+                .to.equal('iPhone McDonald JavaScript');
+            expect(toPinyinTones('ma1 hAo3 Hao3')).to.equal('mā hAo3 Hǎo');
+        } finally {
+            console.warn = original;
+        }
+        expect(lines).to.have.length(0);
     });
 });

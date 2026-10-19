@@ -93,26 +93,6 @@ function applyCase(toned, shape) {
     return toned;
 }
 
-// One warning per spelling, so that a caller looping over a thousand lines gets one line of
-// console noise and not a thousand. Only syllables are ever added, so the set cannot grow
-// past the dictionary no matter how much text goes through. Warnings are advisory: the
-// return value is the same either way, and nothing here throws.
-//
-// Exported for tests only, as a way to reset the memory between cases; it is not part of
-// the package's declared surface, so nothing should depend on it staying here.
-const warned = new Set();
-
-function warnOnce(abc) {
-    if (warned.has(abc)) {
-        return;
-    }
-    warned.add(abc);
-    console.warn(
-        'pinyin-tone: "' + abc + '" was left as is. A syllable is written all lower case, ' +
-        'with its first letter capitalised, or in all caps; anything else was not converted.'
-    );
-}
-
 // 0 and 5 both mean the neutral tone, and the table keeps it at index 0. Any other digit
 // was rejected by the pattern already, so it cannot arrive here.
 function readTone(num) {
@@ -150,23 +130,17 @@ function toPinyinTones(longString) {
         // The table is keyed by lower case syllables, so case is a property of the input
         // rather than of the key: read which shape the piece was written in, look up the
         // lower case form, then put the shape back on the result.
+        //
+        // Two things are handed back untouched and silently. A syllable has exactly three
+        // spellings -- all lower case, first letter capitalised, all caps -- so mixed case
+        // ('hAo3') is none of them. And an ordinary word ('hello', 'iPhone') is not in the
+        // table at all. Reporting either one means a line of console noise for most of the
+        // text a caller feeds in, which is worse than no report: what comes back is the
+        // input, unchanged, and that is all the caller needs to know.
         const abc = match.groups.abc;
-        const entry = pinyin_dict_v2[abc.toLowerCase()];
         const shape = readCase(abc);
-
-        if (shape === MIXED) {
-            // A syllable has three spellings and this is none of them, so leave it alone.
-            // Say so only if the lower case form is a syllable at all: 'hAo3' is a mistyped
-            // 'hao3', while 'iPhone' and 'JavaScript' are ordinary words, and warning on
-            // every mixed-case word in the input makes the warning worthless.
-            if (Array.isArray(entry)) {
-                warnOnce(abc);
-            }
-            return str; // is NOT pinyin
-        }
-        if (!Array.isArray(entry)) {
-            // An ordinary word ('hello', 'constructor'). Saying anything here would warn on
-            // most of the input a caller feeds in, so it stays quiet.
+        const entry = pinyin_dict_v2[abc.toLowerCase()];
+        if (shape === MIXED || !Array.isArray(entry)) {
             return str; // is NOT pinyin
         }
 
@@ -206,4 +180,3 @@ function convertUnspacedPinyin(unspacedSyllables){
 export default toPinyinTones;
 export {splitUnspacedSyllables};
 export {convertUnspacedPinyin};
-export {warned as __warnedSpellings}; // tests only, see the comment on `warned`
