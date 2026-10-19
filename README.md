@@ -53,6 +53,9 @@ var bpmf = toPinyinTones("b p m f"); // -> 'b p m f'
 // Finals / 韵母 (yùn mǔ)
 var yun = toPinyinTones("an1 vn2 ong3 uen4"); // -> 'ān ǘn ǒng uèn'
 
+// Neutral tone: 0 and 5 mean the same thing
+var neutral = toPinyinTones("ma5 ma0"); // -> 'ma ma'
+
 // Special cases
 var liuyun = toPinyinTones("liou2 yuen2"); // -> (only in v2) 'lióu yuén'
 var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
@@ -61,7 +64,7 @@ var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
 var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // -> 'bōng tǘ pě wìr'
 ```
 
-## Usage v2 (Exprimental)
+## Usage v2 (Experimental)
 
 There is one key difference between `v1` and `v2`:
 
@@ -73,8 +76,10 @@ Instead, it supports the format `pinyin-r-number`, such as `huar1`.
 // CommonJS usage (up to version 2.2.7)
 var anotherPinyinTones = require('pinyin-tone/v2');
 
-// ES Module usage (breaking change in version 2.3.0)
-import anotherPinyinTones from 'pinyin-tone/v2';
+// ES Module usage (breaking change in version 2.3.0). The path needs the file name: an
+// ES module import of a directory is not supported, so 'pinyin-tone/v2' alone throws
+// ERR_UNSUPPORTED_DIR_IMPORT.
+import anotherPinyinTones from 'pinyin-tone/v2/index.js';
 
 console.log(anotherPinyinTones('qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men'));
 // -> 'qǐ lái bú yuàn zuò nú lì de rén men'
@@ -86,7 +91,7 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 ## Usage: convert unspaced syllables string to unspaced pinyin string (since v2.4.0)
 
 ```javascript
-import { convertUnspacedPinyin } from 'pinyin-tone/v2'; // since v2.4.0
+import { convertUnspacedPinyin } from 'pinyin-tone/v2/index.js'; // since v2.4.0
 
 console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn

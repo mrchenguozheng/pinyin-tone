@@ -51,14 +51,16 @@ import zh from './zh.js';
 import zhr from './zhr.js';
 import zr from './zr.js';
 
-const pinyin_dict_v2 = Object.assign({}, b, br, c, ch, chr, cr, d, dr, f, fr, g, gr, h, hr, j, jr, k, kr, l, lr, m, mr, n, nr, p, pr, q, qr, r, rr, s, sr, sh, shr, special, sr, t, tr, v, vr, w, wr, x, xr, y, yr, yunmu, yunmur, z, zh, zhr, zr);
-
-// console.log(pinyin_dict_v2)
+const pinyin_dict_v2 = Object.assign({}, b, br, c, ch, chr, cr, d, dr, f, fr, g, gr, h, hr, j, jr, k, kr, l, lr, m, mr, n, nr, p, pr, q, qr, r, rr, s, sr, sh, shr, special, t, tr, v, vr, w, wr, x, xr, y, yr, yunmu, yunmur, z, zh, zhr, zr);
 
 // The whole piece has to be a syllable. Without the anchors this matched a slice of the
-// text and threw the rest away: 'Hao3' became 'ǎo', 'aX1' became 'a', '  ' became ''.
+// text and threw the rest away: 'Hao3' became 'ǎo', 'aX1' became 'a'.
 // Upper case is part of the match so that 'Hao3' converts instead of being cut at 'H'.
-const regex = /^(?<abc>[A-Za-z]+)(?<num>[01234^]?)$/;
+//
+// '^' used to be accepted as a tone and then dropped, because parseInt('^') is NaN and the
+// fallback read that as the neutral tone: 'e^' came back as 'e' where v1 gives 'ê'. This
+// table has no ê entries, so the marker is not accepted at all and 'e^' stays as written.
+const regex = /^(?<abc>[A-Za-z]+)(?<num>[012345]?)$/;
 
 // How a syllable was capitalised. A syllable is written all lower case, or with its first
 // letter capitalised, or all caps. Anything else ('hAo3', 'HaO3') is not a spelling anyone
@@ -92,8 +94,9 @@ function applyCase(toned, shape) {
 }
 
 // One warning per spelling, so that a caller looping over a thousand lines gets one line of
-// console noise and not a thousand. Warnings are advisory: the return value is the same
-// either way, and nothing here throws.
+// console noise and not a thousand. Only syllables are ever added, so the set cannot grow
+// past the dictionary no matter how much text goes through. Warnings are advisory: the
+// return value is the same either way, and nothing here throws.
 //
 // Exported for tests only, as a way to reset the memory between cases; it is not part of
 // the package's declared surface, so nothing should depend on it staying here.
@@ -110,6 +113,13 @@ function warnOnce(abc) {
     );
 }
 
+// 0 and 5 both mean the neutral tone, and the table keeps it at index 0. Any other digit
+// was rejected by the pattern already, so it cannot arrive here.
+function readTone(num) {
+    const tone = parseInt(num, 10);
+    return tone >= 1 && tone <= 4 ? tone : 0;
+}
+
 /**
  *
  * @param {string} longString
@@ -123,9 +133,15 @@ function toPinyinTones(longString) {
         return longString;
     }
 
-    const stringArray = longString.trim().split(' ');
+    // Split on whitespace and keep the separators, so the text comes back the shape it went
+    // in: '  ma1  ' keeps its spaces, and 'ma1\nma2' converts both lines. Splitting on a
+    // single space and trimming meant a leading space was dropped and a line break anywhere
+    // left the whole input untouched.
+    return longString.split(/(\s+)/).map((str) => {
+        if (str === '' || /^\s+$/.test(str)) {
+            return str;
+        }
 
-    return stringArray.map((str) => {
         const match = regex.exec(str);
         if (!match) {
             return str; // is NOT pinyin
@@ -135,23 +151,27 @@ function toPinyinTones(longString) {
         // rather than of the key: read which shape the piece was written in, look up the
         // lower case form, then put the shape back on the result.
         const abc = match.groups.abc;
+        const entry = pinyin_dict_v2[abc.toLowerCase()];
         const shape = readCase(abc);
+
         if (shape === MIXED) {
-            // A syllable has three spellings and this is none of them, so leave it alone and
-            // say so: the text comes back unchanged, which looks like success, and the only
-            // sign of trouble is a tone mark missing much later.
-            warnOnce(abc);
+            // A syllable has three spellings and this is none of them, so leave it alone.
+            // Say so only if the lower case form is a syllable at all: 'hAo3' is a mistyped
+            // 'hao3', while 'iPhone' and 'JavaScript' are ordinary words, and warning on
+            // every mixed-case word in the input makes the warning worthless.
+            if (Array.isArray(entry)) {
+                warnOnce(abc);
+            }
             return str; // is NOT pinyin
         }
-        if (!Array.isArray(pinyin_dict_v2[abc.toLowerCase()])) {
+        if (!Array.isArray(entry)) {
             // An ordinary word ('hello', 'constructor'). Saying anything here would warn on
             // most of the input a caller feeds in, so it stays quiet.
             return str; // is NOT pinyin
         }
 
-        const toned = pinyin_dict_v2[abc.toLowerCase()][parseInt(match.groups.num) || 0];
-        return applyCase(toned, shape);
-    }).join(' ');
+        return applyCase(entry[readTone(match.groups.num)], shape);
+    }).join('');
 }
 
 /**
