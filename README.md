@@ -56,8 +56,9 @@ var yun = toPinyinTones("an1 vn2 ong3 uen4"); // -> 'ān ǘn ǒng uèn'
 // Neutral tone: 0 and 5 mean the same thing
 var neutral = toPinyinTones("ma5 ma0"); // -> 'ma ma'
 
-// Special cases
-var liuyun = toPinyinTones("liou2 yuen2"); // -> (only in v2) 'lióu yuén'
+// Full forms of the finals: v1 folds `liou` to `liu` and `yuen` to `yun`,
+// v2 spells them out
+var liuyun = toPinyinTones("liou2 yuen2"); // -> 'liú yún' (v2: 'lióu yuén')
 var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
 
 // Some less common combinations
@@ -66,14 +67,15 @@ var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // -> 'bōng tǘ pě wìr'
 
 ## Usage v2 (Experimental)
 
-There is one key difference between `v1` and `v2`:
+`v2` reads syllables from a table instead of matching them with a pattern, so the two agree
+on ordinary syllables and differ on the full forms of the finals: `'liou2 yuen2'` comes back
+as `'lióu yuén'` where v1 gives `'liú yún'`.
 
-v2 does not support the format `pinyin-number-r` (e.g., `hua1r`) for erhua pronunciation.
-
-Instead, it supports the format `pinyin-r-number`, such as `huar1`.
+Erhua is written the same way in both — `pinyin-r-number`, as in `huar1`. Neither accepts the
+`pinyin-number-r` form (`hua1r`); both hand it back unchanged.
 
 ```javascript
-// CommonJS usage (up to version 2.2.7)
+// CommonJS usage (up to version 2.2.7; 2.3.0 and later ship ES modules only)
 var anotherPinyinTones = require('pinyin-tone/v2');
 
 // ES Module usage (breaking change in version 2.3.0). The path needs the file name: an
