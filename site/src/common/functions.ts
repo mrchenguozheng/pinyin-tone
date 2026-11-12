@@ -19,5 +19,6 @@ export const toPinyin = {
 	/** v3 — the 3.0 rewrite. Named export only, no default. */
 	v3: markTones,
 	/** 3.0 removed `convertUnspacedPinyin`; gluing the output is a call-site decision. */
-	v3Unspaced: (text: string) => markTones(text).replace(/ /g, ""),
+	v3Unspaced: (text: string, options?: Parameters<typeof markTones>[1]) =>
+		markTones(text, options).replace(/ /g, ""),
 };
