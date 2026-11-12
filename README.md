@@ -3,6 +3,9 @@
 Convert numeric tone notation (`hao3`) to Pinyin diacritics (`hǎo`). One function, no
 dependencies; unspaced or mixed text needs no preprocessing.
 
+**Live demo:** <https://mrchenguozheng.github.io/pinyin-tone/> — v1, v2 and 3.0 on the
+same input, in the browser.
+
 [中文文档](https://github.com/mrchenguozheng/pinyin-tone/blob/master/docs/README.zh.md) · 中文版与 `docs/` 都不随 npm 包发布，只在仓库里
 
 [![NPM](https://nodei.co/npm/pinyin-tone.png)](https://nodei.co/npm/pinyin-tone/)
