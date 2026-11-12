@@ -1,0 +1,649 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { toPinyin } from "../common/functions";
+import { NPM_LINK, GITHUB_LINK } from "../common/links";
+
+type Expectation = string | undefined;
+
+interface TestCase {
+	id: string;
+	input: string;
+	/** Expected output of v1 — the 2.x root export. */
+	v1?: Expectation;
+	/** Expected output of v2 — the 2.x `pinyin-tone/v2` subpath. */
+	v2?: Expectation;
+	/** Expected output of v3 — `markTones` from 3.0. */
+	v3?: Expectation;
+	note?: string;
+}
+
+const tests: TestCase[] = [
+	{ id: "1", input: "test", v1: "test", v2: "test", v3: "test" },
+	{
+		id: "2",
+		input: "chu1 yin1 wei4 lai2",
+		v1: "chū yīn wèi lái",
+		v2: "chū yīn wèi lái",
+		v3: "chū yīn wèi lái",
+	},
+	{
+		id: "3",
+		input: "xun2 yin1 liu2 ge1",
+		v1: "xún yīn liú gē",
+		v2: "xún yīn liú gē",
+		v3: "xún yīn liú gē",
+	},
+	{
+		id: "4",
+		input: "han4 yu3 pin1 yin1 fang1 an4",
+		v1: "hàn yǔ pīn yīn fāng àn",
+		v2: "hàn yǔ pīn yīn fāng àn",
+		v3: "hàn yǔ pīn yīn fāng àn",
+	},
+	{
+		id: "5",
+		input: "huar1 renr2 shuir3 yuer4",
+		v1: "huār rénr shuǐr yuèr",
+		v2: "huār rénr shuǐr yuèr",
+		v3: "huār rénr shuǐr yuèr",
+		note: "erhua",
+	},
+	{
+		id: "6",
+		input: "b p m f",
+		v1: "b p m f",
+		v2: "b p m f",
+		v3: "b p m f",
+		note: "initials",
+	},
+	{
+		id: "7",
+		input: "an1 vn2 ong3 uen4",
+		v1: "ān ǘn ǒng uèn",
+		v2: "ān ǘn ǒng uèn",
+		v3: "ān ǘn ǒng uèn",
+		note: "finals",
+	},
+	{
+		id: "8",
+		input: "liou2 yuen2",
+		v1: "liú yún",
+		v2: "lióu yuén",
+		v3: "lióu yuén",
+		note: "full forms: v1 folds them, v2 and v3 spell them out",
+	},
+	{
+		id: "9",
+		input: "iou1 uen4",
+		v1: "iōu uèn",
+		v2: "iōu uèn",
+		v3: "iōu uèn",
+	},
+	{
+		id: "10",
+		input: "bong1 tv2 pe3 wir4",
+		v1: "bōng tǘ pě wìr",
+		v2: "bōng tǘ pě wìr",
+		v3: "bōng tǘ pě wìr",
+		note: "non-standard but spoken syllables",
+	},
+	{
+		id: "11",
+		input: "qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men",
+		v1: "qǐ lái bú yuàn zuò nú lì de rén men",
+		v2: "qǐ lái bú yuàn zuò nú lì de rén men",
+		v3: "qǐ lái bú yuàn zuò nú lì de rén men",
+	},
+	{
+		id: "12",
+		input: "huar1 wei4 shen2 me zhe4 yang4 hong2",
+		v1: "huār wèi shén me zhè yàng hóng",
+		v2: "huār wèi shén me zhè yàng hóng",
+		v3: "huār wèi shén me zhè yàng hóng",
+	},
+	// The five below are where 3.0 diverges: they are the reason a 2.x caller cannot upgrade
+	// blind. Each one is asserted against v3 only, and the v1/v2 output is shown as it is.
+	{
+		id: "13",
+		input: "han4yu3pin1yin1",
+		v3: "hànyǔpīnyīn",
+		note: "unspaced input; 2.x needs convertUnspacedPinyin, 3.0 reads it directly",
+	},
+	{
+		id: "14",
+		input: "Hao3",
+		v3: "Hǎo",
+		note: "capitalised syllable; 2.x cuts at the capital",
+	},
+	{
+		id: "15",
+		input: "今天ni3hao3",
+		v3: "今天nǐhǎo",
+		note: "pinyin glued to Han characters",
+	},
+	{
+		id: "16",
+		input: "jv1 ju1 ju:1",
+		v3: "jū jū jǖ",
+		note: "ü written three ways",
+	},
+	{
+		id: "17",
+		input: "lu:e4",
+		v3: "lüè",
+		note: "colon as the two dots",
+	},
+];
+
+const rows = tests.map((test) => ({
+	...test,
+	v1out: toPinyin.v1(test.input),
+	v2out: toPinyin.v2(test.input),
+	v3out: toPinyin.v3(test.input),
+}));
+
+const installV3 = `npm install pinyin-tone@next`;
+
+const usageV3 = `import { markTones } from "pinyin-tone";
+
+markTones("chu1 yin1 wei4 lai2");      // "chū yīn wèi lái"
+markTones("han4yu3pin1yin1");           // "hànyǔpīnyīn"
+markTones("今天ni3hao3");                // "今天nǐhǎo"
+markTones("jv1 ju1 ju:1");              // "jū jū jǖ"
+
+// options: strict limits to the 426 standard syllables,
+// skip keeps all-caps codes such as M2 as written
+markTones("duang1 jui1", { strict: true });        // "duang1 jui1"
+markTones("M2 货币供应量", { skip: "M2" });          // "M2 货币供应量"`;
+
+const usageV2 = `import toPinyinTones from "pinyin-tone";            // v1
+import v2, { convertUnspacedPinyin } from "pinyin-tone/v2/index.js";
+
+toPinyinTones("han4 yu3 pin1 yin1");       // "hàn yǔ pīn yīn"
+v2("liou2 yuen2");                          // "lióu yuén"
+convertUnspacedPinyin("han4yu3pin1yin1");   // "hànyǔpīnyīn"`;
+
+const migrateRows: Array<[string, string]> = [
+	[
+		'import toPinyinTones from "pinyin-tone"',
+		'import { markTones } from "pinyin-tone"',
+	],
+	['import v2 from "pinyin-tone/v2"', "merged into markTones"],
+	[
+		'import { convertUnspacedPinyin } from "pinyin-tone/v2"',
+		'markTones(x).replace(/ /g, "")',
+	],
+	[
+		'import { markSinglePinyinVowel } from "pinyin-tone"',
+		"superseded by markTones + its options",
+	],
+	["pinyin-tone/v1 and splitUnspacedSyllables", "removed in 3.0"],
+];
+
+const examples = [
+	"han4yu3pin1yin1",
+	"今天ni3hao3",
+	"Hao3",
+	"liou2 yuen2",
+	"jv1 ju1 ju:1",
+	"lu:e4",
+	"M2 A4 N3",
+];
+---
+
+<Layout>
+	<header class="hero">
+		<h1>Pinyin Tone</h1>
+		<p class="hero-tones" aria-hidden="true">hàn yǔ pīn yīn fāng àn</p>
+		<p class="hero-sub">
+			Numeric pinyin in, tone-marked pinyin out. Three generations of the same
+			library, running live in your browser.
+		</p>
+		<p class="hero-lede">
+			Type numeric pinyin such as <code>han4 yu3</code> or <code>han4yu3</code>
+			and get standard accented pinyin: <code>hàn yǔ</code> or
+			<code>hànyǔ</code>. This page runs
+			<a href={NPM_LINK} target="_blank" rel="noreferrer">pinyin-tone</a> v1, v2
+			and v3 against the same input, so the differences are visible rather than
+			described.
+		</p>
+	</header>
+
+	<h2>Which version is which</h2>
+	<div class="card-grid">
+		<div class="card">
+			<div class="card-head">
+				<span class="pill pill-v1">v1</span>
+				<span class="card-title">The 2.x root export</span>
+			</div>
+			<code class="entry">import toPinyin from "pinyin-tone"</code>
+			<p class="muted card-note">
+				Pattern based; folds <code>liou</code> to <code>liu</code> and
+				<code>yuen</code> to <code>yun</code>. Removed in 3.0.
+			</p>
+		</div>
+		<div class="card">
+			<div class="card-head">
+				<span class="pill pill-v2">v2</span>
+				<span class="card-title">The experimental subpath</span>
+			</div>
+			<code class="entry">import v2 from "pinyin-tone/v2"</code>
+			<p class="muted card-note">
+				Table based, keeps the full forms of the finals — and the
+				implementation 3.0 is built from.
+			</p>
+		</div>
+		<div class="card card-current">
+			<div class="card-head">
+				<span class="pill">v3</span>
+				<span class="card-title">The 3.0 rewrite</span>
+			</div>
+			<code class="entry">import &#123; markTones &#125; from "pinyin-tone"</code>
+			<p class="muted card-note">
+				Published under the <code>next</code> tag. Named export only — no
+				default — plus <code>strict</code> and <code>skip</code> options.
+			</p>
+		</div>
+	</div>
+
+	<h2 id="try">Try it</h2>
+	<div class="panel">
+		<label class="input-label" for="input">
+			Type numeric pinyin, or pick an example
+		</label>
+		<input
+			id="input"
+			type="text"
+			placeholder="han4 yu3 pin1 yin1"
+			value="han4 yu3 pin1 yin1"
+			autocapitalize="off"
+			autocomplete="off"
+			spellcheck="false"
+		/>
+		<div class="examples">
+			{
+				examples.map((example) => (
+					<button type="button" data-fill={example}>
+						{example}
+					</button>
+				))
+			}
+		</div>
+
+		<div class="opt-row">
+			<label>
+				<input id="strict" type="checkbox" />
+				<span><code>strict</code> — only the 426 standard syllables</span>
+			</label>
+			<label class="skip-label">
+				<span><code>skip</code> —</span>
+				<input id="skip" type="text" placeholder="M2, A4" value="M2, A4" />
+			</label>
+		</div>
+
+		<div class="card-grid output-grid">
+			<div class="card">
+				<div class="card-head">
+					<span class="pill pill-v1">v1</span>
+					<span class="card-title">root export</span>
+				</div>
+				<div class="result" id="out-v1"></div>
+				<div class="copy-row">
+					<button type="button" class="copy-btn" data-copy="out-v1">
+						Copy
+					</button>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">
+					<span class="pill pill-v2">v2</span>
+					<span class="card-title">/v2 subpath</span>
+				</div>
+				<div class="result" id="out-v2"></div>
+				<div class="copy-row">
+					<button type="button" class="copy-btn" data-copy="out-v2">
+						Copy
+					</button>
+				</div>
+			</div>
+			<div class="card card-current">
+				<div class="card-head">
+					<span class="pill">v3</span>
+					<span class="card-title">markTones</span>
+				</div>
+				<div class="result" id="out-v3"></div>
+				<div class="copy-row">
+					<button type="button" class="copy-btn" data-copy="out-v3">
+						Copy
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="unspaced-grid">
+			<div class="unspaced-cell">
+				<div class="unspaced-label">
+					<span>v3 unspaced</span>
+					<button type="button" class="copy-btn" data-copy="out-v3-unspaced">
+						Copy
+					</button>
+				</div>
+				<code class="result result-small" id="out-v3-unspaced"></code>
+			</div>
+			<div class="unspaced-cell">
+				<div class="unspaced-label">
+					<span>v2 unspaced</span>
+					<button type="button" class="copy-btn" data-copy="out-v2-unspaced">
+						Copy
+					</button>
+				</div>
+				<code class="result result-small" id="out-v2-unspaced"></code>
+			</div>
+		</div>
+
+		<p class="muted footnote">
+			3.0 dropped <code>convertUnspacedPinyin</code>: gluing the output is a
+			call-site decision now, <code>markTones(x).replace(/ /g, "")</code>. The v1
+			row is the only one that leaves <code>han4yu3</code> untouched — v1 has no
+			way to cut it into syllables.
+		</p>
+	</div>
+
+	<script>
+		import { toPinyin } from "../common/functions";
+
+		const input = document.querySelector<HTMLInputElement>("#input")!;
+		const strict = document.querySelector<HTMLInputElement>("#strict")!;
+		const skip = document.querySelector<HTMLInputElement>("#skip")!;
+
+		const outV1 = document.querySelector<HTMLElement>("#out-v1")!;
+		const outV2 = document.querySelector<HTMLElement>("#out-v2")!;
+		const outV3 = document.querySelector<HTMLElement>("#out-v3")!;
+		const outV3Unspaced =
+			document.querySelector<HTMLElement>("#out-v3-unspaced")!;
+		const outV2Unspaced =
+			document.querySelector<HTMLElement>("#out-v2-unspaced")!;
+
+		const render = () => {
+			const text = input.value;
+			const skipCodes = skip.value
+				.split(",")
+				.map((code) => code.trim())
+				.filter(Boolean);
+
+			outV1.textContent = toPinyin.v1(text);
+			outV2.textContent = toPinyin.v2(text);
+			outV3.textContent = toPinyin.v3(text, {
+				strict: strict.checked,
+				skip: skipCodes.length ? skipCodes : undefined,
+			});
+			outV3Unspaced.textContent = toPinyin.v3Unspaced(text);
+			outV2Unspaced.textContent = toPinyin.convertUnspacedPinyin(text);
+		};
+
+		input.addEventListener("input", render);
+		strict.addEventListener("change", render);
+		skip.addEventListener("input", render);
+
+		document.querySelectorAll<HTMLButtonElement>("[data-fill]").forEach((btn) => {
+			btn.addEventListener("click", () => {
+				input.value = btn.dataset.fill ?? "";
+				render();
+				input.focus();
+			});
+		});
+
+		document
+			.querySelectorAll<HTMLButtonElement>("[data-copy]")
+			.forEach((btn) => {
+				btn.addEventListener("click", async () => {
+					const target = document.getElementById(btn.dataset.copy ?? "");
+					if (!target) return;
+					await navigator.clipboard.writeText(target.textContent ?? "");
+					const label = btn.textContent;
+					btn.textContent = "Copied";
+					setTimeout(() => {
+						btn.textContent = label;
+					}, 1200);
+				});
+			});
+
+		render();
+	</script>
+
+	<h2>Usage</h2>
+
+	<h3>3.0 (current, under the <code>next</code> tag)</h3>
+	<pre><code>{installV3}</code></pre>
+	<pre><code>{usageV3}</code></pre>
+
+	<h3>2.x (what a plain install gives you)</h3>
+	<pre><code>{usageV2}</code></pre>
+
+	<h3>Moving from 2.x to 3.0</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>2.x</th>
+				<th>3.0</th>
+			</tr>
+		</thead>
+		<tbody>
+			{
+				migrateRows.map(([oldWay, newWay]) => (
+					<tr>
+						<td>
+							<code>{oldWay}</code>
+						</td>
+						<td>
+							<code>{newWay}</code>
+						</td>
+					</tr>
+				))
+			}
+		</tbody>
+	</table>
+
+	<p class="muted">
+		Nothing that converted correctly under 2.x changes silently: 3.0 has no
+		default export, so an old <code>import toPinyin from "pinyin-tone"</code>
+		fails loudly rather than returning <code>undefined</code>. See the
+		<a href={GITHUB_LINK} target="_blank" rel="noreferrer">repository</a> for the
+		full changelog.
+	</p>
+
+	<h2 id="tests">Test cases</h2>
+
+	<p>
+		Every row below is run at build time and again in your browser. A cell shows
+		the output; a tick means it matches the expected value declared for that
+		version, a cross means it does not.
+	</p>
+
+	<table>
+		<thead>
+			<tr>
+				<th>#</th>
+				<th>Input</th>
+				<th>v1</th>
+				<th>v2</th>
+				<th>v3</th>
+			</tr>
+		</thead>
+		<tbody>
+			{
+				rows.map((row) => (
+					<tr>
+						<td class="cell-id">{row.id}</td>
+						<td>
+							<code>{row.input}</code>
+							{row.note && <div class="muted note">{row.note}</div>}
+						</td>
+						<td>
+							<code>{row.v1out}</code>
+							{row.v1 !== undefined &&
+								(row.v1out === row.v1 ? (
+									<span class="ok"> ✓</span>
+								) : (
+									<span class="bad"> ✗</span>
+								))}
+						</td>
+						<td>
+							<code>{row.v2out}</code>
+							{row.v2 !== undefined &&
+								(row.v2out === row.v2 ? (
+									<span class="ok"> ✓</span>
+								) : (
+									<span class="bad"> ✗</span>
+								))}
+						</td>
+						<td>
+							<code>{row.v3out}</code>
+							{row.v3 !== undefined &&
+								(row.v3out === row.v3 ? (
+									<span class="ok"> ✓</span>
+								) : (
+									<span class="bad"> ✗</span>
+								))}
+						</td>
+					</tr>
+				))
+			}
+		</tbody>
+	</table>
+
+	<p class="muted">
+		Rows 13–17 carry no v1/v2 expectation on purpose: they are the inputs where
+		3.0 behaves differently, and where 2.x returns something that is visibly
+		wrong — a truncated syllable, or the input unchanged.
+	</p>
+
+	<h2>Licence</h2>
+	<p>
+		MIT · <a href={NPM_LINK} target="_blank" rel="noreferrer">NPM</a> ·
+		<a href={GITHUB_LINK} target="_blank" rel="noreferrer">GitHub</a>
+	</p>
+</Layout>
+
+<style>
+	.hero {
+		padding-top: 0.4rem;
+	}
+
+	.hero-tones {
+		font-family: var(--sans);
+		font-weight: 600;
+		font-size: 1.15rem;
+		letter-spacing: 0.22em;
+		color: var(--accent);
+		margin: 0 0 1rem;
+		opacity: 0.9;
+	}
+
+	.entry {
+		font-size: 0.8rem;
+		align-self: flex-start;
+		white-space: normal;
+		word-break: break-all;
+	}
+
+	.card-note {
+		font-size: 0.84rem;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.card-current {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--accent) 7%, var(--bg-soft)),
+			var(--bg-soft)
+		);
+	}
+
+	.pill-v1 {
+		background: var(--muted);
+	}
+
+	.pill-v2 {
+		background: #7c5cdb;
+		color: #fff;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.pill-v2 {
+			color: #17131f;
+		}
+	}
+
+	.input-label {
+		display: block;
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.55rem;
+	}
+
+	.output-grid {
+		margin-top: 1.5rem;
+	}
+
+	.unspaced-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.9rem;
+		margin-top: 0.9rem;
+	}
+
+	.unspaced-cell {
+		background: var(--bg-inset);
+		border: 1px dashed var(--line-strong);
+		border-radius: 10px;
+		padding: 0.7rem 0.9rem;
+	}
+
+	.unspaced-label {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.78rem;
+		font-weight: 650;
+		color: var(--muted);
+		margin-bottom: 0.3rem;
+	}
+
+	.result-small {
+		font-size: 0.98rem;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.footnote {
+		font-size: 0.85rem;
+		margin-top: 1.2rem;
+		margin-bottom: 0;
+	}
+
+	.cell-id {
+		font-family: var(--mono);
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.note {
+		font-size: 0.76rem;
+		margin-top: 0.15rem;
+		max-width: 24ch;
+		line-height: 1.45;
+	}
+
+	.skip-label input {
+		width: 180px;
+	}
+
+	@media (max-width: 720px) {
+		.unspaced-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

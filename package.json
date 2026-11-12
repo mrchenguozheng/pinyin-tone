@@ -1,0 +1,17 @@
+{
+  "name": "pinyin-tone-usage",
+  "type": "module",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.18.1",
+    "pinyin-tone": "2.4.1",
+    "pinyin-tone-v3": "npm:pinyin-tone@3.0.1"
+  }
+}
