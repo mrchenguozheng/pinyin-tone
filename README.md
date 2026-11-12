@@ -13,20 +13,20 @@ Designed for developers and learners who need accurate tone mark formatting in l
 通过NPM安装：
 
 ```bash
-npm install pinyin-tone
+npm install pinyin-tone@legacy
 ```
 
-This installs 2.4.1. Version 3.0.0 is published under the `next` tag — it is a rewrite, not an
-upgrade path, so it is not offered by a plain install:
+That is 2.5.0, the last release of the 2.x line — everything on this page documents it. A
+plain `npm install pinyin-tone` now installs 3.0, which is a rewrite rather than an upgrade
+path: the default export becomes a named one (`import {markTones} from 'pinyin-tone'`), and
+`v1`, `v2` and `workaround` are folded into that single function, with no subpaths left.
 
-```bash
-npm install pinyin-tone@next
-```
+Code written for 2.x does not run against 3.0 unchanged — it fails on the missing named
+export instead of returning something wrong, so the mistake is loud. Migration notes are in
+the repository, under
+[`docs/migrating.md`](https://github.com/mrchenguozheng/pinyin-tone/blob/master/docs/migrating.md).
 
-3.0.0 replaces the default export with a named one (`import {markTones} from 'pinyin-tone'`),
-merges `v2` and `workaround` into that single function, and adds a CommonJS entry of its own.
-Code written for 2.x does **not** run against it unchanged; the `npm install pinyin-tone` line
-above keeps 2.4.1.
+Node.js 14 or later (`engines`).
 
 ## Usage (Default Behavior)
 
@@ -68,15 +68,17 @@ var iou_uen = toPinyinTones("iou1 uen4"); // -> 'iōu uèn' (pure final only)
 var fantastic = toPinyinTones("bong1 tv2 pe3 wir4"); // -> 'bōng tǘ pě wìr'
 ```
 
-`v1`, `v2` and `workaround` are also available as subpaths, in both systems:
+`v1`, `v2` and `workaround` are also available as subpaths, in both systems. Since 2.5.0
+there is an `exports` map, so the subpath is the whole path — the older
+`pinyin-tone/v2/index.js` spelling now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 
 ```javascript
+// CommonJS — the subpath itself is callable, and its named exports hang off it
+const v2 = require('pinyin-tone/v2');
+const convertUnspacedPinyin = require('pinyin-tone/v2').convertUnspacedPinyin;
+
 // ES module
 // import v2, {convertUnspacedPinyin} from 'pinyin-tone/v2';
-
-// CommonJS — the subpath is callable, and its named exports hang off it
-var v2 = require('pinyin-tone/v2');
-var convertUnspacedPinyin = require('pinyin-tone/v2').convertUnspacedPinyin;
 
 v2('ni3 hao3'); // -> 'nǐ hǎo'
 convertUnspacedPinyin('han4yu3pin1yin1'); // -> 'hànyǔpīnyīn'
@@ -92,13 +94,12 @@ Erhua is written the same way in both — `pinyin-r-number`, as in `huar1`. Neit
 `pinyin-number-r` form (`hua1r`); both hand it back unchanged.
 
 ```javascript
-// CommonJS usage (up to version 2.2.7; 2.3.0 and later ship ES modules only)
+// CommonJS — a copy generated from the same source, same answers.
+// 2.3.0 through 2.4.x dropped this; 2.5.0 brings it back.
 var anotherPinyinTones = require('pinyin-tone/v2');
 
-// ES Module usage (breaking change in version 2.3.0). The path needs the file name: an
-// ES module import of a directory is not supported, so 'pinyin-tone/v2' alone throws
-// ERR_UNSUPPORTED_DIR_IMPORT.
-import anotherPinyinTones from 'pinyin-tone/v2/index.js';
+// ES module
+// import anotherPinyinTones from 'pinyin-tone/v2';
 
 console.log(anotherPinyinTones('qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men'));
 // -> 'qǐ lái bú yuàn zuò nú lì de rén men'
@@ -107,16 +108,17 @@ console.log(anotherPinyinTones('huar1 wei4 shen2 me zhe4 yang4 hong2'));
 // -> 'huār wèi shén me zhè yàng hóng'
 ```
 
-## Usage: convert unspaced syllables string to unspaced pinyin string (since v2.4.0)
+## Usage: unspaced input to unspaced output (since v2.4.0)
 
 ```javascript
-import { convertUnspacedPinyin } from 'pinyin-tone/v2/index.js'; // since v2.4.0
+import { convertUnspacedPinyin } from 'pinyin-tone/v2'; // since v2.4.0
 
 console.log(convertUnspacedPinyin('han4yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3pin1yin1')); // hànyǔpīnyīn
 console.log(convertUnspacedPinyin('han4 yu3  pin1   yin1')); // hànyǔpīnyīn
 
-// always add a space or a `0` between two syllables if the first syllable does not end with a tone number
+// A syllable with no tone number cannot be delimited: put a space or a `0` after it,
+// or the next syllable has no boundary to start from.
 console.log(convertUnspacedPinyin('hanyu3pin1yin1')); // hanyu3pīnyīn
 // like this
 console.log(convertUnspacedPinyin('han yu3pin1yin1')); // hanyǔpīnyīn
@@ -134,13 +136,17 @@ If you find any bugs, glitches, or have feature requests, please [submit them he
 
 ## Changelog
 
-For update history, see the [CHANGELOG here](https://github.com/mrchenguozheng/pinyin-tone/blob/master/CHANGELOG.md).
+For update history, see the [CHANGELOG here](https://github.com/mrchenguozheng/pinyin-tone/blob/maintain/2.x/CHANGELOG.md).
+That is the 2.x branch's copy — the one on `master` stops at 2.4.1 and then covers 3.x.
 
 ## Tests
 
-see `test/*.js`.
+```bash
+npm test
+```
 
-Tests have been rewritten. — 2025-03-16
+That runs mocha, compares the generated CommonJS copies against the sources they came from,
+and type-checks both the sources and the `.d.ts` files. The cases are in `test/*.js`.
 
 ## License
 
