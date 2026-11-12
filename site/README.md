@@ -10,6 +10,9 @@ library's Pages workflow and shares that root with `CONTRIBUTORS.svg`, so
 `astro.config.mjs` keeps `base: '/pinyin-tone'` and every in-site path is built from
 `import.meta.env.BASE_URL` — note it has no trailing slash.
 
+This directory never reaches npm: `scripts/check-pack.mjs` at the repository root fails if
+anything under `site/` shows up in the tarball — the same guard that keeps `docs/` out.
+
 ## Development
 
 ```bash
