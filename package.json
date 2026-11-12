@@ -39,8 +39,7 @@
     "v1",
     "v2",
     "workaround",
-    "dist",
-    "CHANGELOG.md"
+    "dist"
   ],
   "scripts": {
     "build:cjs": "node scripts/build-cjs.mjs",

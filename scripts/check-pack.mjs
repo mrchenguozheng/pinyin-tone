@@ -17,6 +17,7 @@ const FORBIDDEN = [
     ['.travis.yml', '已废弃的 CI 配置'],
     ['tsconfig.json', '类型检查配置，运行时不读'],
     ['tsconfig.types.json', '类型检查配置，运行时不读'],
+    ['CHANGELOG.md', '更新日志只给仓库看，npm 页只渲染 README；3.0 也不带它'],
 ];
 
 // 包里必须有的文件：少一个就说明 files 白名单写漏了
