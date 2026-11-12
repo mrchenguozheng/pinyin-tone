@@ -1,0 +1,425 @@
+---
+interface Props {
+	title?: string;
+	description?: string;
+}
+
+const {
+	title = "Pinyin Tone — numeric pinyin to tone marks",
+	description = "Convert numeric pinyin such as han4 yu3 to tone-marked pinyin (hàn yǔ). Live demo of pinyin-tone v1, v2 and v3.",
+} = Astro.props;
+
+// BASE_URL is "/pinyin-tone" for a project page and "/" for a domain root — no trailing
+// slash in either case, so the join has to add one. Writing "/favicon.svg" by hand 404s.
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<title>{title}</title>
+	</head>
+	<body>
+		<div class="topbar" aria-hidden="true"></div>
+		<main>
+			<slot />
+		</main>
+		<footer class="site-footer">
+			<p>
+				Built with <a href="https://astro.build" target="_blank" rel="noreferrer">Astro</a>
+				· <a href="https://www.npmjs.com/package/pinyin-tone" target="_blank" rel="noreferrer">pinyin-tone</a> on
+				<a href="https://github.com/mrchenguozheng/pinyin-tone" target="_blank" rel="noreferrer">GitHub</a>
+			</p>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	/* ---------------------------------- tokens ---------------------------------- */
+	:root {
+		--bg: #fafaf7;
+		--bg-soft: #ffffff;
+		--bg-inset: #f1f1ec;
+		--fg: #1d222b;
+		--muted: #6b7280;
+		--line: #e4e4dd;
+		--line-strong: #cfcfd4;
+		--accent: #3d5bdb;
+		--accent-soft: #eceffe;
+		--on-accent: #ffffff;
+		--ok: #187743;
+		--bad: #bb3a2e;
+		--serif: "Iowan Old Style", "Palatino Linotype", "Songti SC", Georgia, serif;
+		--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", "Microsoft YaHei", sans-serif;
+		--mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "JetBrains Mono", monospace;
+		--radius: 12px;
+		color-scheme: light dark;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #101216;
+			--bg-soft: #171a20;
+			--bg-inset: #0c0e12;
+			--fg: #e7e9ee;
+			--muted: #98a1b3;
+			--line: #262b35;
+			--line-strong: #39404e;
+			--accent: #8aa3ff;
+			--accent-soft: #1c2340;
+			--on-accent: #10131c;
+			--ok: #6fd394;
+			--bad: #ff8f84;
+		}
+	}
+
+	/* ---------------------------------- base ---------------------------------- */
+	* {
+		box-sizing: border-box;
+	}
+
+	html,
+	body {
+		margin: 0;
+		min-height: 100%;
+	}
+
+	body {
+		background: var(--bg);
+		color: var(--fg);
+		font-family: var(--sans);
+		font-size: 16px;
+		line-height: 1.65;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	main {
+		max-width: 880px;
+		margin: 0 auto;
+		padding: 0 1.5rem 4rem;
+	}
+
+	/* ---------------------------------- hero ---------------------------------- */
+	.topbar {
+		height: 4px;
+		background: linear-gradient(90deg, #3d5bdb, #7c5cdb, #b45295, #d97757);
+	}
+
+	h1 {
+		font-family: var(--serif);
+		font-size: clamp(2.3rem, 6vw, 3.2rem);
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		line-height: 1.12;
+		margin: 3.2rem 0 0.4rem;
+	}
+
+	h1 .toned {
+		color: var(--accent);
+	}
+
+	.hero-sub {
+		font-size: 1.08rem;
+		color: var(--muted);
+		margin: 0 0 1.6rem;
+		max-width: 42em;
+	}
+
+	.hero-lede {
+		font-size: 1rem;
+		max-width: 44em;
+	}
+
+	/* ---------------------------------- headings ---------------------------------- */
+	h2 {
+		font-family: var(--serif);
+		font-size: 1.45rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		margin: 3.2rem 0 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+	}
+
+	h2::before {
+		content: "";
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
+		background: var(--accent);
+		flex: none;
+	}
+
+	h3 {
+		font-size: 1.02rem;
+		font-weight: 650;
+		margin: 1.9rem 0 0.6rem;
+	}
+
+	p {
+		margin: 0.65rem 0;
+	}
+
+	a {
+		color: var(--accent);
+		text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+		text-underline-offset: 3px;
+	}
+
+	a:hover {
+		text-decoration-color: var(--accent);
+	}
+
+	/* ---------------------------------- code ---------------------------------- */
+	code {
+		font-family: var(--mono);
+		font-size: 0.88em;
+		background: var(--bg-inset);
+		border: 1px solid var(--line);
+		border-radius: 5px;
+		padding: 0.12em 0.38em;
+		white-space: nowrap;
+	}
+
+	pre {
+		background: var(--bg-inset);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 1rem 1.2rem;
+		overflow-x: auto;
+		line-height: 1.55;
+		margin: 0.8rem 0;
+	}
+
+	pre code {
+		background: none;
+		border: 0;
+		padding: 0;
+		font-size: 0.86rem;
+		white-space: pre;
+	}
+
+	/* ---------------------------------- tables ---------------------------------- */
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.92rem;
+		margin: 0.9rem 0;
+	}
+
+	th,
+	td {
+		text-align: left;
+		padding: 0.55rem 0.75rem;
+		border-bottom: 1px solid var(--line);
+		vertical-align: top;
+	}
+
+	th {
+		font-size: 0.72rem;
+		font-weight: 650;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--muted);
+		border-bottom: 1.5px solid var(--line-strong);
+	}
+
+	tbody tr:hover {
+		background: color-mix(in srgb, var(--accent) 5%, transparent);
+	}
+
+	/* ---------------------------------- controls ---------------------------------- */
+	input[type="text"] {
+		width: 100%;
+		font-family: var(--mono);
+		font-size: 1.05rem;
+		color: var(--fg);
+		background: var(--bg-soft);
+		border: 1.5px solid var(--line-strong);
+		border-radius: 10px;
+		padding: 0.75rem 1rem;
+		transition: border-color 0.15s, box-shadow 0.15s;
+	}
+
+	input[type="text"]:focus {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+	}
+
+	button {
+		font: inherit;
+		font-size: 0.85rem;
+		color: var(--fg);
+		background: var(--bg-soft);
+		border: 1px solid var(--line-strong);
+		border-radius: 999px;
+		padding: 0.3rem 0.85rem;
+		cursor: pointer;
+		transition: border-color 0.15s, background 0.15s, color 0.15s;
+	}
+
+	button:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	hr {
+		border: 0;
+		border-top: 1px solid var(--line);
+		margin: 2.2rem 0;
+	}
+
+	/* ---------------------------------- shared bits ---------------------------------- */
+	.muted {
+		color: var(--muted);
+	}
+
+	.ok {
+		color: var(--ok);
+		font-weight: 700;
+	}
+
+	.bad {
+		color: var(--bad);
+		font-weight: 700;
+	}
+
+	.pill {
+		display: inline-block;
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--on-accent);
+		background: var(--accent);
+		border-radius: 999px;
+		padding: 0.1rem 0.6rem;
+	}
+
+	/* ---------------------------------- panels & cards ---------------------------------- */
+	.panel {
+		background: var(--bg-soft);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 1.4rem 1.5rem;
+		margin: 1.2rem 0;
+	}
+
+	.card-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.9rem;
+		margin: 1.1rem 0;
+	}
+
+	.card {
+		background: var(--bg-soft);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 1rem 1.1rem 1.1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+	}
+
+	.card-head {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+	}
+
+	.card-title {
+		font-weight: 650;
+		font-size: 0.92rem;
+	}
+
+	.result {
+		font-family: var(--mono);
+		font-size: 1.12rem;
+		word-break: break-word;
+		min-height: 1.6em;
+		white-space: pre-wrap;
+	}
+
+	.result-empty {
+		color: var(--muted);
+		font-style: italic;
+		font-size: 0.9rem;
+	}
+
+	.copy-row {
+		margin-top: auto;
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.copy-btn {
+		font-size: 0.78rem;
+		padding: 0.2rem 0.7rem;
+	}
+
+	.examples {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+		margin: 0.9rem 0 0;
+	}
+
+	.opt-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.7rem 1.4rem;
+		margin: 1rem 0 0.2rem;
+	}
+
+	.opt-row label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.92rem;
+	}
+
+	.opt-row input[type="checkbox"] {
+		accent-color: var(--accent);
+		width: 15px;
+		height: 15px;
+	}
+
+	#skip {
+		max-width: 260px;
+		font-size: 0.92rem;
+		padding: 0.45rem 0.8rem;
+	}
+
+	/* ---------------------------------- footer ---------------------------------- */
+	.site-footer {
+		border-top: 1px solid var(--line);
+		padding: 1.6rem 1.5rem 2.4rem;
+		text-align: center;
+	}
+
+	.site-footer p {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	/* ---------------------------------- responsive ---------------------------------- */
+	@media (max-width: 720px) {
+		.card-grid {
+			grid-template-columns: 1fr;
+		}
+
+		h1 {
+			margin-top: 2.2rem;
+		}
+	}
+</style>

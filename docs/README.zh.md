@@ -2,6 +2,8 @@
 
 把 `hao3` 这种数字声调写法转成带调号的 `hǎo`。只有一个函数，没有依赖；连写的、夹着汉字的文本，直接传进来就行。
 
+**在线演示：** <https://mrchenguozheng.github.io/pinyin-tone/> —— v1、v2 和 3.0 拿同一个输入各算一遍，差别在浏览器里直接看。
+
 English: [../README.md](../README.md) —— 发布到 npm 和仓库首页的是英文版
 
 [![NPM](https://nodei.co/npm/pinyin-tone.png)](https://nodei.co/npm/pinyin-tone/)
