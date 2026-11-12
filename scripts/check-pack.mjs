@@ -23,6 +23,10 @@ const FORBIDDEN = [
     // ends up in the package however it is excluded), so the Chinese version can neither be
     // named `README.*` nor sit at the root.
     ['docs/', 'the detail pages live in the repository only, in both languages; the Chinese README is here too'],
+    // The demo site is repository-only, like docs/. It carries its own package.json and
+    // lock file and is built by the Pages workflow — none of that is readable at run time,
+    // and shipping it would drag a few hundred dependency entries into the tarball.
+    ['site/', 'the demo site is built by the Pages workflow, not shipped'],
     ['v1/', 'the v1 implementation was removed in 3.0'],
     ['legacy/', 'the v1 implementation was removed in 3.0'],
     ['v2/', 'the directory was renamed lib/; the old name must not come back'],
