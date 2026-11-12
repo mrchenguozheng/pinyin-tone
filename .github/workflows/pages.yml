@@ -20,9 +20,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # 生成 CONTRIBUTORS.svg 并上传 Pages artifact（复用 contributors.yml）
+  # 站点和头像图打包成同一个 artifact，一次部署。
+  # 以前这两件事分在两个 workflow 里，各自上传 artifact —— 现在站点也要进同一个根，
+  # 分开反而要来回传文件，所以合并成一个 job。
   build:
-    uses: ./.github/workflows/contributors.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 站点在 site/ 里，与库本身是两套依赖。根目录的 npm ci 只装构建这个库要用的东西，
+      # 不该为了一个静态页多背几百个包，所以这里单独装、单独构建。
+      # Astro 5 要求 18.20.8 || ^20.3.0 || >=22.0.0，取 22。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      # astro.config.mjs 里 base 是 /pinyin-tone，产物里的站内路径自带这个前缀。
+      - name: Build the site
+        working-directory: site
+        run: |
+          npm ci
+          npm run build
+
+      # noCommit: 生成到工作区就停手。以前这个 action 会把 444KB 的 SVG 提交回
+      # master —— 图里的两张头像按原尺寸内嵌成 base64，每更新一次历史就多一份。
+      # 现在图只进 Pages artifact，仓库里一个字节都不留。
+      - uses: wow-actions/contributors-list@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          noCommit: true
+          userNameHeight: 19
+          itemTemplate: >
+            <g transform="translate({{ x }}, {{ y }})">
+              <a xlink:href="{{{ url }}}" class="contributor-link" target="_blank" rel="nofollow sponsored" title="{{{ name }}}" id="{{{ name }}}">
+                <image width="{{ width }}" height="{{ height }}" xlink:href="{{{ avatar }}}" />
+                <text x="32" y="74" text-anchor="middle" alignment-baseline="middle" font-size="10">{{{ name }}}</text>
+              </a>
+            </g>
+
+      # README 引用的地址是 /pinyin-tone/CONTRIBUTORS.svg，也就是站点根下。
+      # 所以图要落在 dist 根、和 index.html 并排；放进子目录就会被 base 带偏。
+      - name: Put the contributors image at the site root
+        run: mv CONTRIBUTORS.svg site/dist/
+
+      # enablement: 首次运行时把 Pages 的来源自动切成 GitHub Actions，
+      # 省掉在 Settings → Pages 里手点一次。需要仓库管理员权限与 pages: write。
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
 
   deploy:
     needs: build
