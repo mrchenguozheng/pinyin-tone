@@ -170,6 +170,30 @@ describe('docs/skip.md examples', () => {
     });
 });
 
+describe('docs/migrating.md examples', () => {
+    // Only the 3.0 column is testable here. The 2.x values on those tables were measured
+    // against the published 2.4.1 tarball, which this repository no longer contains.
+
+    it('one call still covers both spellings', () => {
+        expect(markTones('ju1 ju:1')).to.equal('jū jǖ');
+        // the all-or-nothing rule: a run that only half resolves comes back as written
+        expect(markTones('hanyu3pin1yin1')).to.equal('hanyu3pin1yin1');
+    });
+
+    it('the three groups whose output changed', () => {
+        expect(markTones('biou1')).to.equal('biōu');
+        expect(markTones('biou3')).to.equal('biǒu');
+        expect(markTones('jv1')).to.equal('jū');
+        expect(markTones('ju:1')).to.equal('jǖ');
+        expect(markTones('m1')).to.equal('m̄');
+        expect(markTones('e^1')).to.equal('ê̄');
+        // ê and m with a macron are two code points, the way the tables show them
+        expect(markTones('e^1').length).to.equal(2);
+        expect(markTones('e^1').codePointAt(1)).to.equal(0x304);
+        expect(markTones('m1').codePointAt(1)).to.equal(0x304);
+    });
+});
+
 describe('issue 回归', () => {
     // issue #8: an English word must not be cut up and treated as pinyin. With no tone digit
     // there is nothing to cut at, and with one the token only converts when the whole token is

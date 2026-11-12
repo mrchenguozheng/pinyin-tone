@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v3.0.1
+
+### 文档
+
+- 3.0 改为 `latest`。README 的安装命令从 `npm install pinyin-tone@next` 改回
+  `npm install pinyin-tone`，原来说明「3.0 走 `next`、`latest` 停在 2.4.1」的那一段，
+  改成「写着 `^2` 的项目不会自己跳过来，升级发生在你改 `package.json` 的时候」。
+  中文版 `docs/README.zh.md` 同步改这两处。
+- 新增 `docs/migrating.md` 与 `docs/migrating.zh.md`：逐个入口对过去的改名表、每个删掉的
+  名字现在报什么错（含真实报错原文）、2.x 与 3.0 之间哪些输出变了，以及一段把自己的输入
+  跟 2.4.1 对拍的脚本。
+  - 对 2.4.1 的根入口：13664 个输入里 1548 个不同（11.3%），全是旧入口吞字母。
+  - 对 2.4.1 的 `/v2`：259 个不同（1.9%），落在 38 个键上，分三组 —— `jv`/`qv`/`xv`/`yv`
+    后面的 ü 写作 u（`jv1` 由 `jǖ` 变 `jū`，字面拼写改用 `ju:1`）、不带元音的叹词也标调
+    （`m1` 由 `m1` 变 `m̄`）、`^` 只标 ê 不是声调（`e^1` 由 `e` 变 `ê̄`）。
+- `test/test-example.js` 增加 `docs/migrating.md examples` 一组，把新文档里 3.0 那一列的
+  输出钉住。
+
+这一版没有改代码。
+
 ## v3.0.0
 
 ### Breaking

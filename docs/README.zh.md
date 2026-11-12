@@ -9,7 +9,7 @@ English: [../README.md](../README.md) —— 发布到 npm 和仓库首页的是
 ## 安装
 
 ```bash
-npm install pinyin-tone@next
+npm install pinyin-tone
 ```
 
 要 Node.js 14 以上（见 `engines`）。ESM 和 CommonJS 都能用，两种写法都得按名字取 `markTones`，**没有默认导出**。`require()` 加载的是 `dist/index.cjs`，这个文件在发布前由 `lib/` 生成，并且逐条和 `lib/` 比对过，跑的不是另一份代码。
@@ -110,7 +110,9 @@ markTones('M2 A4 N3', {skip: ['M2', 'A4']});    // 'M2 A4 Ň'
 
 2.4.1 的根入口有三个名字：默认导出，加上具名的 `v2` 和 `markSinglePinyinVowel`，现在全部并进了 `markTones`。名字漏改会当场报错，不会拖到线上：3.0 没有默认导出，`import anything from 'pinyin-tone'` 是语法错误，不会变成 `undefined` 混过去。
 
-3.0 发布时走的是 `next` 标签，`latest` 还指着 2.4.1，所以手上有 `^2` 的项目不会在 `npm install` 之后突然跳过去。要升级，写 `npm install pinyin-tone@next`；跳过去之后想退回，把版本改回 `2.4.1` 或 `^2` 就行。
+3.0 现在是 `latest`。写着 `^2` 的项目不会自己动——`^2` 匹配不到 `3.x`——升级发生在你改 `package.json` 的那一刻，退回也是同一处改动，把版本写成 `2.4.1`。
+
+上面那张表只讲改名。每个删掉的名字现在抛什么错、哪些输出变了、以及一段拿自己的输入跟 2.4.1 对拍的脚本，都在 [`migrating.zh.md`](migrating.zh.md) 里。
 
 ## 细节文档
 
@@ -121,6 +123,7 @@ README 只写大多数调用会用到的部分；边界情况在 `docs/` 的另�
 - [`uu.zh.md`](uu.zh.md) — `ü`、冒号的合法位置、`ê`、没有元音的叹词
 - [`strict.zh.md`](strict.zh.md) — `strict` 放行什么，挡下的 1076 个键又是什么
 - [`skip.zh.md`](skip.zh.md) — `skip` 的全部规则，以及为什么不收正则
+- [`migrating.zh.md`](migrating.zh.md) — 从 2.x 过来：改名、报错，以及变了的输出
 
 每页都有英文版（文件名去掉 `.zh` 就是）。`docs/` 整个目录不随 npm 包发布。
 
