@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.5.1
+
+2026-11-12
+
+No runtime change. `index.js`, `index.d.ts`, `v1/`, `v2/`, `workaround/` and `dist/` are byte-for-byte what 2.5.0 shipped; the only files that differ are `README.md` and the `version` field.
+
+- Docs: the installation section said a plain `npm install pinyin-tone` gives 2.4.1 and that 3.0 sits under the `next` tag. Neither is true any more — a plain install gives 3.0.1, 2.x is published under `legacy`, and `next` has been removed. The line now reads `npm install pinyin-tone@legacy`, names 2.5.1 rather than 2.5.0 as the release it installs, and says what 3.0 changes for a 2.x caller.
+- Docs: the v2 import paths were backwards. `exports` arrived in 2.5.0, so the bare subpath `pinyin-tone/v2` is the one that resolves; `pinyin-tone/v2/index.js`, which the README taught and the 2.5.0 entry below repeats, throws `ERR_PACKAGE_PATH_NOT_EXPORTED`. The README now shows the bare subpath for both module systems. The 2.5.0 entry is left as published instead of being rewritten after the fact.
+- Docs: the README said `2.3.0 and later ship ES modules only`. 2.5.0 put the CommonJS copy back, so the note now says the copy is generated from the same sources and gives the same answers.
+- Docs: the changelog link pointed at `master`, whose copy stops at 2.4.1 and then covers 3.x. It points at this branch now, with a line saying why.
+- Docs: the Tests section was one line, `see test/*.js`. It now lists what `npm test` runs, and the installation section states the Node floor (`>=14`).
+- Note: the v2.4.2 and v2.4.3 entries below describe work that shipped as 2.5.0. Neither version was ever published — the registry answers 404 for both.
+
 ## v2.5.0
 
 2026-10-19
