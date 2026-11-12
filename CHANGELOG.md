@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## v2.5.2
+
+2026-11-12
+
+No runtime change: `index.js`, `index.d.ts`, `v1/`, `v2/`, `workaround/` and `dist/` are the files 2.5.0 shipped, byte for byte.
+
+- Changed, packaging: the package no longer carries `CHANGELOG.md`. That was 11,265 bytes of a file npm never renders — the package page shows the README — and 3.0 has excluded it from the start. 67 files and 84.7 KiB of tarball become 66 and 80.2 KiB. `scripts/check-pack.mjs` now rejects the file by name, so putting it back into `files` fails the build instead of quietly growing the tarball.
+- Docs: the installation section no longer names a version. It read `That is 2.5.0` in the 2.5.1 release — the number was written before the bump, and nothing caught it, so the page claimed to install 2.5.1 and then said it was 2.5.0. It now says "the newest 2.x release", which cannot go stale.
+
 ## v2.5.1
 
 2026-11-12

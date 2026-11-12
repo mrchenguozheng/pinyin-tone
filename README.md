@@ -16,7 +16,7 @@ Designed for developers and learners who need accurate tone mark formatting in l
 npm install pinyin-tone@legacy
 ```
 
-That is 2.5.1, the last release of the 2.x line — everything on this page documents it. A
+That is the newest 2.x release — everything on this page documents that line. A
 plain `npm install pinyin-tone` now installs 3.0, which is a rewrite rather than an upgrade
 path: the default export becomes a named one (`import {markTones} from 'pinyin-tone'`), and
 `v1`, `v2` and `workaround` are folded into that single function, with no subpaths left.
