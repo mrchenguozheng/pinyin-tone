@@ -142,7 +142,21 @@ const rows = tests.map((test) => ({
 	v3out: toPinyin.v3(test.input),
 }));
 
-const installV3 = `npm install pinyin-tone@next`;
+// The options exist only in 3.0, and they have to reach the unspaced cell too: that cell is
+// the same call with the spaces collapsed. When it stopped passing its arguments, ticking
+// `strict` moved one cell and left the other alone — the page looked fine and was wrong.
+// Assert it at build time so the failure is loud.
+const optionChecks: Array<[string, string, string]> = [
+	[toPinyin.v3("duang1 jui1", { strict: true }), "duang1 jui1", "v3 strict"],
+	[toPinyin.v3Unspaced("duang1jui1", { strict: true }), "duang1jui1", "v3 unspaced strict"],
+];
+for (const [actual, expected, label] of optionChecks) {
+	if (actual !== expected) {
+		throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+	}
+}
+
+const installV3 = `npm install pinyin-tone`;
 
 const usageV3 = `import { markTones } from "pinyin-tone";
 
@@ -151,8 +165,8 @@ markTones("han4yu3pin1yin1");           // "hànyǔpīnyīn"
 markTones("今天ni3hao3");                // "今天nǐhǎo"
 markTones("jv1 ju1 ju:1");              // "jū jū jǖ"
 
-// options: strict limits to the 426 standard syllables,
-// skip keeps all-caps codes such as M2 as written
+// options arrived in 3.0: strict limits conversion to the 426 standard
+// syllables, skip keeps all-caps codes such as M2 as written
 markTones("duang1 jui1", { strict: true });        // "duang1 jui1"
 markTones("M2 货币供应量", { skip: "M2" });          // "M2 货币供应量"`;
 
@@ -240,8 +254,9 @@ const examples = [
 			</div>
 			<code class="entry">import &#123; markTones &#125; from "pinyin-tone"</code>
 			<p class="muted card-note">
-				Published under the <code>next</code> tag. Named export only — no
-				default — plus <code>strict</code> and <code>skip</code> options.
+				The current release, published as <code>latest</code>. Named export
+				only — no default — plus the <code>strict</code> and
+				<code>skip</code> options that 3.0 adds.
 			</p>
 		</div>
 	</div>
@@ -273,13 +288,18 @@ const examples = [
 		<div class="opt-row">
 			<label>
 				<input id="strict" type="checkbox" />
-				<span><code>strict</code> — only the 426 standard syllables</span>
+				<span><code>strict</code> — only the 426 standard syllables <span class="muted">(3.0 only)</span></span>
 			</label>
 			<label class="skip-label">
-				<span><code>skip</code> —</span>
+				<span><code>skip</code> <span class="muted">(3.0 only)</span> —</span>
 				<input id="skip" type="text" placeholder="M2, A4" value="M2, A4" />
 			</label>
 		</div>
+
+		<p class="muted options-note">
+			Both options belong to 3.0. v1 and 2.x's <code>/v2</code> take no options
+			at all, so the two left-hand columns stay put whatever you tick here.
+		</p>
 
 		<div class="card-grid output-grid">
 			<div class="card">
@@ -371,13 +391,18 @@ const examples = [
 				.map((code) => code.trim())
 				.filter(Boolean);
 
-			outV1.textContent = toPinyin.v1(text);
-			outV2.textContent = toPinyin.v2(text);
-			outV3.textContent = toPinyin.v3(text, {
+			// 3.0 only — v1 and 2.x's /v2 predate both options, so they get no argument at all.
+			const options = {
 				strict: strict.checked,
 				skip: skipCodes.length ? skipCodes : undefined,
-			});
-			outV3Unspaced.textContent = toPinyin.v3Unspaced(text);
+			};
+
+			outV1.textContent = toPinyin.v1(text);
+			outV2.textContent = toPinyin.v2(text);
+			outV3.textContent = toPinyin.v3(text, options);
+			// The unspaced cell is the same call with the spaces collapsed, so it has to see
+			// the same options — otherwise ticking strict moves one cell and not the other.
+			outV3Unspaced.textContent = toPinyin.v3Unspaced(text, options);
 			outV2Unspaced.textContent = toPinyin.convertUnspacedPinyin(text);
 		};
 
@@ -413,11 +438,11 @@ const examples = [
 
 	<h2>Usage</h2>
 
-	<h3>3.0 (current, under the <code>next</code> tag)</h3>
+	<h3>3.0 (current, the <code>latest</code> tag)</h3>
 	<pre><code>{installV3}</code></pre>
 	<pre><code>{usageV3}</code></pre>
 
-	<h3>2.x (what a plain install gives you)</h3>
+	<h3>2.x (still published, under the <code>legacy</code> tag)</h3>
 	<pre><code>{usageV2}</code></pre>
 
 	<h3>Moving from 2.x to 3.0</h3>
@@ -616,6 +641,11 @@ const examples = [
 		font-size: 0.98rem;
 		white-space: pre-wrap;
 		word-break: break-word;
+	}
+
+	.options-note {
+		font-size: 0.82rem;
+		margin: 0.6rem 0 0;
 	}
 
 	.footnote {
