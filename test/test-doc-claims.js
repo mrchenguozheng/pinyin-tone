@@ -3,22 +3,21 @@
 // (test-divergence.js for the 11.3% story, test-strict.js for the 876 / 1076 split), but the rest
 // were only asserted by a person reading them, and this repository has already shipped two wrong
 // ones: "1,548 differences, all dropped letters" and "workaround's 36 inputs". Prose is copied into
-// four places (README, docs/README.zh.md, the two migrating pages, site/README.md), so a correction
-// has to be made in every copy.
+// six places (README, docs/README.zh.md, the two migrating pages, the two strict pages, site/README.md)
+// plus the demo page, so a correction has to be made in every copy.
 //
 // Two jobs here:
 //   1. every claim below is recomputed from the code, so the registry cannot hold a stale number;
-//   2. every integer of three digits or more that appears in prose is checked against that
-//      registry. Write a sentence quoting a number that no test computes and this fails, which is
-//      the only mechanism that stops the four copies from drifting apart.
+//   2. every integer in prose is checked against that registry. Write a sentence quoting a number
+//      that no test computes and this fails, which is the only mechanism that stops the copies from
+//      drifting apart.
 //
-// Numbers inside code spans and fenced blocks are exempt: those are inputs and outputs (the
-// `195802` of a tone-number example, the `31,120` bytes of a tarball), not claims about behaviour.
-// The changelog is exempt for the same reason it exists: it records what was true on release day.
+// Exempt, because they are not claims about behaviour: numbers inside code spans and fenced blocks
+// (inputs and outputs), URLs (dates and document ids), attributes and CSS in the demo page, and the
+// changelog, which records what was true on release day.
 //
-// Limitation, stated so nobody trusts this further than it goes: only integers of three digits and
-// up are scanned. A two-digit claim (the 42 spellings of /workaround, the 32 literal jv keys) can
-// still rot, which is why the two that exist are asserted above instead of being left to the scan.
+// The scan reaches every prose surface a reader can land on: the Markdown pages and the text of the
+// demo page, which duplicates the 426 and would otherwise rot unseen.
 import { readFileSync, readdirSync } from 'node:fs';
 import { expect } from 'chai';
 import v1 from 'pinyin-tone-2';
@@ -26,6 +25,11 @@ import oldV2 from 'pinyin-tone-2/v2';
 import workaround from 'pinyin-tone-2/workaround';
 import { markTones } from '../lib/index.js';
 import dict from '../lib/dict.js';
+
+// Read as text and parsed rather than `import ... with { type: 'json' }`: the attribute form is
+// only supported from Node 20.10, and this suite runs on 20, 22 and 24.
+const cases = JSON.parse(readFileSync(new URL('../site/src/common/cases.json', import.meta.url), 'utf8'));
+const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 const SUFFIXES = ['', '0', '1', '2', '3', '4', '5'];
 const keys = Object.keys(dict);
@@ -57,6 +61,13 @@ const workaroundSpellings = VOWELS.flatMap(
 	(vowel) => SUFFIXES.map((suffix) => vowel + suffix),
 );
 
+// The demo page's table is the only copy of the 17 rows; `test-cases-fixture.js` owns the details.
+// Here only the two numbers its README quotes: the row count, and where the v3-only block starts.
+const firstV3Only = Number(cases.find((row) => !row.v1 && !row.v2).id);
+
+// `engines` is the floor the README's install section prints.
+const minNode = Number(packageJson.engines.node.replace(/\D/g, ''));
+
 // The registry. `computed` is asserted against `value`, which is what the docs print: a wrong doc
 // number fails here rather than in a reader's head. `computed: null` marks a component of a claim
 // (the 426/418/32 that add up to 876): it has no independent count to recompute, so it is checked
@@ -73,6 +84,9 @@ const CLAIMS = {
 	'keys strict mode passes': { value: 876, computed: keys.filter(passesStrict).length },
 	'keys strict mode rejects': { value: 1076, computed: keys.length - keys.filter(passesStrict).length },
 	'workaround spellings': { value: 42, computed: workaroundSpellings.length },
+	'demo table rows': { value: 17, computed: cases.length },
+	'first v3-only row': { value: 13, computed: firstV3Only },
+	'minimum Node.js': { value: 14, computed: minNode },
 	'standard syllables': { value: 426, computed: null },
 	'erhua keys': { value: 418, computed: null },
 	'literal jv spellings': { value: 32, computed: null },
@@ -119,9 +133,21 @@ describe('the numbers the docs print', () => {
 		// rule follows.
 		allowed.add(16159);
 
+		// The demo page: frontmatter, scripts, styles and code spans are code, not prose. Each block
+		// is replaced by as many newlines as it spanned, so the reported line numbers stay true.
+		const page = readFileSync('site/src/pages/index.astro', 'utf8')
+			.replace(/^---\r?\n[\s\S]*?\r?\n---/, blank)
+			.replace(/<script[\s\S]*?<\/script>/gi, blank)
+			.replace(/<style[\s\S]*?<\/style>/gi, blank)
+			.replace(/<code[\s\S]*?<\/code>/gi, blank);
+
 		const offenders = [];
-		for (const file of docs) {
-			const text = readFileSync(file, 'utf8');
+		// Two digits and up. Decimals are skipped by the lookarounds, so `2.5.2` and `11.3%` are not
+		// read as 2, 5, 2, 11. The two-digit claims (42 spellings, 32 literal keys, 17 rows, the
+		// 13 that starts the v3-only block, the Node floor) are all in the registry, which is why
+		// the threshold can be this low.
+		const number = /(?<![\w.,])\d[\d,]{1,}(?![\w.,])/g;
+		for (const [file, text] of [...docs.map((f) => [f, readFileSync(f, 'utf8')]), ['site/src/pages/index.astro', page]]) {
 			let fence = false;
 			text.split(/\r?\n/).forEach((line, index) => {
 				if (/^\s*```/.test(line)) {
@@ -131,7 +157,7 @@ describe('the numbers the docs print', () => {
 				if (fence) return;
 				// Code spans hold inputs and outputs; URLs hold dates and document ids.
 				const prose = line.replace(/`[^`]*`/g, '').replace(/https?:\/\/\S+/g, '');
-				for (const match of prose.matchAll(/\d[\d,]{2,}/g)) {
+				for (const match of prose.matchAll(number)) {
 					const value = Number(match[0].replace(/,/g, ''));
 					if (!allowed.has(value)) {
 						offenders.push(`${file}:${index + 1}: ${match[0]} — ${line.trim()}`);
@@ -143,3 +169,7 @@ describe('the numbers the docs print', () => {
 		expect(offenders, 'numbers in prose that no test computes').to.deep.equal([]);
 	});
 });
+
+function blank(match) {
+	return '\n'.repeat((match.match(/\n/g) || []).length);
+}
