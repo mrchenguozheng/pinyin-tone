@@ -28,7 +28,10 @@ concurrency:
 jobs:
   publish:
     name: publish to npm
-    runs-on: ubuntu-latest
+    # 固定镜像而不是 ubuntu-latest：发布是唯一的、不可回滚的动作，镜像在 2026-10-19 起会分批迁到
+    # Ubuntu 26，让一个没人审计过的系统换代决定某次发布的行为没有意义。要迁的时候单独改这一行、
+    # 单独跑一次排练。
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:

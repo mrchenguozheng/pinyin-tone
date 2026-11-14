@@ -24,7 +24,8 @@ jobs:
   # 以前这两件事分在两个 workflow 里，各自上传 artifact —— 现在站点也要进同一个根，
   # 分开反而要来回传文件，所以合并成一个 job。
   build:
-    runs-on: ubuntu-latest
+    # 固定镜像：站点是要发布出去的，换系统换代不该发生在别人看页面的时候。
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
@@ -77,7 +78,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

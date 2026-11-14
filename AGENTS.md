@@ -78,6 +78,10 @@ site build too — the page fails at build time, not at runtime.
   actions still targeting it get forced onto Node 24 and print a warning on every run. Choose the major
   by reading `runs.using` in the action's `action.yml` (node24), not by release date. This repository sits on
   checkout/setup-node `v5`, configure-pages `v6`, upload-pages-artifact `v5`, deploy-pages `v5`.
+- **`ubuntu-latest` is moving to Ubuntu 26 (phased from 2026-10-19)**, so it is a moving platform, not a
+  constant. `publish.yml` and `pages.yml` pin `ubuntu-24.04` because a release cannot be replayed and the
+  site is public; `ci.yml` keeps `runs-on: ubuntu-latest` on purpose, so an image change breaks a test run
+  before it breaks a release. Migrating those pins is its own change, verified by a rehearsal run.
 - **`pinyin-tone-2` is an alias for 2.5.2**, not 2.4.1: `"pinyin-tone-2": "npm:pinyin-tone@2.5.2"`.
   It is the only way the tests can compare 3.0 against the old line. Importing `pinyin-tone-2/v2`
   relies on 2.5.2's `exports` map — the file path `v2/index.js` no longer resolves.

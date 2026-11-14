@@ -53,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `checkout@v4` → `v5`、`setup-node@v4` → `v5`、`configure-pages@v5` → `v6`、
   `upload-pages-artifact@v3` → `v5`、`deploy-pages@v4` → `v5`。判断依据是各 action 的 `action.yml`
   里 `runs.using` 是不是 node24，而不是看发布先后（`configure-pages@v5` 仍跑 node20，v6 才是 node24）。
+- 发布与 Pages 的 runner 固定到 `ubuntu-24.04`：`ubuntu-latest` 从 2026-10-19 起分批迁往 Ubuntu 26，
+  发布不可回滚、站点是对外页面，两者都不该由一次没人审计过的系统换代决定。`ci.yml` 故意保留
+  `ubuntu-latest`，让镜像换代先在测试里暴露。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、

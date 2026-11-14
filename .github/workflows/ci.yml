@@ -18,6 +18,8 @@ concurrency:
 jobs:
   test:
     name: test (node ${{ matrix.node }})
+    # 这里故意留 ubuntu-latest：它正在分批迁往 Ubuntu 26，镜像换代的问题应该先在这个 job 里变红，
+    # 而不是等某个 tag 触发发布时才由 publish.yml 撞上（发布与 Pages 都已经固定到 ubuntu-24.04）。
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
