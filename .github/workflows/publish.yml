@@ -39,12 +39,14 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          # setup-node 会把 registry 写进 .npmrc；后面的 npm publish 直接用它。
-          registry-url: 'https://registry.npmjs.org'
+          # 不传 registry-url：setup-node 会顺手写一条 always-auth 到 .npmrc，npm 从 11 起对这条
+          # 旧配置发警告，而 npm 的默认 registry 本来就是 registry.npmjs.org —— 不需要额外设置。
 
-      # 发行版 npm：Trusted Publishing 与 provenance 都要求较新的 npm，
-      # 而 setup-node 自带的那一版往往落后一个大版本。
-      - run: npm install -g npm@latest
+      # Trusted Publishing 要求 npm 11.5.1 及以上，所以这里升一次 npm；但固定在大版本 11，
+      # 不用 latest：npm 12 已经把 `npm pack --json` 的输出从「数组」改成「以包名为键的对象」
+      # （实测 11.21.2 是数组、12.2.2 是对象），第一次发布就是被这个差异打穿的。
+      # 换大版本时要连同 scripts/pack-json.mjs 与 test/test-pack-json.js 一起确认。
+      - run: npm install -g npm@11
 
       - run: npm ci
 

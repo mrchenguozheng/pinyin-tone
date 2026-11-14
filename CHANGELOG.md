@@ -34,9 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registry 上还没有同号版本，然后按主版本号推导 dist-tag（3.x → `latest`，2.x → `legacy`）发布，
   带 `--provenance`。补上两件原先没有的保证：tag 推送不触发 CI，因此发布前的测试是这条路上唯一的
   关；2.x 的补丁不可能被发到 `latest`。手动触发默认 `dry_run=true`，只跑校验与 `--dry-run`。
+- 新增 `test/test-pack-json.js` 与 `scripts/pack-json.mjs`：`npm pack --json` 的输出形态随 npm
+  大版本变化（npm 11.21.2 是只含一项的数组，npm 12.2.2 是以包名为键的对象），`check-pack.mjs`
+  原来用 `const [info] = JSON.parse(raw)` 解构，遇到对象形态就抛
+  `object is not iterable` —— 第一次 Publish 运行正是这么挂在打包守卫上。现在两种形态都接受，
+  多种包/空结果/非对象则明确报错，两种形态各钉一条测试。
+- `publish.yml` 的 npm 安装从 `npm@latest` 固定为 `npm@11`：Trusted Publishing 要求 11.5.1 以上，
+  而 12 已改了上述输出形态；同时去掉 `registry-url`，因为 setup-node 会借此写入一条 `always-auth`，
+  而 npm 从 11 起会对这条旧配置发警告。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
-  排练路径、npm 上 Trusted Publishing 的一次性配置（配置前用 `NPM_TOKEN`，配置后应删除），
-  以及发布后怎么验证（`dist-tags`、`dist.integrity`、`npm audit signatures`）。
+  排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
+  workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、
+  `npm audit signatures`）。
 - 新增 `AGENTS.md`：给写代码的 agent 的维护须知 —— 目录分工、必须跑的命令、六条不变量及各自
   防住的事故（文档数字必须登记、数字改动要改全七处副本、用例表只有一份、pin 必须精确、2.x 只收
   回归修复、`dist` 是生成物）、已经踩过的坑（JSON import attribute 的版本限制、页面上

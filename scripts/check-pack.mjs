@@ -8,6 +8,7 @@
 
 import {execFileSync} from 'node:child_process';
 import process from 'node:process';
+import {firstPackInfo} from './pack-json.mjs';
 
 // Paths that must not appear in the package (prefix match), and why
 const FORBIDDEN = [
@@ -57,7 +58,8 @@ const raw = execFileSync('npm', ['pack', '--json', '--dry-run'], {
     shell: process.platform === 'win32',
 });
 
-const [info] = JSON.parse(raw);
+// npm 11 prints an array, npm 12 an object keyed by package name; pack-json.mjs explains why.
+const info = firstPackInfo(JSON.parse(raw));
 const problems = [];
 
 for (const [path, reason] of FORBIDDEN) {
