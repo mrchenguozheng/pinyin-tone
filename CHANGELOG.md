@@ -7,6 +7,8 @@ All notable changes to this project are documented in this file.
 - 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) / [English](https://keepachangelog.com/en/1.0.0/)
 - 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/) / [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - 3.0 之前只记版本与改动；3.0 起按 `Breaking` / `Added` / `Changed` / `Fixed` 分组
+- 3.0 之前的条目保留当时的记录与原意，只统一日期写法、列表符号与中英对照的语序；每条日期取该版本
+  tag 的日期
 
 ## 未发布
 
@@ -120,6 +122,10 @@ All notable changes to this project are documented in this file.
 
 ## v3.0.1
 
+2026-11-12
+
+这一版没有改代码，只有文档与测试。
+
 ### 文档
 
 - 3.0 改为 `latest`。README 的安装命令从 `npm install pinyin-tone@next` 改回
@@ -136,9 +142,9 @@ All notable changes to this project are documented in this file.
 - `test/test-example.js` 增加 `docs/migrating.md examples` 一组，把新文档里 3.0 那一列的
   输出钉住。
 
-这一版没有改代码。
-
 ## v3.0.0
+
+2026-10-19
 
 ### Breaking
 
@@ -417,6 +423,62 @@ All notable changes to this project are documented in this file.
   上面两类错误因此长期未被发现。现已纳入，并新增 `test/fixtures-typescript/exports.ts`
   通过包自引用逐一校验各公开入口。
 
+## v2.5.2
+
+2026-11-12
+
+运行时未变：`index.js`、`index.d.ts`、`v1/`、`v2/`、`workaround/` 与 `dist/` 与 2.5.0 逐字节相同，
+变的只有 `README.md` 与 `version` 字段。
+
+- 打包：包里不再带 `CHANGELOG.md` —— 那是 11,265 字节、npm 从不渲染的文件（包页面显示的是
+  README），3.0 从一开始就没带它。67 个文件、84.7 KiB 的 tarball 变成 66 个、80.2 KiB。
+  `scripts/check-pack.mjs` 现在按名字拒绝它，把它塞回 `files` 会失败，而不是悄悄把包做大。
+- 文档：安装段不再写死版本号。2.5.1 那次写的是「装到的是 2.5.0」—— 那句话写于升版本之前，
+  没有任何东西发现它，于是页面一边说装 2.5.1、一边说自己是 2.5.0。现在改说「最新的 2.x 版本」。
+
+## v2.5.1
+
+2026-11-12
+
+运行时未变：除 `README.md` 与 `version` 字段外，包里每个文件都与 2.5.0 逐字节相同。
+
+- 文档：安装段原先说普通 `npm install` 得到 2.4.1、3.0 挂在 `next` 标签下。两条都不再成立 ——
+  普通安装给的是 3.0.1，2.x 发在 `legacy` 下，`next` 已经移除。
+- 文档：v2 的 import 路径写反了。`exports` 从 2.5.0 起就有，能解析的是裸子路径 `pinyin-tone/v2`；
+  README 教的 `pinyin-tone/v2/index.js` 会抛 `ERR_PACKAGE_PATH_NOT_EXPORTED`。两处现在都写裸子路径，
+  2.5.0 的那条条目按当时发布的样子保留，不回头改写。
+- 文档：README 原先写「2.3.0 及以后只发 ES module」，而 2.5.0 已经把 CommonJS 加回来了，现在说清
+  两份产物同源、答案相同。
+- 文档：changelog 链接指向 `master`，而那份副本停在 2.4.1、之后讲的是 3.x；现在指向 2.x 这条分支。
+
+## v2.5.0
+
+2026-10-19
+
+- 新增：CommonJS 入口回来了。2.3.0 去掉 CommonJS 之后，2.2.x 及更早写的
+  `const toPinyinTones = require('pinyin-tone')` 全部失效，这一版恢复可用，`import` 不受影响。
+  `dist/index.cjs` 由同一份源码生成，两者在全部 122,802 个音节、声调与大小写组合上输出相同；
+  它进 git，`pretest` / `prepack` 在源码改了却没重新生成时直接失败。
+- 修：`v2` 的音节正则没有锚点，任何只被部分匹配的片段都会被静默截断 —— `Hao3` 给 `ǎo`、`aX1` 给
+  `a`、`1ma` 给 `ma`、`ma1.5` 给 `mā`、`toString` 给 `to`。现在必须整段匹配，认不全就原样返回。
+- 新增：首字母大写与全大写写法可以转换（`Hao3` → `Hǎo`、`MA1` → `MĀ`），此前会在字母大写处被切断。
+  音节内部混用大小写（`hAo3`）不是一种拼写，仍原样返回。任何情况下都不再 `console.warn`。
+- 修：轻声可以写 `5`，此前只认 `0` —— `ma5` 原样返回而 `ma0` 变成 `ma`，现在两者都是 `ma`。
+- 修：`^` 曾被当成声调再丢掉（`parseInt('^')` 是 `NaN`，兜底把它读成轻声，`e^` 变成 `e`，而 v1
+  给 `ê`）。表里没有 ê，这个标记不再被接受，`e^` 原样返回。
+- 修：输入不再先 `trim` 再按单空格切分 —— 那样 `  ma1  ` 会丢掉空格，`ma1\nma2` 会整串原样返回且
+  毫无提示。现在空白按原样保留，任何一段连续空白都算分隔，换行与制表符也能转。
+- 修：`v1/index.d.ts` 与 `workaround/index.d.ts` 用 `declare module 'v1/index' {…}` 包裹，文件成了
+  ambient script 而不是模块，使用方拿到 `TS2306: File … is not a module`；仓库自己的 `tsc` 因为
+  `allowJs` 直接读 `.js` 而没看见。现在都是正常模块，并由 `tsconfig.types.json` 关掉 `allowJs` 复查。
+- 修：`markSinglePinyinVowel` 用裸查表，`Object.prototype` 上的名字会被当成值返回
+  （`'toString'` 返回内置函数、`'__proto__'` 返回对象），而声明说它返回字符串。现在先问表是否
+  拥有该键。
+- 修：`markSinglePinyinVowel('a5')` 原样返回，`'a0'` 却正常 —— 轻声只在一种写法下生效。现在六个
+  元音都接受 `5`，与 v1 和 v2 一致。
+
+备注：2.4.2 与 2.4.3 从未发布（registry 对两者都是 404），那批工作最终以 2.5.0 发出去。
+
 ## v2.4.1
 
 2026-10-18
@@ -432,43 +494,54 @@ All notable changes to this project are documented in this file.
 
 ## v2.3.5
 
-2025-7-31
+2025-07-31
 
 - chore: add sideEffects false to package.json
 - updated: add test/ & tests/ to `.npmignore`
 
 ## v2.3.3
 
+2025-05-03
+
 - Fixed: TypeScript type error TS2306
 - Updated: add contributors in README.md
 
 ## v2.3.0
 
+2025-03-16
+
 - BREAKING: Convert this package from a CommonJS package to an ES Module
 
 ## v2.2.7
 
+2025-03-16
+
 - revert the changes: liou -> liou, yuen -> yuen
 
-## v2.2.6 - deprecated, but the fixes was preseved in v2.2.7
+## v2.2.6
+
+2025-03-15
+
+未单独发布：下面的修复保留到了 v2.2.7，被回退的那条改写也在 v2.2.7 里撤掉。
 
 - Fixed: strings that match the regex rule but are not present in pinyin_dict_v2 result in pinyin_dict_v2[match.groups.abc] being undefined.
 - Fixed: 修复了匹配正则表达式的字符串但不在 pinyin_dict_v2 中的问题，导致 pinyin_dict_v2[match.groups.abc] 未定义。
 - ~~Change: liou -> liu, yuen -> yun~~
 
-## v2.2.2 - v2.2.5
+## v2.2.2 – v2.2.5
 
 2025-02-18
 
-* Bumps the npm_and_yarn group with 2 updates: [serialize-javascript](https://github.com/yahoo/serialize-javascript) and [mocha](https://github.com/mochajs/mocha).
-* Remove personal website link from `README.MD`.
-* Change username of author's account on GitHub and update links.
+- 依赖：npm_and_yarn 组里两条升级 —— [serialize-javascript](https://github.com/yahoo/serialize-javascript)
+  与 [mocha](https://github.com/mochajs/mocha)。
+- 文档：README 去掉个人网站链接。
+- 仓库：作者 GitHub 账号改名，相关链接一并更新。
 
 ## v2.2.1
 
 2024-04-04
 
-* Modify `README.md`.
+- 文档：修改 `README.md`。
 
 ## v2.2.0
 
@@ -492,14 +565,14 @@ Exposure of Sensitive Information to an Unauthorized Actor in nanoid - https://g
 
 2021-11-02
 
-* add support for tone mark 5.
-* update devDependencies: `mocha` ^7.2.0 ->^9.1.3
+- 支持声调数字 `5`（add support for tone mark 5）。
+- 升级开发依赖：`mocha` ^7.2.0 → ^9.1.3。
 
 ## v2.0.7
 
 2021-08-13
 
-- Patched: `node_modules/glob-parent` 5.1.1 -> 5.1.2
+- Patched: `node_modules/glob-parent` 5.1.1 → 5.1.2
 
 ```
 glob-parent  <5.1.2
@@ -511,90 +584,76 @@ Regular expression denial of service - https://npmjs.com/advisories/1751
 
 2021-05-21
 
-- Added: `index.d.ts`: built-in TypeScript declaration.
+- Added: `index.d.ts` —— 内置 TypeScript 声明。
 - Patched
-    - `node_modules/lodash`: `4.17.20` -> `4.17.21`
-    - modify repository url in `package.json`.
+  - `node_modules/lodash`: `4.17.20` → `4.17.21`
+  - `package.json` 里的 repository url 一并修正。
 
 ## v2.0.4
 
 2021-03-30
 
 - Fixed
-    * Upgrade `y18n` to v4.0.1 because the npm package `y18n` before version 3.2.2, 4.0.1, and 5.0.5 is vulnerable to Prototype Pollution.
-    * 将`y18n`升级到v4.0.1因为3.2.2、4.0.1和5.0.5之前的版本易受原型污染。
+  - 升级 `y18n` 到 4.0.1：3.2.2、4.0.1、5.0.5 之前的版本存在原型污染（Prototype Pollution）。
 - Upgrade
-    * Upgrade `chai` to v4.3.4.
-    * 将`chai`升级到v4.3.4。
+  - 升级 `chai` 到 4.3.4。
 
 ## v2.0.0
 
 2020-11-11
 
 - Changed
-    * Rewrite main code.
-    * 重写了主要代码
-    * Rewrite test.
-    * 重写了测试。
+  - 重写主要代码（Rewrite main code）。
+  - 重写测试（Rewrite test）。
 - Fixed
-    * Add /`ui`/.
-    * 补上了/`ui`/。
+  - 补上 /`ui`/。
 
 ## v1.2.2
 
 - Changed
-    * update dependencies to fix security alerts
-    * 更新依赖，修复安全警告
+  - 更新依赖，修复安全警告（update dependencies to fix security alerts）。
 
 ## v1.2.0
 
 - Changed
-    * more tests.
-    * 更多的测试。
+  - 更多的测试（more tests）。
 
 ## v1.1.0
 
 2019-03-05
 
 - Changed
-    * add vowels `ü`/`ün`/`üe`/`üan` for mocha test.
-    * 为mocha测试增加了`ü`/`ün`/`üe`/`üan`。
-    * tone number allows `0` now.
-    * 声调数字可以为`0`了。
+  - 为 mocha 测试增加了 `ü`/`ün`/`üe`/`üan` 韵母。
+  - 声调数字可以为 `0`。
 - Added
-    * add mocha test.
-    * 增加了mocha测试。
+  - 增加 mocha 测试。
 
 ## v1.0.0
 
 2019-03-05
 
 - Changed
-    * repository changed.
-    * update README.md
+  - 更换仓库地址（repository changed）。
+  - 更新 `README.md`。
 
 ## v0.1.4
 
 2019-02-27
 
 - Fixed
-    * update README.md. correct spellings.
-    * 更新README.md。修正拼写。
-    * add description in Simplified Chinese.
-    * 增加简体中文描述。
+  - 更新 `README.md`，修正拼写。
+  - 增加简体中文描述。
 
 ## v0.1.3
 
 2019-02-20
 
 - Fixed
-    * update README.md. correct spellings and urls.
-    * 更新README.md。修正拼写和链接。
+  - 更新 `README.md`，修正拼写与链接。
 
 ## v0.1.1
 
 2019-02-18
 
 - Fixed
-    * missing `y` and `w`.
-    * 缺少`y`和`w`
+  - 缺少 `y` 与 `w`。
