@@ -127,6 +127,7 @@ README 只写大多数调用会用到的部分；边界情况在 `docs/` 的另�
 - [`skip.zh.md`](skip.zh.md) — `skip` 的全部规则，以及为什么不收正则
 - [`migrating.zh.md`](migrating.zh.md) — 从 2.x 过来：改名、报错，以及变了的输出
 - [`maintenance.zh.md`](maintenance.zh.md) — 哪个分支收哪种改动，以及两个 dist-tag 各指哪
+- [`releasing.zh.md`](releasing.zh.md) — tag 怎么变成一次发布，以及它要过的每道闸
 
 每页都有英文版（文件名去掉 `.zh` 就是）。`docs/` 整个目录不随 npm 包发布。
 

@@ -13,6 +13,7 @@ a human had to notice the same mistake by eye, twice. Read this before editing a
 | `docs/` | long-form prose; every page has a `.zh` twin | no |
 | `site/` | Astro demo page; has its own `package.json` and lockfile | no |
 | `scripts/` | `build-cjs.mjs` (generates and `--check`-compares dist), `check-pack.mjs`, `smoke-entry.cjs` | no |
+| `.github/workflows/` | `ci.yml` (tests, engines floor, pack), `publish.yml` (tag → npm), `pages.yml` (demo site) | no |
 | `CHANGELOG.md` | Chinese, newest at the top; accumulate under `## 未发布` | no |
 
 `package.json` ships `["lib", "dist"]` and `engines: node >= 14`. There are **no runtime
@@ -108,5 +109,9 @@ disagrees.
   restatement of the diff.
 - No probe or scratch files left behind (`probe-*.mjs`, temporary scripts). The working tree is clean
   apart from what you meant to add.
+- **Never run `npm publish` from a working copy.** A release is a tag: `git push origin v<version>`
+  starts `.github/workflows/publish.yml`, which re-runs the tests, checks the pack contents, verifies
+  the tag against `package.json`, checks the commit is on the release branch, and derives the dist-tag
+  from the major version. See `docs/releasing.md`; a laptop publish bypasses every one of those gates.
 - Do not rewrite history: prefer a new commit. Do not touch `maintain/2.x` unless the task is
   explicitly about the 2.x line.

@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `site/src/pages/index.astro` 去掉 frontmatter、`<script>`、`<style>`、`<code>` 之后剩下的文字
   一并检查，页面里那句「426 个音节」因此不再是没人看守的第二副本。阈值降到两位数，登记表相应
   补上演示表行数 17、只声明 v3 的第一行 13、`engines` 的 Node 14。
+- 新增 `.github/workflows/publish.yml`：发版从「本机敲一条 `npm publish`」改成「推一个 tag」。
+  `v<version>` 推送后，这个 workflow 依次跑 `npm test`、`npm run pack:check`，再校验 tag 与
+  `package.json` 的版本一致、提交落在发布分支上（3.x 在 `master`，2.x 在 `maintain/2.x`）、
+  registry 上还没有同号版本，然后按主版本号推导 dist-tag（3.x → `latest`，2.x → `legacy`）发布，
+  带 `--provenance`。补上两件原先没有的保证：tag 推送不触发 CI，因此发布前的测试是这条路上唯一的
+  关；2.x 的补丁不可能被发到 `latest`。手动触发默认 `dry_run=true`，只跑校验与 `--dry-run`。
+- 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
+  排练路径、npm 上 Trusted Publishing 的一次性配置（配置前用 `NPM_TOKEN`，配置后应删除），
+  以及发布后怎么验证（`dist-tags`、`dist.integrity`、`npm audit signatures`）。
 - 新增 `AGENTS.md`：给写代码的 agent 的维护须知 —— 目录分工、必须跑的命令、六条不变量及各自
   防住的事故（文档数字必须登记、数字改动要改全七处副本、用例表只有一份、pin 必须精确、2.x 只收
   回归修复、`dist` 是生成物）、已经踩过的坑（JSON import attribute 的版本限制、页面上

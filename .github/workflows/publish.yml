@@ -1,0 +1,124 @@
+name: Publish
+
+# 发版只认 tag：v3.0.1 这样的轻重标签推上来，这个 workflow 才动 npm。
+# 本仓库的历史就是这样发的（21 个 v* tag），所以 tag 是唯一可信的发布意图；
+# 分支上的普通提交不触发，避免「合进 master 就上线」这种没人能审计的路径。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '只做 npm publish --dry-run，不真的发布'
+        type: boolean
+        default: true
+
+# contents: read 够读代码；id-token: write 是 provenance 与 npm Trusted Publishing 的前提，
+# 有了它发布的包会带上「由这个 workflow、这个 commit 构建」的可验证来源，且不需要长期 token。
+permissions:
+  contents: read
+  id-token: write
+
+# 发布必须串行：两次 publish 并发会一个成功一个 409，而且谁都说不清最终是哪份。
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 要判断 tag 指向的提交是否落在发布分支上，必须拿到完整历史与远端分支。
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          # setup-node 会把 registry 写进 .npmrc；后面的 npm publish 直接用它。
+          registry-url: 'https://registry.npmjs.org'
+
+      # 发行版 npm：Trusted Publishing 与 provenance 都要求较新的 npm，
+      # 而 setup-node 自带的那一版往往落后一个大版本。
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      # 发布前重跑测试。tag 推送不会触发 ci.yml（它只听 master / release 分支与 PR），
+      # 所以这里必须自己把关：否则一个跳过 CI 的 tag 就能把未验证的代码发出去。
+      - run: npm test
+
+      # 包里有什么、有多大。prepack 会先校验 dist/index.cjs 与 lib/ 同步。
+      - run: npm run pack:check
+
+      # 三道闸，都在真正 publish 之前。任何一道不过就退出，不碰 registry。
+      - name: 校验 tag、分支与 dist-tag
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          REF=${GITHUB_REF_NAME}
+          DRY=${{ inputs.dry_run }}
+
+          # 真发布只能从 tag 出发。手动触发时如果当前 ref 是分支，只允许排练：
+          # 没有 tag 的发布在仓库里留不下「发过什么」的记录，provenance 也会指向一个分支。
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            if [ "${REF}" = "v${VERSION}" ]; then
+              echo "tag ${REF} 与 package.json 的 ${VERSION} 一致"
+            else
+              echo "tag ${REF} 与 package.json 的 ${VERSION} 不一致：先改 package.json 再打 tag" >&2
+              exit 1
+            fi
+          elif [ "${DRY}" = "true" ]; then
+            echo "当前 ref 是 ${REF}，不是 tag：按排练处理，只做 dry run"
+          else
+            echo "真发布必须从 tag 触发：当前 ref 是 ${REF}" >&2
+            exit 1
+          fi
+
+          # 两条线各有自己的 dist-tag：3.x 发 latest，2.x 只发 legacy。
+          # 让 2.x 去发 latest 会把所有默认安装的用户从 3.0 拽回 2.5，这是本仓库最不该发生的意外。
+          MAJOR=${VERSION%%.*}
+          if [ "${MAJOR}" = "2" ]; then
+            TAG=legacy
+            BRANCH=maintain/2.x
+          else
+            TAG=latest
+            BRANCH=master
+          fi
+          echo "dist-tag=${TAG}，要求提交在 ${BRANCH} 上"
+
+          git fetch --no-tags origin "${BRANCH}"
+          if git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${BRANCH}"; then
+            echo "提交在 ${BRANCH} 的历史里"
+          else
+            echo "${GITHUB_SHA} 不在 origin/${BRANCH} 上：从别的分支发版会绕过该分支的 CI" >&2
+            exit 1
+          fi
+
+          # 版本不可覆盖：registry 上已有同号版本就直接停，而不是让 npm 返回 403 让日志难读。
+          if npm view "pinyin-tone@${VERSION}" version >/dev/null 2>&1; then
+            echo "pinyin-tone@${VERSION} 已在 registry 上：版本号不能覆盖，请先升版本" >&2
+            exit 1
+          fi
+
+          echo "TAG=${TAG}" >> "$GITHUB_ENV"
+
+      # 排练路径：workflow_dispatch 默认 dry_run=true，跑完全部校验后只打印会发什么。
+      # 在分支上触发时这是唯一允许的动作。
+      - name: 发布（dry run）
+        if: inputs.dry_run == true
+        run: npm publish --dry-run --tag "$TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 发布
+        if: inputs.dry_run != true
+        run: npm publish --tag "$TAG" --provenance --access public
+        env:
+          # 配好 Trusted Publishing 之后这个 secret 可以不存在，npm 会走 OIDC；
+          # 没配之前它必须存在，否则这一步会 401。
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

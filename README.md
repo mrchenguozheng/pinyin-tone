@@ -167,6 +167,7 @@ Edge cases live in [`docs/`](docs/); the README keeps to what most calls need.
 - [`docs/skip.md`](docs/skip.md) — `skip` in full, including why `RegExp` is not accepted
 - [`docs/migrating.md`](docs/migrating.md) — coming from 2.x: the renames, the errors, the output that changed
 - [`docs/maintenance.md`](docs/maintenance.md) — which branch gets which fix, and where the dist-tags point
+- [`docs/releasing.md`](docs/releasing.md) — how a tag turns into a publish, and the gates it passes
 
 Each page has a Chinese version — the same name with `.zh` before the extension. Neither
 `docs/` nor the Chinese README is published to npm; they live in the repository.
