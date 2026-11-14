@@ -107,18 +107,33 @@ jobs:
 
           echo "TAG=${TAG}" >> "$GITHUB_ENV"
 
+      # 认证方式的预检。仓库里没有存任何 npm token，正常路径只有一条：本次运行通过 OIDC 向 npm
+      # 取得短期凭据（前提是 npm 包设置里已登记这一个 workflow）。
+      # 两样都没有时，npm publish 会给一个含糊的 401 —— 这里提前说清缺的是什么。
+      - name: 确认认证方式
+        run: |
+          set -euo pipefail
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "OIDC 可用：按 Trusted Publishing 认证（npm 侧需已登记 mrchenguozheng/pinyin-tone + publish.yml）"
+          elif [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "使用 NODE_AUTH_TOKEN 认证"
+          else
+            echo "既没有 OIDC 也没有可用 token：npm publish 会 401。见 docs/releasing.md" >&2
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       # 排练路径：workflow_dispatch 默认 dry_run=true，跑完全部校验后只打印会发什么。
       # 在分支上触发时这是唯一允许的动作。
       - name: 发布（dry run）
         if: inputs.dry_run == true
         run: npm publish --dry-run --tag "$TAG"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 发布
         if: inputs.dry_run != true
         run: npm publish --tag "$TAG" --provenance --access public
         env:
-          # 配好 Trusted Publishing 之后这个 secret 可以不存在，npm 会走 OIDC；
-          # 没配之前它必须存在，否则这一步会 401。
+          # 只为兼容「暂时还没配 Trusted Publishing、改用 token」这一条路：secret 不存在时这里是
+          # 空字符串，npm 视同未设置，转而使用 OIDC。仓库当前没有配这个 secret，也不需要。
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

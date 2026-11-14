@@ -46,14 +46,20 @@ statement would name a branch instead of a version.
 
 ## One-time npm setup
 
-Publishing authenticates through npm's Trusted Publishing rather than a stored token: on the package
-page, under settings, add a trusted publisher of type GitHub Actions with the repository
-`mrchenguozheng/pinyin-tone` and the workflow filename `publish.yml`. From then on the OIDC token
-issued to that workflow is the credential, and there is no secret to rotate.
+**Nothing is stored in this repository.** There is no npm token in the repository secrets, and none is
+needed: publishing authenticates through npm's Trusted Publishing, which issues a short-lived credential
+to this exact workflow on each run.
 
-Until that is configured, the job reads `NPM_TOKEN` from repository secrets and authenticates with it.
-Put a granular automation token there for the first publish, then remove it once Trusted Publishing
-is live — a secret that is no longer used is only a liability.
+The prerequisite is on npm's side, and only the package owner can set it: on the package page, under
+settings, add a trusted publisher of type GitHub Actions with the repository
+`mrchenguozheng/pinyin-tone` and the workflow filename `publish.yml`. From then on the OIDC token
+issued to that workflow is the credential, and there is nothing to rotate or leak.
+
+Until that entry exists, a real publish fails — the workflow's first job is to say so in one line
+("neither OIDC nor a token"), rather than letting npm answer with an opaque HTTP error. If you would rather
+not use Trusted Publishing yet, the fallback is a granular automation token in a repository secret
+named `NPM_TOKEN`; the publish step picks it up when present. In that case the long-lived token is the
+credential, so revoke it at npm as soon as Trusted Publishing is configured.
 
 ## Verifying a release
 

@@ -42,12 +42,17 @@ workflow 不接受别的。
 
 ## npm 上的一次性设置
 
-发布用 npm 的 Trusted Publishing 认证，不存长期 token：在包页面的 settings 里添加一个
-GitHub Actions 类型的 trusted publisher，仓库填 `mrchenguozheng/pinyin-tone`，workflow 文件名填
-`publish.yml`。之后这个 workflow 拿到的 OIDC token 就是凭据，没有 secret 需要轮换。
+**仓库里什么都不存。** 仓库 secret 里没有 npm token，也不需要：发布用 npm 的 Trusted Publishing
+认证，每次运行由它给这个 workflow 签发一枚短期凭据。
 
-在配置好之前，这个 job 读仓库 secret 里的 `NPM_TOKEN` 认证。第一次发布放一个 granular
-automation token 进去，Trusted Publishing 生效后把它删掉 —— 一个不再使用的 secret 只是负担。
+前提在 npm 那一侧，且只有包所有者能设：在包页面的 settings 里添加一个 GitHub Actions 类型的
+trusted publisher，仓库填 `mrchenguozheng/pinyin-tone`，workflow 文件名填 `publish.yml`。之后
+这个 workflow 拿到的 OIDC token 就是凭据，没有东西需要轮换，也没有东西会泄漏。
+
+在那条登记存在之前，真发布会失败 —— workflow 的第一步就是把这件事说清楚（「既没有 OIDC 也没有
+可用 token」），而不是让 npm 回一个看不懂的 HTTP 报错。如果你暂时不想用 Trusted Publishing，退路是
+在仓库 secret 里放一个名为 `NPM_TOKEN` 的 granular automation token，发布步骤会用它。那种情况下
+长期 token 就是凭据，所以 Trusted Publishing 配好后要立刻在 npm 上吊销它。
 
 ## 验证一次发布
 
