@@ -25,6 +25,7 @@ pinyin to tone marks and nothing else.
 ```sh
 npm test                 # pretest runs build-cjs.mjs --check, then mocha, then tsc --noEmit
 npm run pack:check       # what npm would publish: file list and sizes
+npm run release:ready    # is there anything to release? exit 0 = yes, 1 = no
 npm run build:cjs        # regenerate dist/ after changing lib/
 npm --prefix site run build   # build the demo page (Astro); must print "Complete!"
 ```
@@ -123,6 +124,41 @@ site build too — the page fails at build time, not at runtime.
 the docs print (`biou1`, `jvn`, `jv1`, `m1`, `e^1`), so a doc row cannot be right while the code
 disagrees.
 
+## Deciding whether a release is warranted
+
+Agents prepare releases; they never press the button. Preparing means bumping `package.json`, renaming the
+`## 未发布` heading, committing, and showing the rehearsal log. `git tag -a`, the `npm-publish` approval
+and the npmjs.com approval all belong to a maintainer — a tag is the one artifact here that cannot be
+taken back.
+
+Release when `## 未发布` holds at least one bullet a user of the published package can observe:
+
+| Change | Version | Why |
+| --- | --- | --- |
+| a wrong conversion is fixed, API unchanged | patch, e.g. `3.0.2` | the string a user gets back changes |
+| a new option or export, old behaviour intact | minor, e.g. `3.1.0` | additive; existing installs unaffected |
+| an existing input converts differently, or an export / `.d.ts` signature changes | major, e.g. `4.0.0` | installed code can break |
+| only `docs/`, `test/`, `.github/`, `AGENTS.md`, `CHANGELOG.md` changed | no release | nothing a user receives |
+| a 2.x regression fix | patch on `maintain/2.x`, e.g. `2.5.3` | never `2.6`, never on `master` |
+
+Rules that keep the above from becoming a guess:
+
+- **One release per batch, not per commit.** Wait until a user-visible change exists; a docs-only week is
+  not a version.
+- **Evidence before proposing.** `npm test` green plus a rehearsal run (`workflow_dispatch` from `master`,
+  `dry_run` on), and quote its pack summary line. A proposal without that is just an opinion.
+- **`npm run release:ready` decides the hard part.** It exits 0 when `lib/` or `dist/` changed since the
+  last tag and 1 when they did not — the package ships only those two directories, so "no change there"
+  means the tarball would differ only in its version number. It does not pick patch/minor/major; that
+  needs someone reading the diff, comparing `lib/index.d.ts` for added or narrowed signatures.
+- **Check what actually ships.** `npm run release:ready` prints the files that changed under `lib/` and
+  `dist/` since the last tag and the changelog bullet count; empty on both means there is nothing to
+  release even if many commits landed.
+- **Never propose a version already on the registry** (`npm view pinyin-tone versions`), and never tag a
+  commit outside `master` / `maintain/2.x` — the gate rejects both, but proposing them wastes a run.
+- **State the reason, not the diff.** "3.0.2 fixes `nve4` converting to `nüe4`" is a release note;
+  "update dict.js" is not.
+
 ## Definition of done
 
 - `npm test` green. Say the assertion count in the commit message if it moved.
@@ -133,9 +169,11 @@ disagrees.
   restatement of the diff.
 - No probe or scratch files left behind (`probe-*.mjs`, temporary scripts). The working tree is clean
   apart from what you meant to add.
-- **Never run `npm publish` from a working copy.** A release is a tag: `git push origin v<version>`
-  starts `.github/workflows/publish.yml`, which re-runs the tests, checks the pack contents, verifies
-  the tag against `package.json`, checks the commit is on the release branch, and derives the dist-tag
-  from the major version. See `docs/releasing.md`; a laptop publish bypasses every one of those gates.
+- **Never run `npm publish` or `npm stage publish` from a working copy.** A release is an annotated tag:
+  `git push origin v<version>` starts `.github/workflows/publish.yml`, which re-runs the tests, checks the
+  pack contents, verifies the tag against `package.json` and against the release branch, derives the
+  dist-tag from the major version, and then only *stages* the tarball (`npm stage publish`). It goes live
+  after a maintainer approves it on npmjs.com. See `docs/releasing.md`; a laptop publish or stage bypasses
+  every one of those gates.
 - Do not rewrite history: prefer a new commit. Do not touch `maintain/2.x` unless the task is
   explicitly about the 2.x line.

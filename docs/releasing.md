@@ -7,6 +7,34 @@ publishes with a provenance statement naming the commit it built from.
 The same tag is the only record of what shipped, so the version in `package.json` and the tag name
 have to agree — the workflow refuses anything else.
 
+## Whether to release at all
+
+Preparing a release (bumping `package.json`, renaming the changelog heading, committing, showing the
+rehearsal log) can be done by an agent; `git tag -a`, the `npm-publish` approval and the npmjs.com approval
+belong to a maintainer — a tag is the one thing here that cannot be undone.
+
+A release is warranted only when `## 未发布` holds at least one change the person installing this package
+would notice:
+
+| Change | Version | Why |
+| --- | --- | --- |
+| a conversion was wrong, API unchanged | patch, e.g. `3.0.2` | the string a caller gets back changes |
+| a new option or export, old behaviour intact | minor, e.g. `3.1.0` | additive only; installed code is unaffected |
+| an existing input converts differently, or an export / `.d.ts` signature changes | major, e.g. `4.0.0` | installed code can break |
+| only `docs/`, `test/`, `.github/`, `AGENTS.md`, `CHANGELOG.md` changed | no release | users receive nothing |
+| a 2.x regression fix | patch on `maintain/2.x`, e.g. `2.5.3` | never `2.6`, never on `master` |
+
+Four checks keep that from being a guess:
+
+- One release per batch, not per commit; a docs-only week is not a version.
+- Evidence before proposing: `npm test` green plus a rehearsal run (`workflow_dispatch` from `master`,
+  `dry_run` on), quoting the pack summary it prints.
+- `npm run release:ready` answers "is there anything to release" by diffing `lib/` and `dist/` against the
+  last tag — the package ships only those, so with no change there the tarball would differ only in its
+  version number. Exit code 0 means yes, 1 means no.
+- Never propose a version already on the registry (`npm view pinyin-tone versions`), and never tag a
+  commit outside `master` / `maintain/2.x` — the gates reject both, at the cost of a wasted run.
+
 ## What runs before the registry is touched
 
 | Gate | Why it exists |

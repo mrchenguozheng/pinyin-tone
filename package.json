@@ -24,7 +24,8 @@
     "pretest": "node scripts/build-cjs.mjs --check",
     "test": "mocha && tsc --noEmit",
     "prepack": "node scripts/build-cjs.mjs --check",
-    "pack:check": "node scripts/check-pack.mjs"
+    "pack:check": "node scripts/check-pack.mjs",
+    "release:ready": "node scripts/release-readiness.mjs"
   },
   "keywords": [
     "pinyin",

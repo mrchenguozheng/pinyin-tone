@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 防误发两道新闸：真发布要求 **annotated tag**（`git cat-file -t` 校验，轻量 tag 拒绝，避免
   `git push --tags` 一次送上一串）；发布 job 挂 `npm-publish` environment，配好 required reviewers
   后推 tag 只会排进「等待批准」。
+- 新增 `npm run release:ready`（`scripts/release-readiness.mjs`）：把「该不该发一版」从意见变成一次核对 ——
+  比对上一个 tag 之后 `lib/` 与 `dist/` 有没有变（包里只有这两样），退出码 0 表示有东西可发、1 表示
+  没有。`AGENTS.md` 与两份 releasing 文档都改成引用它，并写明 agent 能准备到哪一步、哪三步必须由人做。
 - 发布改成 npm staged publishing：npm 侧的 trust relationship 权限是 `npm stage publish`，
   所以 CI 调 `npm stage publish`（`npm publish` 在该权限下会被 registry 拒绝），包先进 staging 区，
   由维护者在 npmjs.com 的 Staged Packages 里点 Approve 并完成 2FA 才上架。排练同步改成
