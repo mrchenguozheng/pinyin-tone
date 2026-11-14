@@ -2,13 +2,54 @@
 
 更新日志
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [如何维护更新日志](https://keepachangelog.com/zh-CN/1.0.0/),
-
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
+- 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) / [English](https://keepachangelog.com/en/1.0.0/)
+- 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/) / [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+- 3.0 之前只记版本与改动；3.0 起按 `Breaking` / `Added` / `Changed` / `Fixed` 分组
 
 ## 未发布
+
+### 发布流程
+
+- 发版从「本机敲一条 `npm publish`」改成「推一个 tag」。`v<version>` 推送后
+  `.github/workflows/publish.yml` 依次跑 `npm test`、`npm run pack:check`，再校验 tag 与
+  `package.json` 的版本一致、tag 是 annotated、提交落在发布分支上（3.x 在 `master`，2.x 在
+  `maintain/2.x`）、registry 上还没有同号版本，然后按主版本号推导 dist-tag（3.x → `latest`，
+  2.x → `legacy`）。补上两件原先没有的保证：tag 推送不触发 CI，因此这条 workflow 是发布前唯一的
+  关；2.x 的补丁不可能被发到 `latest`。
+- 认证只走 OIDC。npm 侧登记 trusted publisher（仓库 `mrchenguozheng/pinyin-tone`、workflow
+  `publish.yml`、权限 `npm stage publish`），每次运行换一枚短期凭据。仓库里不存 token，也不该存：
+  信任关系有效之后再放一个长期 token，等于在 staged 2FA 闸旁边留一扇多余的门。
+- 发布走 staged publishing。这个权限下 CI 只能调 `npm stage publish`（`npm publish` 会被 registry
+  拒绝），包先进 staging 区，由维护者在 npmjs.com 的 Staged Packages 里点 Approve 并完成 2FA 才
+  上架。staged 与已发布版本共用同一个版本号唯一索引，忘了批准会让同号版本既上不了架、也不能再
+  stage，得先 `npm stage reject`；短期 OIDC token 不能执行 `npm stage list/view/reject`，那几步要用
+  维护者自己的身份。
+- `publish.yml` 装 `npm@>=11.15.0 <12`。staged publishing 要求 npm 11.15.0 以上、Node 22.14 以上，
+  而 12 又改了 `npm pack --json` 的输出形态，两个边界都要卡住。`registry-url` 一并去掉 ——
+  setup-node 会借它写入一条 `always-auth`，npm 从 11 起对这条旧配置发警告。
+- `npm pack --json` 的输出形态随 npm 大版本变化：11.21.2 是只含一项的数组，12.2.2 是以包名为键的
+  对象。`check-pack.mjs` 原先用 `const [info] = JSON.parse(raw)` 解构，遇到对象形态就抛
+  `object is not iterable` —— 第一次 Publish 运行正挂在打包守卫上。现在两种形态都接受
+  （`scripts/pack-json.mjs`），多包、空结果、非对象则明确报错。
+- 排练（手动触发、`dry_run` 默认打开）走同一条命令的 `--dry-run`，两道闸在这里放宽。版本已在
+  registry 只警告，因为排练的常态正是「这一版已经发出去、下一版还没升」；npm 自己的重复版本检查
+  绕不过，所以版本已存在时把工作副本临时改成 `0.0.0-rehearsal` 再跑，不提交、不打 tag。
+- 防误发两道闸：真发布要求 annotated tag（`git cat-file -t` 校验，轻量 tag 直接拒绝，避免
+  `git push --tags` 一次送上一串）；发布 job 挂 `npm-publish` environment，配好 required
+  reviewers 后推 tag 只会排进等待批准。一次发布因此有三个必须由人做的动作：打 tag、批准
+  environment、在 npmjs.com 批准 staged 版本。
+- 三个 workflow 的 runner 写死 `ubuntu-26.04`。`ubuntu-latest` 从 2026-10-19 起分批迁往 Ubuntu 26，
+  发布不可回滚、站点是对外页面，这两件事不该由一次没人审计过的系统换代决定；写死标签让平台变化
+  成为一次显式改动。
+- 三个 workflow 的 action 升到 Node 24 系列，消掉 `Node.js 20 is deprecated` 警告：
+  `checkout@v4` → `v5`、`setup-node@v4` → `v5`、`configure-pages@v5` → `v6`、
+  `upload-pages-artifact@v3` → `v5`、`deploy-pages@v4` → `v5`。判断依据是各 action 的 `action.yml`
+  里 `runs.using` 是不是 node24，而不是发布先后（`configure-pages@v5` 仍跑 node20，v6 才是 node24）。
+- 新增 `npm run release:ready`（`scripts/release-readiness.mjs`）：把「该不该发一版」从意见变成
+  一次核对 —— 比对上一个 tag 之后 `lib/` 与 `dist/` 有没有变（包里只有这两样，它们没变就意味着
+  发出去和上一版只差一个版本号），退出码 0 表示有东西可发、1 表示没有。
 
 ### 测试
 
@@ -23,67 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （`jv1`、`m1`、`e^1`）以及那 38 个键的完整成员表 —— 这几项原先只有人能核对。
 - 新增 `test/test-doc-claims.js`：文档里引用的每个数字都先登记，再与代码对账（键数 1952、
   输入 13664、根入口差异 1548 及其三桶、`/v2` 的 259 / 38、`strict` 的 876 / 1076、
-  `workaround` 的 42 种拼写）；同时扫描正文，凡是出现未登记的整数就报出 `文件:行号`。代码片段
-  与 URL 里的数字不计 —— 那些是输入输出与文档编号，不是对行为的断言。扫描范围含演示页正文：
-  `site/src/pages/index.astro` 去掉 frontmatter、`<script>`、`<style>`、`<code>` 之后剩下的文字
-  一并检查，页面里那句「426 个音节」因此不再是没人看守的第二副本。阈值降到两位数，登记表相应
-  补上演示表行数 17、只声明 v3 的第一行 13、`engines` 的 Node 14。
-- 新增 `.github/workflows/publish.yml`：发版从「本机敲一条 `npm publish`」改成「推一个 tag」。
-  `v<version>` 推送后，这个 workflow 依次跑 `npm test`、`npm run pack:check`，再校验 tag 与
-  `package.json` 的版本一致、提交落在发布分支上（3.x 在 `master`，2.x 在 `maintain/2.x`）、
-  registry 上还没有同号版本，然后按主版本号推导 dist-tag（3.x → `latest`，2.x → `legacy`）发布，
-  带 `--provenance`。补上两件原先没有的保证：tag 推送不触发 CI，因此发布前的测试是这条路上唯一的
-  关；2.x 的补丁不可能被发到 `latest`。手动触发默认 `dry_run=true`，只跑校验与 `--dry-run`。
-- 新增 `test/test-pack-json.js` 与 `scripts/pack-json.mjs`：`npm pack --json` 的输出形态随 npm
-  大版本变化（npm 11.21.2 是只含一项的数组，npm 12.2.2 是以包名为键的对象），`check-pack.mjs`
-  原来用 `const [info] = JSON.parse(raw)` 解构，遇到对象形态就抛
-  `object is not iterable` —— 第一次 Publish 运行正是这么挂在打包守卫上。现在两种形态都接受，
-  多种包/空结果/非对象则明确报错，两种形态各钉一条测试。
-- `publish.yml` 的 npm 安装从 `npm@latest` 固定为 `npm@11`：Trusted Publishing 要求 11.5.1 以上，
-  而 12 已改了上述输出形态；同时去掉 `registry-url`，因为 setup-node 会借此写入一条 `always-auth`，
-  而 npm 从 11 起会对这条旧配置发警告。
-- `publish.yml` 的「版本已存在」闸在排练里改成只警告：排练不碰 registry，而排练的常态正是
-  「这一版已经发出去了、下一版还没升」（master 上 `3.0.1` 已在 registry，于是分支排练被这道闸
-  直接拦死，流程走不到 `npm publish --dry-run`）。真发布时这道闸仍是硬拦。
-- 排练的 dry run 再退一层：`npm publish --dry-run` 自己也会查 registry，重复版本直接报
-  `cannot publish over the previously published versions`，所以版本已存在时把工作副本临时改成
-  `0.0.0-rehearsal` 再跑（不提交、不打 tag）。排练验证的是机制 —— 认证、文件清单、dist-tag、
-  `--provenance` 参数 —— 而不是版本号本身。
-- 三个 workflow 的 action 升到 Node 24 系列，消掉 `Node.js 20 is deprecated` 警告：
-  `checkout@v4` → `v5`、`setup-node@v4` → `v5`、`configure-pages@v5` → `v6`、
-  `upload-pages-artifact@v3` → `v5`、`deploy-pages@v4` → `v5`。判断依据是各 action 的 `action.yml`
-  里 `runs.using` 是不是 node24，而不是看发布先后（`configure-pages@v5` 仍跑 node20，v6 才是 node24）。
-- 发布与 Pages 的 runner 固定到 `ubuntu-24.04`：`ubuntu-latest` 从 2026-10-19 起分批迁往 Ubuntu 26，
-  发布不可回滚、站点是对外页面，两者都不该由一次没人审计过的系统换代决定。`ci.yml` 故意保留
-  `ubuntu-latest`，让镜像换代先在测试里暴露。
-- runner 从 `ubuntu-24.04` 迁到 `ubuntu-26.04`（三个 workflow 全部），`ubuntu-latest` 已在
-  2026-10-19 起分批迁往 Ubuntu 26。写死标签，让平台变化成为一次显式改动。
-- 防误发两道新闸：真发布要求 **annotated tag**（`git cat-file -t` 校验，轻量 tag 拒绝，避免
-  `git push --tags` 一次送上一串）；发布 job 挂 `npm-publish` environment，配好 required reviewers
-  后推 tag 只会排进「等待批准」。
-- 新增 `npm run release:ready`（`scripts/release-readiness.mjs`）：把「该不该发一版」从意见变成一次核对 ——
-  比对上一个 tag 之后 `lib/` 与 `dist/` 有没有变（包里只有这两样），退出码 0 表示有东西可发、1 表示
-  没有。`AGENTS.md` 与两份 releasing 文档都改成引用它，并写明 agent 能准备到哪一步、哪三步必须由人做。
-- 发布改成 npm staged publishing：npm 侧的 trust relationship 权限是 `npm stage publish`，
-  所以 CI 调 `npm stage publish`（`npm publish` 在该权限下会被 registry 拒绝），包先进 staging 区，
-  由维护者在 npmjs.com 的 Staged Packages 里点 Approve 并完成 2FA 才上架。排练同步改成
-  `npm stage publish --dry-run`。
-- `publish.yml` 的 npm 安装范围改为 `npm@>=11.15.0 <12`：staged publishing 要求 npm 11.15.0 以上、
-  Node 22.14 以上，而 12 又改了 `npm pack --json` 的输出形态，所以两头都卡住。
-- 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
-  排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
-  workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、
-  `npm audit signatures`）。
-- 新增 `AGENTS.md`：给写代码的 agent 的维护须知 —— 目录分工、必须跑的命令、六条不变量及各自
-  防住的事故（文档数字必须登记、数字改动要改全七处副本、用例表只有一份、pin 必须精确、2.x 只收
-  回归修复、`dist` 是生成物）、已经踩过的坑（JSON import attribute 的版本限制、页面上
-  `import.meta.url` 在预渲染时解析错位、`pinyin-tone-2` 是 2.5.2 而非 2.4.1、`strict` 对未知键不抛错、
-  lock 里镜像地址要改回 npmjs）、每个数字怎么复算，以及完成标准。
+  `workaround` 的 42 种拼写）；同时扫描正文，凡是出现未登记的两位数以上整数就报出 `文件:行号`。
+  代码片段与 URL 里的数字不计 —— 那些是输入输出与文档编号，不是对行为的断言。扫描范围含演示页
+  正文：`site/src/pages/index.astro` 去掉 frontmatter、`<script>`、`<style>`、`<code>` 之后剩下的
+  文字一并检查，页面里那句「426 个音节」因此不再是没人看守的第二副本。
+- 新增 `test/test-pack-json.js`：`npm pack --json` 的两种输出形态各钉一条，另加多包、空结果与
+  非对象三条拒绝断言。
 - 对拍基线从 2.4.1 迁到 2.5.2：根 `devDependencies` 里的别名改为
   `"pinyin-tone-2": "npm:pinyin-tone@2.5.2"`（精确版本，别名是因为被测包自己就叫
-  `pinyin-tone`）。根入口的统计与 2.4.1 完全一致；变化在 `/v2` 子路径——`e^1` 由 `e` 变成
-  `e^1`（2.5.x 不再按切片截断），因此该测试还钉了一条行为断言
-  `v1('Hao3') === 'Hao3'`：把别名降回 2.4.1 这条立刻变红，基线版本从此不靠「装的是哪个」自证。
+  `pinyin-tone`）。根入口的统计与 2.4.1 完全一致；变化在 `/v2` 子路径 —— `e^1` 由 `e` 变成
+  `e^1`（2.5.x 不再按切片截断），因此该测试还钉了一条行为断言 `v1('Hao3') === 'Hao3'`：
+  把别名降回 2.4.1 这条立刻变红，基线版本从此不靠「装的是哪个」自证。
 
 ### 站点
 
@@ -98,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `import v2 from 'pinyin-tone/v2/index.js'` 改为 `pinyin-tone/v2`：2.5.x 起包里有 `exports`
   map，`./v2/index.js` 这个文件路径不再解析，2.4.1 没有 `exports` 才能那样写。
 
-### 文档
+### 文档与维护约定
 
 - README、`docs/README.zh.md`、`docs/migrating.md`、`docs/migrating.zh.md`、`site/README.md`
   的推荐基线统一为 `pinyin-tone@2.5.2`（2.x 最后一个版本，npm 的 `legacy` 标签）。`2.4.1`
@@ -110,10 +101,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   「`^` 标 ê」改为「这种写法 2.x 不认」；对拍脚本的 `2.4.1`、`oldpin/v2/index.js` 一并更新。
 - 本节之前 v3.0.1 与 v3.0.0 两节里仍写「2.4.1」的地方是当时发布时的记录（数字在 2.5.2 下
   依旧成立，差的是 `/v2` 的个别示例值），以上面这几条为准。
+- 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：一份发版口径 —— 要不要发版的判据、碰到
+  registry 之前要过的闸、发 3.x 与 2.x 的步骤、排练路径、npm 侧的一次性配置、发布后怎么验证
+  （`dist-tags`、`dist.integrity`、`npm audit signatures`）。
 - 新增 `docs/maintenance.md` 与 `docs/maintenance.zh.md`：3.0 在 `master`（`latest`）收功能与
   API 改动，2.x 在 `maintain/2.x`（`legacy`，固定 2.5.2）只收回归修复；修复先进 `master`，
   只有 2.x 自身的 bug 才回迁且只发补丁；`2.4.1` 保持弃用；回迁的改动必须在 2.x 那条分支的 CI
   上也绿。原先两条线怎么分工只存在于作者脑子里。
+- 新增 `AGENTS.md`：给写代码的 agent 的维护须知 —— 目录分工、必须跑的命令、六条不变量及各自
+  防住的事故（文档数字必须登记、数字改动要改全七处副本、用例表只有一份、pin 必须精确、2.x 只收
+  回归修复、`dist` 是生成物）、已经踩过的坑（JSON import attribute 的版本限制、页面上
+  `import.meta.url` 在预渲染时解析错位、`pinyin-tone-2` 是 2.5.2 而非 2.4.1、`strict` 对未知键不抛错、
+  lock 里镜像地址要改回 npmjs）、每个数字怎么复算，以及完成标准。其中「一次发布需要哪些人工动作」
+  与「该不该发版」的判据随发布流程一并写进去。
 - 修正「`workaround` 是 36 个输入的超集」：那张表是 6 个元音 × 7 种写法（裸写与 `0`–`5`，
   其中 `0` 与 `5` 是两条独立输入），共 42 种拼写；`docs/README.zh.md` 与 README 一并改，
   `test-doc-claims.js` 逐条比对 `markTones` 与 `/workaround` 的输出，含非元音原样返回的兜底。
@@ -215,7 +215,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs: README 新增 “Public API (公开接口)” 一节，明确只有上述入口受支持，并写明依赖包内私有
   路径会产生未定义、不可信的结果或报错，同时标注本次为 breaking change。
 
-- Breaking (behavior change): 新实现现在默认输出**规范**形式的 `ü`。`j`/`q`/`x`/`y` 与 `ü` 相拼时
+### Breaking (behavior change)
+
+- 新实现现在默认输出**规范**形式的 `ü`。`j`/`q`/`x`/`y` 与 `ü` 相拼时
   《汉语拼音方案》要求省略两点，此前 `jv1 → jǖ`、`jvan1 → jüān` 这类输出保留了两点，属于
   不合规范的拼写。现在默认 `jv1 → jū`、`jvan1 → juān`。字面形式**不是**一个全局选项，而是
   写在需要它的那一处：`ju:1 → jǖ`（`jv:1` 同义）、`juan:1 → jüān`。
@@ -250,7 +252,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   音节内部混用（`hAo3`、`HaO3`）不是标准里的写法，仍整串原样。
   代价：全大写拉丁串 + 数字与拼音无法区分，`A4 → À`、`O2 → Ó`、`N3 → Ň`；输入以英文
   为主时应在调用方先转小写。
-- Fixed: 冒号不再被当成音节边界。`lu:e4` 此前整串原样返回（为了不切出 `lü é`），现在按
+### Fixed (behavior change)
+
+- 冒号不再被当成音节边界。`lu:e4` 此前整串原样返回（为了不切出 `lü é`），现在按
   一个音节处理：`lu:e4 → lüè`、`nu:e4 → nüè`、`lu:e → lüe`。冒号只是「这个 u 带两点」
   的标记，其后的字母仍属同一韵母。只有真的没处落点时才原样：音节里没有 `u`/`v`
   （`ma:1`、`ha:o3`）、零声母后不是单个 `u`/`v`（`u:e1`）、声母不能接 `ü`（`gu:1`）。
