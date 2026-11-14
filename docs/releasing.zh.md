@@ -11,6 +11,8 @@ workflow 不接受别的。
 
 | 闸 | 为什么要有 |
 | --- | --- |
+| tag 必须是 annotated tag | 轻量 tag 一条 `git tag v3.0.2` 就成立，`git push --tags` 还会一次送上一串；`-a -m` 多一道手，也留下打 tag 的时间与说明。本仓库只有 3 个早期的轻量 tag（`v2.0.3`、`v2.0.4`、`v2.3.5`，都已发布过、不会再走这条路），其余全是 annotated。 |
+| 发布 job 要人点一次批准 | 仓库设置里给 environment `npm-publish` 配 required reviewers；配好之后推 tag 只会排进「等待批准」。没有保护规则的 environment 等于没有，所以这条要人工配置。 |
 | tag 等于 `package.json` 的版本 | 否则一个版本号发了另一份代码 |
 | tag 指向的提交在发布分支上 | 3.x 从 `master`，2.x 从 `maintain/2.x`；从旁支发版会绕过那条分支的 CI |
 | 这个版本还没发布过 | npm 本来也会拒绝重发；在这里失败只是一行话，不是一串 HTTP 报错 |
@@ -22,8 +24,9 @@ workflow 不接受别的。
 
 1. 改 `package.json` 的 `version`。
 2. 把 CHANGELOG 的 `## 未发布` 改成 `## v<version>`，两处一起提交。
-3. 在那个提交上 `git tag v<version>`，再 `git push origin v<version>`。
-4. 看 Publish 这次运行：它会先打印解析出的 dist-tag、分支检查结果、包内容摘要，然后才发布。
+3. 在那个提交上 `git tag -a v<version> -m "<一句说明>"`，再 `git push origin v<version>`。
+4. 到 Actions 里批准那次 Publish 运行（没有配 required reviewers 时这一步不会出现）。
+5. 看剩下的日志：它会先打印解析出的 dist-tag、分支检查结果、包内容摘要，然后才发布。
 
 ## 发 2.x
 

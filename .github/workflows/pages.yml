@@ -25,7 +25,7 @@ jobs:
   # 分开反而要来回传文件，所以合并成一个 job。
   build:
     # 固定镜像：站点是要发布出去的，换系统换代不该发生在别人看页面的时候。
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
 
@@ -78,7 +78,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

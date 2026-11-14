@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 发布与 Pages 的 runner 固定到 `ubuntu-24.04`：`ubuntu-latest` 从 2026-10-19 起分批迁往 Ubuntu 26，
   发布不可回滚、站点是对外页面，两者都不该由一次没人审计过的系统换代决定。`ci.yml` 故意保留
   `ubuntu-latest`，让镜像换代先在测试里暴露。
+- runner 从 `ubuntu-24.04` 迁到 `ubuntu-26.04`（三个 workflow 全部），`ubuntu-latest` 已在
+  2026-10-19 起分批迁往 Ubuntu 26。写死标签，让平台变化成为一次显式改动。
+- 防误发两道新闸：真发布要求 **annotated tag**（`git cat-file -t` 校验，轻量 tag 拒绝，避免
+  `git push --tags` 一次送上一串）；发布 job 挂 `npm-publish` environment，配好 required reviewers
+  后推 tag 只会排进「等待批准」。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、

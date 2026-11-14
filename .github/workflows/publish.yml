@@ -28,10 +28,15 @@ concurrency:
 jobs:
   publish:
     name: publish to npm
-    # 固定镜像而不是 ubuntu-latest：发布是唯一的、不可回滚的动作，镜像在 2026-10-19 起会分批迁到
-    # Ubuntu 26，让一个没人审计过的系统换代决定某次发布的行为没有意义。要迁的时候单独改这一行、
-    # 单独跑一次排练。
-    runs-on: ubuntu-24.04
+    # 发布前必须有人点一次批准。这个 environment 的 required reviewers 在仓库设置里配
+    # （Settings → Environments → npm-publish → Required reviewers），配好之后推 tag 只会把这次
+    # 运行排进「等待批准」，不会直接发。没有保护规则的 environment 等同于不存在，所以这一步
+    # 必须人工配置 —— 它和闸里那条「必须是 annotated tag」是一对：一个要人手点，一个要多敲一个 -a。
+    environment:
+      name: npm-publish
+    # 固定镜像而不是 ubuntu-latest：发布是唯一的、不可回滚的动作，让一个会自己迁移的平台
+    # 决定某次发布的行为没有意义。
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -71,6 +76,13 @@ jobs:
           # 真发布只能从 tag 出发。手动触发时如果当前 ref 是分支，只允许排练：
           # 没有 tag 的发布在仓库里留不下「发过什么」的记录，provenance 也会指向一个分支。
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # 轻量 tag 只需 `git tag v3.0.2` 一条命令，`git push --tags` 又会把本地所有 tag 一起送上来
+            # —— 一次手滑就能触发真发布。annotated tag 至少要多敲一次 `-a -m`，并留下打 tag 的时间
+            # 与说明，所以真发布只认 annotated tag。
+            if [ "$(git cat-file -t "${REF}" 2>/dev/null || echo missing)" != "tag" ]; then
+              echo "tag ${REF} 不是 annotated tag：真发布要求 git tag -a ${REF} -m \"...\"" >&2
+              exit 1
+            fi
             if [ "${REF}" = "v${VERSION}" ]; then
               echo "tag ${REF} 与 package.json 的 ${VERSION} 一致"
             else

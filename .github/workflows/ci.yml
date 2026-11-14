@@ -18,9 +18,9 @@ concurrency:
 jobs:
   test:
     name: test (node ${{ matrix.node }})
-    # 这里故意留 ubuntu-latest：它正在分批迁往 Ubuntu 26，镜像换代的问题应该先在这个 job 里变红，
-    # 而不是等某个 tag 触发发布时才由 publish.yml 撞上（发布与 Pages 都已经固定到 ubuntu-24.04）。
-    runs-on: ubuntu-latest
+    # 与发布、Pages 用同一个镜像（ubuntu-26.04）：CI 绿至少说明发布路径所在的平台是绿的。
+    # 写死标签而不是 latest，是为了让平台变化变成一次显式的改动，而不是某天突然不同。
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +42,7 @@ jobs:
 
   engines:
     name: engines floor (node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -61,7 +61,7 @@ jobs:
 
   package:
     name: package contents
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

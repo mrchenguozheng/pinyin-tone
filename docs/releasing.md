@@ -11,6 +11,8 @@ have to agree — the workflow refuses anything else.
 
 | Gate | Why it exists |
 | --- | --- |
+| the tag must be annotated | a lightweight tag is one keystroke (`git tag v3.0.2`), and `git push --tags` sends a whole batch at once; `-a -m` costs a second flag and records who tagged and why. Only three early tags here are lightweight (`v2.0.3`, `v2.0.4`, `v2.3.5`, all long published); every other one is annotated. |
+| a human approves the job | give the `npm-publish` environment required reviewers in repository settings; with that in place a tag push only queues the run for approval. An environment without protection rules behaves as if it does not exist, so this one has to be configured by hand. |
 | tag equals `package.json` version | otherwise one version ships under another version's number |
 | the tagged commit is on the release branch | 3.x from `master`, 2.x from `maintain/2.x`; publishing from a side branch skips that branch's CI |
 | the version is not already published | npm rejects a re-publish anyway; failing here says so in one line instead of an HTTP error |
@@ -22,9 +24,10 @@ have to agree — the workflow refuses anything else.
 
 1. Set `version` in `package.json`.
 2. Rename the changelog heading `## 未发布` to `## v<version>` and commit both together.
-3. `git tag v<version>` on that commit, then `git push origin v<version>`.
-4. Watch the Publish run. It prints the dist-tag it resolved, the branch check, and the pack summary
-   before it publishes.
+3. `git tag -a v<version> -m "<one line>"` on that commit, then `git push origin v<version>`.
+4. Approve the Publish run in Actions (this step does not appear until required reviewers are configured).
+5. Read the log: it prints the dist-tag it resolved, the branch check, and the pack summary before it
+   publishes.
 
 ## Releasing 2.x
 
