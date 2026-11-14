@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `publish.yml` 的「版本已存在」闸在排练里改成只警告：排练不碰 registry，而排练的常态正是
   「这一版已经发出去了、下一版还没升」（master 上 `3.0.1` 已在 registry，于是分支排练被这道闸
   直接拦死，流程走不到 `npm publish --dry-run`）。真发布时这道闸仍是硬拦。
+- 排练的 dry run 再退一层：`npm publish --dry-run` 自己也会查 registry，重复版本直接报
+  `cannot publish over the previously published versions`，所以版本已存在时把工作副本临时改成
+  `0.0.0-rehearsal` 再跑（不提交、不打 tag）。排练验证的是机制 —— 认证、文件清单、dist-tag、
+  `--provenance` 参数 —— 而不是版本号本身。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、

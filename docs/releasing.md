@@ -42,8 +42,17 @@ one thing a branch run cannot exercise, since there is no tag.
 
 The "existing version" gate only warns during a rehearsal: a rehearsal writes nothing to the registry,
 and the normal state it runs in is "this version is already out, the next one is not bumped yet". Left
-fatal, it would make the rehearsal path unusable exactly when it is most useful. It stays a hard stop
-on a real publish — `3.0.1` is already on the registry, so the next release has to bump to `3.0.2`.
+fatal, it would make the rehearsal path unusable exactly when it is most useful.
+
+`npm publish --dry-run` then does its own registry lookup and refuses a duplicate version outright, so
+the rehearsal backs off one more step: when the version is already on the registry, the working copy is
+switched to a throwaway `0.0.0-rehearsal` before the dry run (nothing committed, no tag created). The
+rehearsal then verifies the mechanics — authentication, file list, dist-tag, whether `--provenance` is
+accepted — rather than the version number, and the repository version stays untouched.
+
+A `pinyin-tone-0.0.0-rehearsal.tgz` in the log is therefore expected and is not a name to publish.
+On a real publish the duplicate check stays a hard stop: `3.0.1` is already on the registry, so the
+next release has to bump to `3.0.2`.
 
 A real publish is only reachable from a tag: dispatching the workflow on a branch with `dry_run` off
 fails on purpose, because a release without a tag leaves no record of what shipped and the provenance

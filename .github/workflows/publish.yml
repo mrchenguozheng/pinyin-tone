@@ -136,7 +136,18 @@ jobs:
       # 在分支上触发时这是唯一允许的动作。
       - name: 发布（dry run）
         if: inputs.dry_run == true
-        run: npm publish --dry-run --tag "$TAG"
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          # `npm publish --dry-run` 仍要向 registry 校验「这个版本是否已存在」，所以拿一个已经发过
+          # 的版本排练，npm 自己会拒绝（cannot publish over the previously published versions）。
+          # 排练要看的是机制：认证、文件清单、dist-tag、--provenance 是否被接受。版本已经存在时
+          # 换成不会存在的 0.0.0-rehearsal 再跑；只改工作副本，不提交、不打 tag。
+          if npm view "pinyin-tone@${VERSION}" version >/dev/null 2>&1; then
+            echo "版本 ${VERSION} 已在 registry：排练改用 0.0.0-rehearsal（npm 不接受重复版本）"
+            npm pkg set version=0.0.0-rehearsal
+          fi
+          npm publish --dry-run --tag "$TAG"
 
       - name: 发布
         if: inputs.dry_run != true
