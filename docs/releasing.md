@@ -40,6 +40,11 @@ branch, dist-tag, existing version, tests, pack contents — and the last step i
 `npm publish --dry-run`, which prints exactly what would be uploaded. The tag equality check is the
 one thing a branch run cannot exercise, since there is no tag.
 
+The "existing version" gate only warns during a rehearsal: a rehearsal writes nothing to the registry,
+and the normal state it runs in is "this version is already out, the next one is not bumped yet". Left
+fatal, it would make the rehearsal path unusable exactly when it is most useful. It stays a hard stop
+on a real publish — `3.0.1` is already on the registry, so the next release has to bump to `3.0.2`.
+
 A real publish is only reachable from a tag: dispatching the workflow on a branch with `dry_run` off
 fails on purpose, because a release without a tag leaves no record of what shipped and the provenance
 statement would name a branch instead of a version.

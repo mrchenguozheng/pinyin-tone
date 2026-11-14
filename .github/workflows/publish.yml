@@ -101,10 +101,16 @@ jobs:
             exit 1
           fi
 
-          # 版本不可覆盖：registry 上已有同号版本就直接停，而不是让 npm 返回 403 让日志难读。
+          # 版本不可覆盖：registry 上已有同号版本就不能再发。但排练不碰 registry，
+          # 而且排练存在的意义恰恰是「这一版已经发出去了、下一版还没升」的那个状态 ——
+          # 所以排练只警告，真发布才退出。
           if npm view "pinyin-tone@${VERSION}" version >/dev/null 2>&1; then
-            echo "pinyin-tone@${VERSION} 已在 registry 上：版本号不能覆盖，请先升版本" >&2
-            exit 1
+            if [ "${DRY}" = "true" ]; then
+              echo "pinyin-tone@${VERSION} 已在 registry 上：演练继续；真发布会被这一步拦下，真发前先升版本"
+            else
+              echo "pinyin-tone@${VERSION} 已在 registry 上：版本号不能覆盖，请先升版本" >&2
+              exit 1
+            fi
           fi
 
           echo "TAG=${TAG}" >> "$GITHUB_ENV"

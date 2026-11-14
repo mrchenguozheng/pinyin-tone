@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `publish.yml` 的 npm 安装从 `npm@latest` 固定为 `npm@11`：Trusted Publishing 要求 11.5.1 以上，
   而 12 已改了上述输出形态；同时去掉 `registry-url`，因为 setup-node 会借此写入一条 `always-auth`，
   而 npm 从 11 起会对这条旧配置发警告。
+- `publish.yml` 的「版本已存在」闸在排练里改成只警告：排练不碰 registry，而排练的常态正是
+  「这一版已经发出去了、下一版还没升」（master 上 `3.0.1` 已在 registry，于是分支排练被这道闸
+  直接拦死，流程走不到 `npm publish --dry-run`）。真发布时这道闸仍是硬拦。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、
