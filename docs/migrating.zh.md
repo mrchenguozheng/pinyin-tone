@@ -19,7 +19,7 @@ English: [migrating.md](migrating.md)
 | `convertUnspacedPinyin(text)` | `markTones(text).replace(/ /g, '')` |
 | `splitUnspacedSyllables(text)` | 不用替代——连写输入本来就照收 |
 | `toPinyinTonesVariants(text)` | 一次只要一种写法：`markTones('ju1 ju:1')` 给 `'jū jǖ'` |
-| `pinyin-tone/v1` | 没有替代，锁 `pinyin-tone@2.4.1` |
+| `pinyin-tone/v1` | 没有替代，锁 `pinyin-tone@2.5.2` |
 
 CommonJS 那边也是改名，区别只在拿到的形状：`require('pinyin-tone')` 返回 `{markTones}`，不是函数，解构不能省：
 
@@ -49,20 +49,20 @@ const {markTones} = require('pinyin-tone');
 
 两个对比用同一批 13664 个输入：词表每个键 × 七种声调写法（不带数字，以及 `0`–`5`）。
 
-对 2.4.1 的根入口，1548 个不一样（11.3%），差异全朝一个方向——旧入口把字母吞了：
+对 2.5.2 的根入口，1548 个不一样（11.3%）。"旧入口把字母吞了"只解释其中 966 个，其余是它根本没转换的输入（509 个，`e^0` 还是 `e^0`，3.0 给 `ê`），以及等长的 ü 拼写差（73 个，`jvn` 的 `jün` 对 `jun`）：
 
-| 输入 | 2.4.1 根入口 | 3.0 |
+| 输入 | 2.5.2 根入口 | 3.0 |
 | --- | --- | --- |
 | `biou1` | `biū` | `biōu` |
 | `biou3` | `biǔ` | `biǒu` |
 
 对 `pinyin-tone/v2`，259 个不一样（1.9%），落在 38 个键上，分三组：
 
-| 输入 | 2.4.1 的 `/v2` | 3.0 | 原因 |
+| 输入 | 2.5.2 的 `/v2` | 3.0 | 原因 |
 | --- | --- | --- | --- |
 | `jv1` | `jǖ` | `jū` | j、q、x、y 后面的 ü 写作 u |
 | `m1` | `m1` | `m̄` | 不带元音的叹词也标调 |
-| `e^1` | `e` | `ê̄` | `^` 标的是 ê，它从来不是声调数字 |
+| `e^1` | `e^1` | `ê̄` | `^` 这种写法 2.x 不认，它从来不是声调数字 |
 
 如果以前靠 `jv1` 出 `jǖ`，字面拼写现在也还拿得到，只是要加冒号：`markTones('ju:1')` 给 `'jǖ'`。
 
@@ -71,13 +71,13 @@ const {markTones} = require('pinyin-tone');
 两个版本并排装，旧的那个换个名字：
 
 ```bash
-npm install pinyin-tone@3 oldpin@npm:pinyin-tone@2.4.1
+npm install pinyin-tone@3 oldpin@npm:pinyin-tone@2.5.2
 ```
 
 ```javascript
 // compare.mjs
-import oldRoot from 'oldpin';              // 2.4.1 的根入口
-import oldV2 from 'oldpin/v2/index.js';    // 2.4.1 的 /v2 入口
+import oldRoot from 'oldpin';              // 2.5.2 的根入口
+import oldV2 from 'oldpin/v2';             // 2.5.2 的 /v2 入口
 import {markTones} from 'pinyin-tone';
 
 const inputs = [];                         // 要验的字符串，一条一个元素
@@ -94,7 +94,7 @@ for (const text of inputs) {
 
 ## 退回
 
-`npm install pinyin-tone@2.4.1`，或者把 `package.json` 里的版本写回 `2.4.1`（写 `^2` 也行，3.x 匹配不到它）。挪的只有 `latest` 标签，2.4.1 还在。
+`npm install pinyin-tone@2.5.2`（`legacy` 标签指的就是它），或者把 `package.json` 里的版本写回 `2.5.2`（写 `^2` 也行，3.x 匹配不到它）。挪的只有 `latest` 标签。`2.4.1` 还在 npm 上，但已被标弃用：它的 `/v2` 入口是切片匹配而不是解析（`Hao3` 给 `ao`，`toString` 给 `to`），`2.5.0` 才修掉。
 
 ## 清单
 

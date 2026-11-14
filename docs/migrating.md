@@ -22,7 +22,7 @@ that changed, and a way to check your own input before you commit to the upgrade
 | `convertUnspacedPinyin(text)` | `markTones(text).replace(/ /g, '')` |
 | `splitUnspacedSyllables(text)` | nothing — glued input is accepted as written |
 | `toPinyinTonesVariants(text)` | one spelling per call: `markTones('ju1 ju:1')` gives `'jū jǖ'` |
-| `pinyin-tone/v1` | nothing — pin `pinyin-tone@2.4.1` |
+| `pinyin-tone/v1` | nothing — pin `pinyin-tone@2.5.2` |
 
 CommonJS needs the same rename and one extra step: `require('pinyin-tone')` returns
 `{markTones}`, not a function, so the destructuring is not optional:
@@ -61,21 +61,22 @@ check, so a name that no longer exists cannot reach production as `undefined`.
 Both comparisons use the same 13,664 inputs: every dictionary key × its seven tone spellings
 (no digit, then `0`–`5`).
 
-Against the 2.4.1 root entry, 1,548 of them (11.3%) differ, all in one direction — the old
-entry dropped letters:
+Against the 2.5.2 root entry, 1,548 of them (11.3%) differ. The sentence "the old one dropped
+letters" covers 966 of those; the rest are inputs it did not convert at all (509) and inputs it
+spelled with `ü` where 3.0 writes `u` (73):
 
-| Input | 2.4.1 root | 3.0 |
+| Input | 2.5.2 root | 3.0 |
 | --- | --- | --- |
 | `biou1` | `biū` | `biōu` |
 | `biou3` | `biǔ` | `biǒu` |
 
 Against `pinyin-tone/v2`, 259 differ (1.9%), spread over 38 keys in three groups:
 
-| Input | 2.4.1 `/v2` | 3.0 | Reason |
+| Input | 2.5.2 `/v2` | 3.0 | Reason |
 | --- | --- | --- | --- |
 | `jv1` | `jǖ` | `jū` | after j, q, x, y the ü is written u |
 | `m1` | `m1` | `m̄` | vowel-less interjections take tone marks |
-| `e^1` | `e` | `ê̄` | `^` marks ê; it was never a tone digit |
+| `e^1` | `e^1` | `ê̄` | the `^` spelling is not recognised; it was never a tone digit |
 
 If a `/v2` call relied on `jv1` producing `jǖ`, the literal spelling is still reachable — it
 is asked for with a colon: `markTones('ju:1')` gives `'jǖ'`.
@@ -85,13 +86,13 @@ is asked for with a colon: `markTones('ju:1')` gives `'jǖ'`.
 Install both versions side by side, the old one under another name:
 
 ```bash
-npm install pinyin-tone@3 oldpin@npm:pinyin-tone@2.4.1
+npm install pinyin-tone@3 oldpin@npm:pinyin-tone@2.5.2
 ```
 
 ```javascript
 // compare.mjs
-import oldRoot from 'oldpin';              // the 2.4.1 root entry
-import oldV2 from 'oldpin/v2/index.js';    // the 2.4.1 /v2 entry
+import oldRoot from 'oldpin';              // the 2.5.2 root entry
+import oldV2 from 'oldpin/v2';             // the 2.5.2 /v2 entry
 import {markTones} from 'pinyin-tone';
 
 const inputs = [];                         // your own strings, one per element
@@ -109,8 +110,10 @@ output, and the two tables above say which lines to look at.
 
 ## Going back
 
-`npm install pinyin-tone@2.4.1`, or put `2.4.1` back in `package.json` — `^2` works too, as
-nothing in 3.x can match it. Only the `latest` tag moved; 2.4.1 is still published.
+`npm install pinyin-tone@2.5.2` — the `legacy` tag points there — or put `2.5.2` back in
+`package.json`; `^2` works too, as nothing in 3.x can match it. Only the `latest` tag moved.
+`2.4.1` is still published but deprecated: its `/v2` entry sliced the input instead of parsing
+it (`Hao3` came back as `ao`, `toString` as `to`), which is what `2.5.0` fixed.
 
 ## Checklist
 

@@ -1,5 +1,7 @@
 import toPinyinTonesV1 from "pinyin-tone";
-import toPinyinTonesV2, { convertUnspacedPinyin } from "pinyin-tone/v2/index.js";
+// 2.5.x declares an `exports` map, so the subpath is `pinyin-tone/v2`; the old
+// `pinyin-tone/v2/index.js` (a raw file path) stopped resolving when that map appeared.
+import toPinyinTonesV2, { convertUnspacedPinyin } from "pinyin-tone/v2";
 import { markTones } from "pinyin-tone-v3";
 
 /**

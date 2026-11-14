@@ -2,6 +2,13 @@
 import Layout from "../layouts/Layout.astro";
 import { toPinyin } from "../common/functions";
 import { NPM_LINK, GITHUB_LINK } from "../common/links";
+import cases from "../common/cases.json";
+import sitePackage from "../../package.json";
+
+// The table below is not written here. It lives in ../common/cases.json, and
+// test/test-cases-fixture.js reads that same file: one copy, two readers. The failure this
+// prevents is the one that would cost this page its point — a second copy kept by hand that
+// drifts from the copy the tests check.
 
 type Expectation = string | undefined;
 
@@ -17,130 +24,67 @@ interface TestCase {
 	note?: string;
 }
 
-const tests: TestCase[] = [
-	{ id: "1", input: "test", v1: "test", v2: "test", v3: "test" },
-	{
-		id: "2",
-		input: "chu1 yin1 wei4 lai2",
-		v1: "chū yīn wèi lái",
-		v2: "chū yīn wèi lái",
-		v3: "chū yīn wèi lái",
-	},
-	{
-		id: "3",
-		input: "xun2 yin1 liu2 ge1",
-		v1: "xún yīn liú gē",
-		v2: "xún yīn liú gē",
-		v3: "xún yīn liú gē",
-	},
-	{
-		id: "4",
-		input: "han4 yu3 pin1 yin1 fang1 an4",
-		v1: "hàn yǔ pīn yīn fāng àn",
-		v2: "hàn yǔ pīn yīn fāng àn",
-		v3: "hàn yǔ pīn yīn fāng àn",
-	},
-	{
-		id: "5",
-		input: "huar1 renr2 shuir3 yuer4",
-		v1: "huār rénr shuǐr yuèr",
-		v2: "huār rénr shuǐr yuèr",
-		v3: "huār rénr shuǐr yuèr",
-		note: "erhua",
-	},
-	{
-		id: "6",
-		input: "b p m f",
-		v1: "b p m f",
-		v2: "b p m f",
-		v3: "b p m f",
-		note: "initials",
-	},
-	{
-		id: "7",
-		input: "an1 vn2 ong3 uen4",
-		v1: "ān ǘn ǒng uèn",
-		v2: "ān ǘn ǒng uèn",
-		v3: "ān ǘn ǒng uèn",
-		note: "finals",
-	},
-	{
-		id: "8",
-		input: "liou2 yuen2",
-		v1: "liú yún",
-		v2: "lióu yuén",
-		v3: "lióu yuén",
-		note: "full forms: v1 folds them, v2 and v3 spell them out",
-	},
-	{
-		id: "9",
-		input: "iou1 uen4",
-		v1: "iōu uèn",
-		v2: "iōu uèn",
-		v3: "iōu uèn",
-	},
-	{
-		id: "10",
-		input: "bong1 tv2 pe3 wir4",
-		v1: "bōng tǘ pě wìr",
-		v2: "bōng tǘ pě wìr",
-		v3: "bōng tǘ pě wìr",
-		note: "non-standard but spoken syllables",
-	},
-	{
-		id: "11",
-		input: "qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men",
-		v1: "qǐ lái bú yuàn zuò nú lì de rén men",
-		v2: "qǐ lái bú yuàn zuò nú lì de rén men",
-		v3: "qǐ lái bú yuàn zuò nú lì de rén men",
-	},
-	{
-		id: "12",
-		input: "huar1 wei4 shen2 me zhe4 yang4 hong2",
-		v1: "huār wèi shén me zhè yàng hóng",
-		v2: "huār wèi shén me zhè yàng hóng",
-		v3: "huār wèi shén me zhè yàng hóng",
-	},
-	// The five below are where 3.0 diverges: they are the reason a 2.x caller cannot upgrade
-	// blind. Each one is asserted against v3 only, and the v1/v2 output is shown as it is.
-	{
-		id: "13",
-		input: "han4yu3pin1yin1",
-		v3: "hànyǔpīnyīn",
-		note: "unspaced input; 2.x needs convertUnspacedPinyin, 3.0 reads it directly",
-	},
-	{
-		id: "14",
-		input: "Hao3",
-		v3: "Hǎo",
-		note: "capitalised syllable; 2.x cuts at the capital",
-	},
-	{
-		id: "15",
-		input: "今天ni3hao3",
-		v3: "今天nǐhǎo",
-		note: "pinyin glued to Han characters",
-	},
-	{
-		id: "16",
-		input: "jv1 ju1 ju:1",
-		v3: "jū jū jǖ",
-		note: "ü written three ways",
-	},
-	{
-		id: "17",
-		input: "lu:e4",
-		v3: "lüè",
-		note: "colon as the two dots",
-	},
-];
+const tests = cases as TestCase[];
+
+/**
+ * One cell of the table, computed behind a try/catch.
+ *
+ * Every version call goes through here, at build time and again in the browser. A call that
+ * throws would otherwise leave the cell blank — a library that dies on one input would look
+ * like a library that returned an empty string, and the difference is the whole point of
+ * this page. So the cell carries the message instead.
+ */
+interface Cell {
+	text: string;
+	/** An expectation is declared for this version on this row. */
+	declared: boolean;
+	/** Declared, and the output matched it. A cell with no expectation is never "broken". */
+	matched: boolean;
+	/** The call itself threw; `text` already holds the message. */
+	threw: boolean;
+}
+
+const callCell = (expected: string | undefined, fn: () => string): Cell => {
+	try {
+		const out = fn();
+		return {
+			text: out,
+			declared: expected !== undefined,
+			matched: expected === undefined || out === expected,
+			threw: false,
+		};
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		return { text: `✗ 抛错: ${message}`, declared: expected !== undefined, matched: false, threw: true };
+	}
+};
+
+const versions = ["v1", "v2", "v3"] as const;
 
 const rows = tests.map((test) => ({
 	...test,
-	v1out: toPinyin.v1(test.input),
-	v2out: toPinyin.v2(test.input),
-	v3out: toPinyin.v3(test.input),
+	cells: {
+		v1: callCell(test.v1, () => toPinyin.v1(test.input)),
+		v2: callCell(test.v2, () => toPinyin.v2(test.input)),
+		v3: callCell(test.v3, () => toPinyin.v3(test.input)),
+	},
 }));
+
+// The page's claim is "these rows were actually run". A declared expectation that stops
+// matching has to fail the build, not ship quietly as a cross nobody reads.
+const mismatches = rows.flatMap((row) =>
+	versions
+		.filter((version) => row.cells[version].declared && !row.cells[version].matched)
+		.map(
+			(version) =>
+				`#${row.id} ${version}: expected ${JSON.stringify(row[version])}, got ${JSON.stringify(row.cells[version].text)}`,
+		),
+);
+if (mismatches.length) {
+	throw new Error(
+		`cases.json no longer matches the installed versions:\n  ${mismatches.join("\n  ")}`,
+	);
+}
 
 // The options exist only in 3.0, and they have to reach the unspaced cell too: that cell is
 // the same call with the spaces collapsed. When it stopped passing its arguments, ticking
@@ -153,6 +97,32 @@ const optionChecks: Array<[string, string, string]> = [
 for (const [actual, expected, label] of optionChecks) {
 	if (actual !== expected) {
 		throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+	}
+}
+
+// What the page actually runs, read from the file that decides it. v1 and v2 come from
+// pinyin-tone@2.5.2 (the 2.x line's last release, `legacy` on npm), v3 from the aliased 3.0.x —
+// both pinned to an exact version, because this page is a record of what those two releases do,
+// not a mirror of `latest`. A caret here would let a later release rewrite the demonstration
+// without anyone editing this file, which is how a "three generations" page quietly becomes
+// "two generations and today".
+//
+// Read by import rather than by `readFileSync(new URL(...))`: the prerender step moves this
+// frontmatter into a chunk under `dist/.prerender/chunks/`, so a URL relative to the source file
+// resolves against the output directory instead — a path that only holds together by accident.
+const siteDependencies = (sitePackage as { dependencies: Record<string, string> }).dependencies;
+const pins = {
+	v1v2: siteDependencies["pinyin-tone"],
+	v3: (siteDependencies["pinyin-tone-v3"] ?? "").replace(/^npm:pinyin-tone@/, ""),
+};
+for (const [name, spec] of [
+	["pinyin-tone", pins.v1v2],
+	["pinyin-tone-v3", pins.v3],
+] as const) {
+	if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(spec)) {
+		throw new Error(
+			`${name} must be pinned to an exact version — this page is a record of two specific releases — got ${JSON.stringify(spec)}`,
+		);
 	}
 }
 
@@ -171,7 +141,7 @@ markTones("duang1 jui1", { strict: true });        // "duang1 jui1"
 markTones("M2 货币供应量", { skip: "M2" });          // "M2 货币供应量"`;
 
 const usageV2 = `import toPinyinTones from "pinyin-tone";            // v1
-import v2, { convertUnspacedPinyin } from "pinyin-tone/v2/index.js";
+import v2, { convertUnspacedPinyin } from "pinyin-tone/v2";
 
 toPinyinTones("han4 yu3 pin1 yin1");       // "hàn yǔ pīn yīn"
 v2("liou2 yuen2");                          // "lióu yuén"
@@ -260,6 +230,15 @@ const examples = [
 			</p>
 		</div>
 	</div>
+
+	<p class="muted pin-note">
+		This page runs <code>pinyin-tone@{pins.v1v2}</code> (v1 and v2 —
+		the last release of the 2.x line, the <code>legacy</code> tag on npm) and
+		<code>pinyin-tone@{pins.v3}</code> (v3). Both are pinned to an exact version
+		in <code>site/package.json</code> — no <code>^</code>, no <code>~</code> — so
+		the outputs below stay the outputs of those two releases: a new release
+		changes the library, not this record. The build fails if either pin loosens.
+	</p>
 
 	<h2 id="try">Try it</h2>
 	<div class="panel">
@@ -384,6 +363,20 @@ const examples = [
 		const outV2Unspaced =
 			document.querySelector<HTMLElement>("#out-v2-unspaced")!;
 
+		// One cell, one try/catch. A version that throws is reported inside that cell and the
+		// other four keep working. Leaving the exception to escape `render()` would abort the
+		// whole update and leave every cell showing the previous input's output — silently
+		// wrong, which is worse than an error message next to the version that broke.
+		const set = (element: HTMLElement, compute: () => string) => {
+			try {
+				element.textContent = compute();
+				element.classList.remove("bad");
+			} catch (error) {
+				element.textContent = `✗ 抛错: ${error instanceof Error ? error.message : String(error)}`;
+				element.classList.add("bad");
+			}
+		};
+
 		const render = () => {
 			const text = input.value;
 			const skipCodes = skip.value
@@ -397,13 +390,13 @@ const examples = [
 				skip: skipCodes.length ? skipCodes : undefined,
 			};
 
-			outV1.textContent = toPinyin.v1(text);
-			outV2.textContent = toPinyin.v2(text);
-			outV3.textContent = toPinyin.v3(text, options);
+			set(outV1, () => toPinyin.v1(text));
+			set(outV2, () => toPinyin.v2(text));
+			set(outV3, () => toPinyin.v3(text, options));
 			// The unspaced cell is the same call with the spaces collapsed, so it has to see
 			// the same options — otherwise ticking strict moves one cell and not the other.
-			outV3Unspaced.textContent = toPinyin.v3Unspaced(text, options);
-			outV2Unspaced.textContent = toPinyin.convertUnspacedPinyin(text);
+			set(outV3Unspaced, () => toPinyin.v3Unspaced(text, options));
+			set(outV2Unspaced, () => toPinyin.convertUnspacedPinyin(text));
 		};
 
 		input.addEventListener("input", render);
@@ -480,9 +473,12 @@ const examples = [
 	<h2 id="tests">Test cases</h2>
 
 	<p>
-		Every row below is run at build time and again in your browser. A cell shows
-		the output; a tick means it matches the expected value declared for that
-		version, a cross means it does not.
+		Every row below is run at build time, from <code>site/src/common/cases.json</code>
+		— the same file <code>test/test-cases-fixture.js</code> reads, so the table and
+		the test suite cannot drift apart. A cell shows the output; a tick means it
+		matches the value declared for that version. A mismatch fails the build rather
+		than shipping as a cross, and a version that throws is reported in its own cell
+		instead of blanking it.
 	</p>
 
 	<table>
@@ -504,33 +500,28 @@ const examples = [
 							<code>{row.input}</code>
 							{row.note && <div class="muted note">{row.note}</div>}
 						</td>
-						<td>
-							<code>{row.v1out}</code>
-							{row.v1 !== undefined &&
-								(row.v1out === row.v1 ? (
-									<span class="ok"> ✓</span>
-								) : (
-									<span class="bad"> ✗</span>
-								))}
-						</td>
-						<td>
-							<code>{row.v2out}</code>
-							{row.v2 !== undefined &&
-								(row.v2out === row.v2 ? (
-									<span class="ok"> ✓</span>
-								) : (
-									<span class="bad"> ✗</span>
-								))}
-						</td>
-						<td>
-							<code>{row.v3out}</code>
-							{row.v3 !== undefined &&
-								(row.v3out === row.v3 ? (
-									<span class="ok"> ✓</span>
-								) : (
-									<span class="bad"> ✗</span>
-								))}
-						</td>
+						{
+							versions.map((version) => {
+								const cell = row.cells[version];
+								return (
+									<td>
+										{cell.threw ? (
+											<span class="bad">{cell.text}</span>
+										) : (
+											<>
+												<code>{cell.text}</code>
+												{cell.declared &&
+													(cell.matched ? (
+														<span class="ok"> ✓</span>
+													) : (
+														<span class="bad"> ✗</span>
+													))}
+											</>
+										)}
+									</td>
+								);
+							})
+						}
 					</tr>
 				))
 			}
@@ -576,6 +567,12 @@ const examples = [
 		font-size: 0.84rem;
 		line-height: 1.5;
 		margin: 0;
+	}
+
+	.pin-note {
+		font-size: 0.85rem;
+		line-height: 1.55;
+		margin: 1rem 0 0;
 	}
 
 	.card-current {

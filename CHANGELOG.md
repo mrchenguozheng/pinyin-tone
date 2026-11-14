@@ -8,6 +8,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) | [语义化版本](https://semver.org/lang/zh-CN/).
 
+## 未发布
+
+### 测试
+
+- 17 行用例表搬进 `site/src/common/cases.json`，成为单一真源：演示页与 mocha 共读它，页面里不再
+  有第二份手抄的用例。新增 `test/test-cases-fixture.js` 检查 1–17 无缺口、无重复 id、13–17 行
+  确实没有 v1/v2 期望、每条 v3 期望对 `lib/index.js` 全真，并断言页面确实从这份 JSON 导入
+  （出现内联用例数组或只存在于 fixture 的输入串就会红）。
+- 新增 `test/test-divergence.js`：把 README 与 `docs/migrating.md` 引用的「13664 个输入、
+  1548 个不同、11.3%」变成每次测试都重算的断言，并拆成 966 / 509 / 73 三桶各钉一条，防止
+  「差异全朝一个方向」这套说法在数据变化后继续成立。另有两条钉住文档引用的样本
+  （`biou1`、`jvn`）。
+- 对拍基线从 2.4.1 迁到 2.5.2：根 `devDependencies` 里的别名改为
+  `"pinyin-tone-2": "npm:pinyin-tone@2.5.2"`（精确版本，别名是因为被测包自己就叫
+  `pinyin-tone`）。根入口的统计与 2.4.1 完全一致；变化在 `/v2` 子路径——`e^1` 由 `e` 变成
+  `e^1`（2.5.x 不再按切片截断），因此该测试还钉了一条行为断言
+  `v1('Hao3') === 'Hao3'`：把别名降回 2.4.1 这条立刻变红，基线版本从此不靠「装的是哪个」自证。
+
+### 站点
+
+- 表格改为按版本渲染，构建期逐格比对：声明了期望却不匹配的行直接让 `astro build` 失败
+  （报 `#N v3: expected …, got …`），不再只是页面上一排 ✗。
+- 单元格级失败显形：构建期与客户端都逐格 `try`/`catch`，某个版本调用抛错时该格渲染
+  `✗ 抛错: <消息>` 并标红，而不是中断整行的渲染、让五格停在上一轮输入。
+- `site/package.json` 的两条依赖改为精确 pin：`"pinyin-tone": "2.5.2"`、
+  `"pinyin-tone-v3": "npm:pinyin-tone@3.0.1"`。页面在构建期读这份 `package.json`，把两条 pin
+  印在版本卡片下方，README 里「记录而不是追 latest」这句话因此可在页面上核对；spec 不是
+  `x.y.z` 就 throw，构建失败。
+- `import v2 from 'pinyin-tone/v2/index.js'` 改为 `pinyin-tone/v2`：2.5.x 起包里有 `exports`
+  map，`./v2/index.js` 这个文件路径不再解析，2.4.1 没有 `exports` 才能那样写。
+
+### 文档
+
+- README、`docs/README.zh.md`、`docs/migrating.md`、`docs/migrating.zh.md`、`site/README.md`
+  的推荐基线统一为 `pinyin-tone@2.5.2`（2.x 最后一个版本，npm 的 `legacy` 标签）。`2.4.1`
+  已被作者标弃用，原文是：它的 `/v2` 入口按切片匹配，`Hao3` 给 `ao`、`toString` 给 `to`，
+  2.5.0 才修掉 —— 文档不再让读者装它。
+- 「11.3% 的差异全是旧入口吞字母」改成三桶归因（966 吞字母 / 509 根本没转换 / 73 等长的 ü
+  拼写差），与 `test/test-divergence.js` 的断言同源。
+- `docs/migrating.*` 的 `/v2` 对照表里 `e^1` 一行「2.x 侧」从 `e` 改成 `e^1`，原因也由
+  「`^` 标 ê」改为「这种写法 2.x 不认」；对拍脚本的 `2.4.1`、`oldpin/v2/index.js` 一并更新。
+- 本节之前 v3.0.1 与 v3.0.0 两节里仍写「2.4.1」的地方是当时发布时的记录（数字在 2.5.2 下
+  依旧成立，差的是 `/v2` 的个别示例值），以上面这几条为准。
+
 ## v3.0.1
 
 ### 文档

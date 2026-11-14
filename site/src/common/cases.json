@@ -1,0 +1,104 @@
+[
+	{ "id": "1", "input": "test", "v1": "test", "v2": "test", "v3": "test" },
+	{
+		"id": "2",
+		"input": "chu1 yin1 wei4 lai2",
+		"v1": "chū yīn wèi lái",
+		"v2": "chū yīn wèi lái",
+		"v3": "chū yīn wèi lái"
+	},
+	{
+		"id": "3",
+		"input": "xun2 yin1 liu2 ge1",
+		"v1": "xún yīn liú gē",
+		"v2": "xún yīn liú gē",
+		"v3": "xún yīn liú gē"
+	},
+	{
+		"id": "4",
+		"input": "han4 yu3 pin1 yin1 fang1 an4",
+		"v1": "hàn yǔ pīn yīn fāng àn",
+		"v2": "hàn yǔ pīn yīn fāng àn",
+		"v3": "hàn yǔ pīn yīn fāng àn"
+	},
+	{
+		"id": "5",
+		"input": "huar1 renr2 shuir3 yuer4",
+		"v1": "huār rénr shuǐr yuèr",
+		"v2": "huār rénr shuǐr yuèr",
+		"v3": "huār rénr shuǐr yuèr",
+		"note": "erhua"
+	},
+	{
+		"id": "6",
+		"input": "b p m f",
+		"v1": "b p m f",
+		"v2": "b p m f",
+		"v3": "b p m f",
+		"note": "initials"
+	},
+	{
+		"id": "7",
+		"input": "an1 vn2 ong3 uen4",
+		"v1": "ān ǘn ǒng uèn",
+		"v2": "ān ǘn ǒng uèn",
+		"v3": "ān ǘn ǒng uèn",
+		"note": "finals"
+	},
+	{
+		"id": "8",
+		"input": "liou2 yuen2",
+		"v1": "liú yún",
+		"v2": "lióu yuén",
+		"v3": "lióu yuén",
+		"note": "full forms: v1 folds them, v2 and v3 spell them out"
+	},
+	{ "id": "9", "input": "iou1 uen4", "v1": "iōu uèn", "v2": "iōu uèn", "v3": "iōu uèn" },
+	{
+		"id": "10",
+		"input": "bong1 tv2 pe3 wir4",
+		"v1": "bōng tǘ pě wìr",
+		"v2": "bōng tǘ pě wìr",
+		"v3": "bōng tǘ pě wìr",
+		"note": "non-standard but spoken syllables"
+	},
+	{
+		"id": "11",
+		"input": "qi3 lai2 bu2 yuan4 zuo4 nu2 li4 de ren2 men",
+		"v1": "qǐ lái bú yuàn zuò nú lì de rén men",
+		"v2": "qǐ lái bú yuàn zuò nú lì de rén men",
+		"v3": "qǐ lái bú yuàn zuò nú lì de rén men"
+	},
+	{
+		"id": "12",
+		"input": "huar1 wei4 shen2 me zhe4 yang4 hong2",
+		"v1": "huār wèi shén me zhè yàng hóng",
+		"v2": "huār wèi shén me zhè yàng hóng",
+		"v3": "huār wèi shén me zhè yàng hóng"
+	},
+	{
+		"id": "13",
+		"input": "han4yu3pin1yin1",
+		"v3": "hànyǔpīnyīn",
+		"note": "unspaced input; 2.x needs convertUnspacedPinyin, 3.0 reads it directly"
+	},
+	{
+		"id": "14",
+		"input": "Hao3",
+		"v3": "Hǎo",
+		"note": "capitalised syllable; the 2.x root leaves it as written, its /v2 entry converts it"
+	},
+	{
+		"id": "15",
+		"input": "今天ni3hao3",
+		"v3": "今天nǐhǎo",
+		"note": "pinyin glued to Han characters"
+	},
+	{
+		"id": "16",
+		"input": "jv1 ju1 ju:1",
+		"v3": "jū jū jǖ",
+		"note": "ü written three ways"
+	},
+	{ "id": "17", "input": "lu:e4", "v3": "lüè", "note": "colon as the two dots" }
+]

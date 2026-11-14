@@ -124,9 +124,12 @@ a call needs both outcomes, cut the text and call once per part.
 3.0 is the dictionary-based implementation that 2.x reached only through `pinyin-tone/v2`,
 and it collapses the two 2.x entries into one: pinyin glued to Chinese no longer needs the
 `Inline` variant. On the 13,664 inputs formed by every dictionary key × its seven tone
-spellings, the two disagree on 11.3% — 3.0 fixes cases where the old one dropped letters
-(`biou1`: 2.x gives `biū`, 3.0 gives `biōu`). Pin `pinyin-tone@2.4.1` if you need the old
-output.
+spellings, the two disagree on 11.3%: 966 of them are the old entry dropping letters
+(`biou1`: 2.x gives `biū`, 3.0 gives `biōu`), 509 are it leaving an input it does not
+recognise untouched (`e^0`: `e^0` against `ê`), and 73 are the same length with `ü` spelled
+two ways (`jvn`: `jün` against `jun`). Pin `pinyin-tone@2.5.2` — the last of the 2.x line and
+the `legacy` tag — if you need the old output. `2.4.1` is deprecated on npm: its `/v2` entry
+sliced the input instead of parsing it (`Hao3` came back as `ao`).
 
 | 2.x | 3.0 |
 | --- | --- |
@@ -140,17 +143,17 @@ output.
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
 | `pinyin-tone/v1`, `splitUnspacedSyllables(x)` | removed |
 
-The 2.4.1 root entry had three names — a default export plus the named `v2` and
+The 2.5.2 root entry had three names — a default export plus the named `v2` and
 `markSinglePinyinVowel`. All three collapse into `markTones`, and getting the rename wrong is
 loud rather than silent: 3.0 has no default export, so `import anything from 'pinyin-tone'`
 is a syntax error, not an `undefined` you find in production.
 
 3.0 is what `latest` points to now. A project that already says `^2` does not move — `^2`
 cannot match `3.x` — so the upgrade happens when you edit `package.json`, and going back is
-the same edit in reverse: pin `2.4.1`.
+the same edit in reverse: pin `2.5.2`.
 
 The table above is the rename only. What each removed name now throws, which outputs
-changed, and a script to diff your own input against 2.4.1 are in
+changed, and a script to diff your own input against 2.5.2 are in
 [`docs/migrating.md`](docs/migrating.md).
 
 ## Details

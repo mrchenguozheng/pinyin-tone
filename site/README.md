@@ -24,15 +24,19 @@ npm run preview   # serve the build
 
 ## How the versions are pinned
 
-`pinyin-tone` stays at **2.4.1**, because 2.x is the last line that ships the `v1`
-root export and the `v2` subpath this page demonstrates. 3.0 removed both and
-replaced them with a single named `markTones`, so it is installed under the alias
-`pinyin-tone-v3`:
+`pinyin-tone` stays at **2.5.2**, the last release of the 2.x line (the `legacy`
+tag on npm), because 2.x is the last line that ships the `v1` root export and the
+`v2` subpath this page demonstrates. 3.0 removed both and replaced them with a
+single named `markTones`, so it is installed under the alias `pinyin-tone-v3`:
 
 ```json
-"pinyin-tone": "2.4.1",
+"pinyin-tone": "2.5.2",
 "pinyin-tone-v3": "npm:pinyin-tone@3.0.1"
 ```
+
+Both pins are exact — no `^`, no `~` — because the page is a record of what those
+two specific releases do, not a mirror of `latest`. 2.4.1 is deprecated on npm
+(its `/v2` entry sliced the input) and must not be reintroduced here.
 
 All three generations are re-exported from `src/common/functions.ts`; the page
 imports from there and nowhere else. The v3 alias tracks the published release on
@@ -41,11 +45,16 @@ happens to contain. Bump it after a release.
 
 ## Test cases
 
-`src/pages/index.astro` holds the test matrix. Each row declares which version's
-output it asserts; rows 13–17 assert v3 only, because they are exactly the inputs
-where 3.0 diverges from 2.x (unspaced input, capitalised syllables, pinyin glued
-to Han characters, the three writings of ü). Assertions are checked at build time
-— a regression shows up as a ✗ in the rendered table.
+`src/common/cases.json` is the only copy of the test matrix: this page imports it,
+and so does `test/test-cases-fixture.js` in the repository root, which checks the
+17 rows for gaps and duplicate ids. Each row declares which version's output it
+asserts; rows 13–17 assert v3 only, because they are exactly the inputs where 3.0
+diverges from 2.x (unspaced input, capitalised syllables, pinyin glued to Han
+characters, the three writings of ü).
+
+A declared expectation that does not match fails the build, not just the cell. At
+runtime each cell is computed inside its own `try`/`catch`, so a call that throws
+prints `✗ 抛错: <message>` in that cell instead of blanking the row.
 
 ## License
 
