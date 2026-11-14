@@ -61,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 防误发两道新闸：真发布要求 **annotated tag**（`git cat-file -t` 校验，轻量 tag 拒绝，避免
   `git push --tags` 一次送上一串）；发布 job 挂 `npm-publish` environment，配好 required reviewers
   后推 tag 只会排进「等待批准」。
+- 发布改成 npm staged publishing：npm 侧的 trust relationship 权限是 `npm stage publish`，
+  所以 CI 调 `npm stage publish`（`npm publish` 在该权限下会被 registry 拒绝），包先进 staging 区，
+  由维护者在 npmjs.com 的 Staged Packages 里点 Approve 并完成 2FA 才上架。排练同步改成
+  `npm stage publish --dry-run`。
+- `publish.yml` 的 npm 安装范围改为 `npm@>=11.15.0 <12`：staged publishing 要求 npm 11.15.0 以上、
+  Node 22.14 以上，而 12 又改了 `npm pack --json` 的输出形态，所以两头都卡住。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、

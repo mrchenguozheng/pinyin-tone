@@ -18,7 +18,8 @@ have to agree — the workflow refuses anything else.
 | the version is not already published | npm rejects a re-publish anyway; failing here says so in one line instead of an HTTP error |
 | the dist-tag | 3.x goes to `latest`, 2.x goes to `legacy` — a 2.x patch must never pull default installs back down |
 | `npm test` and `npm run pack:check` | a tag push does not start the CI workflow, so this job is the only gate between a tag and the registry |
-| `npm publish --provenance` | the published package records the workflow and commit that produced it, verifiable from the registry |
+| a maintainer approves the staged version | this repository's trust relationship only grants `npm stage publish`: CI can put the tarball in the staging area, but it goes live only after a maintainer clicks Approve in npmjs.com's Staged Packages tab (or runs `npm stage approve <stage-id>` locally), and that step forces 2FA |
+| `npm stage publish --provenance` | the published package records the workflow and commit that produced it, verifiable from the registry |
 
 ## Releasing 3.x
 
@@ -26,8 +27,15 @@ have to agree — the workflow refuses anything else.
 2. Rename the changelog heading `## 未发布` to `## v<version>` and commit both together.
 3. `git tag -a v<version> -m "<one line>"` on that commit, then `git push origin v<version>`.
 4. Approve the Publish run in Actions (this step does not appear until required reviewers are configured).
-5. Read the log: it prints the dist-tag it resolved, the branch check, and the pack summary before it
-   publishes.
+5. Read the log: it prints the dist-tag it resolved, the branch check, and the pack summary, then
+   `npm stage publish` moves the tarball into the staging area.
+6. Review that version's SHASUM and contents in npmjs.com's Staged Packages, click Approve, and finish
+   the 2FA prompt — **the registry does not show the version until this happens**.
+
+Skip step 6 and the version is in limbo: staged and published versions share one version-uniqueness
+index, so the same number can neither go live nor be staged again. Reject the staged version and start
+over. The OIDC token is a short-lived one and may not run `npm stage list/view/reject`; those have to be
+done as yourself, locally or on the web.
 
 ## Releasing 2.x
 
@@ -40,14 +48,14 @@ reach `latest` even by mistake. The rules about what 2.x accepts live in
 
 Run the workflow manually with `dry_run` left on (its default), from any branch. Every gate runs —
 branch, dist-tag, existing version, tests, pack contents — and the last step is
-`npm publish --dry-run`, which prints exactly what would be uploaded. The tag equality check is the
-one thing a branch run cannot exercise, since there is no tag.
+`npm stage publish --dry-run`, which prints exactly what would be uploaded. The tag equality check is
+the one thing a branch run cannot exercise, since there is no tag.
 
 The "existing version" gate only warns during a rehearsal: a rehearsal writes nothing to the registry,
 and the normal state it runs in is "this version is already out, the next one is not bumped yet". Left
 fatal, it would make the rehearsal path unusable exactly when it is most useful.
 
-`npm publish --dry-run` then does its own registry lookup and refuses a duplicate version outright, so
+The dry run does its own registry lookup and refuses a duplicate version outright, so
 the rehearsal backs off one more step: when the version is already on the registry, the working copy is
 switched to a throwaway `0.0.0-rehearsal` before the dry run (nothing committed, no tag created). The
 rehearsal then verifies the mechanics — authentication, file list, dist-tag, whether `--provenance` is
@@ -71,6 +79,11 @@ The prerequisite is on npm's side, and only the package owner can set it: on the
 settings, add a trusted publisher of type GitHub Actions with the repository
 `mrchenguozheng/pinyin-tone` and the workflow filename `publish.yml`. From then on the OIDC token
 issued to that workflow is the credential, and there is nothing to rotate or leak.
+
+That trust relationship's permission is set to **`npm stage publish`**, not `npm publish`: the workflow
+can stage a version but cannot put it live, which is why every release ends with a maintainer approval
+and a 2FA prompt on npmjs.com. `npm publish` from CI is rejected by the registry under this setting,
+so the workflow deliberately calls `npm stage publish`.
 
 Until that entry exists, a real publish fails — the workflow's first job is to say so in one line
 ("neither OIDC nor a token"), rather than letting npm answer with an opaque HTTP error. If you would rather

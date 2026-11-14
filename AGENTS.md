@@ -81,10 +81,18 @@ site build too — the page fails at build time, not at runtime.
 - **`ubuntu-latest` is a moving platform, not a constant** (it moved to Ubuntu 26 in late 2026), so every
   job names its image explicitly: all three workflows run on `ubuntu-26.04`. Changing that label is its own
   change, verified by a rehearsal run, never by "latest just moved us".
-- **A release needs two deliberate human acts**: an annotated tag (`git tag -a`, which the gate checks with
-  `git cat-file -t` — a lightweight tag is rejected and would otherwise ride along with `git push --tags`),
-  and an approval on the `npm-publish` environment. The environment only enforces that once required
-  reviewers are set in repository settings; without protection rules it silently behaves as if absent.
+- **A release needs three deliberate human acts**: an annotated tag (`git tag -a`, which the gate checks
+  with `git cat-file -t` — a lightweight tag is rejected and would otherwise ride along with
+  `git push --tags`), an approval on the `npm-publish` environment (only enforced once required reviewers
+  are set in repository settings; without protection rules it silently behaves as if absent), and a
+  maintainer approving the staged version on npmjs.com with 2FA.
+- **The npm trust relationship only grants `npm stage publish`**, so CI calls `npm stage publish` and never
+  `npm publish` (the registry rejects the latter under that permission). Staging parks the tarball in a
+  waiting area: the registry shows nothing until the approval above. Staged and published versions share
+  one version-uniqueness index, so a stale staged version blocks that number in both directions — reject
+  it (`npm stage reject`) before retrying. Short-lived OIDC tokens cannot run `npm stage list/view/reject`;
+  those need a maintainer's own session. Staged publishing requires npm >= 11.15.0 and Node >= 22.14, which
+  is why `publish.yml` installs `npm@>=11.15.0 <12`.
 - **`pinyin-tone-2` is an alias for 2.5.2**, not 2.4.1: `"pinyin-tone-2": "npm:pinyin-tone@2.5.2"`.
   It is the only way the tests can compare 3.0 against the old line. Importing `pinyin-tone-2/v2`
   relies on 2.5.2's `exports` map — the file path `v2/index.js` no longer resolves.

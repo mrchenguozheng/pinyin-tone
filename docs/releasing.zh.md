@@ -18,7 +18,8 @@ workflow 不接受别的。
 | 这个版本还没发布过 | npm 本来也会拒绝重发；在这里失败只是一行话，不是一串 HTTP 报错 |
 | dist-tag | 3.x 发 `latest`，2.x 发 `legacy` —— 2.x 的补丁绝不该把默认安装拽回去 |
 | `npm test` 与 `npm run pack:check` | tag 推送不触发 CI workflow，所以这个 job 是 tag 与 registry 之间唯一的关 |
-| `npm publish --provenance` | 发布出来的包记录了产生它的 workflow 与提交，registry 上可验证 |
+| 维护者对 staged 版本点一次批准 | 本仓库的 trust relationship 权限是 `npm stage publish`：CI 只能把包放进 staging 区，上架必须由一个维护者在 npmjs.com 的 Staged Packages 里点 Approve（或本地 `npm stage approve <stage-id>`），那一步强制 2FA |
+| `npm stage publish --provenance` | 发布出来的包记录了产生它的 workflow 与提交，registry 上可验证 |
 
 ## 发 3.x
 
@@ -26,7 +27,14 @@ workflow 不接受别的。
 2. 把 CHANGELOG 的 `## 未发布` 改成 `## v<version>`，两处一起提交。
 3. 在那个提交上 `git tag -a v<version> -m "<一句说明>"`，再 `git push origin v<version>`。
 4. 到 Actions 里批准那次 Publish 运行（没有配 required reviewers 时这一步不会出现）。
-5. 看剩下的日志：它会先打印解析出的 dist-tag、分支检查结果、包内容摘要，然后才发布。
+5. 看剩下的日志：它会先打印解析出的 dist-tag、分支检查结果、包内容摘要，然后 `npm stage publish`
+   把包放进 staging 区。
+6. 到 npmjs.com 的 Staged Packages 里审一眼这个版本的 SHASUM 与内容，点 Approve 并完成 2FA —
+   **在这一步之前，registry 上看不到这个版本**。
+
+第 6 步没做的话，同名版本既没上架也不能再 stage（staged 与已发布共用同一个版本号唯一索引）。
+要撤销就把那条 staged 版本 Reject 掉，再重新来。OIDC 签发的是短期 token，它不能执行
+`npm stage list/view/reject`，所以这件事只能在本地或网页上用维护者自己的身份做。
 
 ## 发 2.x
 
@@ -37,13 +45,13 @@ workflow 不接受别的。
 ## 排练，不发布
 
 手动运行这个 workflow，把 `dry_run` 保持为默认的打开状态，任意分支都可以。所有闸都会跑 ——
-分支、dist-tag、版本是否已存在、测试、包内容 —— 最后一步是 `npm publish --dry-run`，它会打印出
-将要上传的全部内容。唯一在分支上无法演练的是 tag 一致性，因为没有 tag。
+分支、dist-tag、版本是否已存在、测试、包内容 —— 最后一步是 `npm stage publish --dry-run`，它会
+打印出将要上传的全部内容。唯一在分支上无法演练的是 tag 一致性，因为没有 tag。
 
 「版本是否已存在」这道闸在排练里只警告、不退出：排练不碰 registry，而且排练的常态正是「这一版
 已经发出去、下一版还没升」，把它当致命错误会让排练这条路在最需要的时候不可用。
 
-但 `npm publish --dry-run` 自己也会向 registry 查这个版本存不存在，重复版本它直接拒绝。所以排练
+但 dry run 自己也会向 registry 查这个版本存不存在，重复版本它直接拒绝。所以排练
 在这一步再退一层：版本已经在 registry 上时，把工作副本的版本临时换成 `0.0.0-rehearsal` 再跑
 dry run（不提交、不打 tag）。这样排练验证的是机制 —— 认证方式、文件清单、dist-tag、
 `--provenance` 是否被接受 —— 而不是版本号本身；仓库里的版本号一个字没改。
@@ -67,6 +75,10 @@ trusted publisher，仓库填 `mrchenguozheng/pinyin-tone`，workflow 文件名�
 可用 token」），而不是让 npm 回一个看不懂的 HTTP 报错。如果你暂时不想用 Trusted Publishing，退路是
 在仓库 secret 里放一个名为 `NPM_TOKEN` 的 granular automation token，发布步骤会用它。那种情况下
 长期 token 就是凭据，所以 Trusted Publishing 配好后要立刻在 npm 上吊销它。
+
+这条 trust relationship 的权限设的是 **`npm stage publish`**，不是 `npm publish`：workflow 只能
+把版本放进 staging 区，不能让它上架 —— 所以每次发版都要以一次维护者批准加 2FA 收尾。这个权限下
+CI 里的 `npm publish` 会被 registry 拒绝，workflow 因此调用 `npm stage publish`。
 
 ## 验证一次发布
 

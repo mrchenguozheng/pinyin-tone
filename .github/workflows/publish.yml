@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: '只做 npm publish --dry-run，不真的发布'
+        description: '只做 npm stage publish --dry-run，不真的进 staging 区'
         type: boolean
         default: true
 
@@ -50,11 +50,12 @@ jobs:
           # 不传 registry-url：setup-node 会顺手写一条 always-auth 到 .npmrc，npm 从 11 起对这条
           # 旧配置发警告，而 npm 的默认 registry 本来就是 registry.npmjs.org —— 不需要额外设置。
 
-      # Trusted Publishing 要求 npm 11.5.1 及以上，所以这里升一次 npm；但固定在大版本 11，
-      # 不用 latest：npm 12 已经把 `npm pack --json` 的输出从「数组」改成「以包名为键的对象」
-      # （实测 11.21.2 是数组、12.2.2 是对象），第一次发布就是被这个差异打穿的。
-      # 换大版本时要连同 scripts/pack-json.mjs 与 test/test-pack-json.js 一起确认。
-      - run: npm install -g npm@11
+      # 发布用 npm 的 staged publishing（本仓库的 trust relationship 权限是 npm stage publish，
+      # 直接 npm publish 会被 registry 拒绝），而 staged publishing 要求 npm >= 11.15.0、Node >= 22.14。
+      # 所以这里装一个「11 大版本、且不低于 11.15」的 npm：既满足 staged 的下界，也不跨到 12 ——
+      # npm 12 把 `npm pack --json` 的输出从数组改成以包名为键的对象（实测 11.21.2 数组、12.2.2 对象），
+      # 第一次发布就是被这个差异打穿的。换范围时要连同 scripts/pack-json.mjs 与 test/test-pack-json.js 一起确认。
+      - run: npm install -g "npm@>=11.15.0 <12"
 
       - run: npm ci
 
@@ -137,7 +138,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
-            echo "OIDC 可用：按 Trusted Publishing 认证（npm 侧需已登记 mrchenguozheng/pinyin-tone + publish.yml）"
+            echo "OIDC 可用：按 Trusted Publishing 认证（npm 侧需已登记 mrchenguozheng/pinyin-tone + publish.yml，权限为 npm stage publish）"
           elif [ -n "${NODE_AUTH_TOKEN:-}" ]; then
             echo "使用 NODE_AUTH_TOKEN 认证"
           else
@@ -154,7 +155,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
-          # `npm publish --dry-run` 仍要向 registry 校验「这个版本是否已存在」，所以拿一个已经发过
+          # staged 与已发布版本共用同一个版本号唯一索引，dry run 也会查它，所以拿一个已经发过
           # 的版本排练，npm 自己会拒绝（cannot publish over the previously published versions）。
           # 排练要看的是机制：认证、文件清单、dist-tag、--provenance 是否被接受。版本已经存在时
           # 换成不会存在的 0.0.0-rehearsal 再跑；只改工作副本，不提交、不打 tag。
@@ -162,11 +163,16 @@ jobs:
             echo "版本 ${VERSION} 已在 registry：排练改用 0.0.0-rehearsal（npm 不接受重复版本）"
             npm pkg set version=0.0.0-rehearsal
           fi
-          npm publish --dry-run --tag "$TAG"
+          npm stage publish --dry-run --tag "$TAG"
 
+      # 暂存，不是上线：本仓库的 trust relationship 只给了 npm stage publish，所以这里用的是
+      # `npm stage publish` —— 包进 staging 区，registry 上仍看不到。要真正上架，需要一个维护者
+      # 在 npmjs.com 的 Staged Packages 里点 Approve（或在本地 `npm stage approve <stage-id>`），
+      # 那一步强制 2FA。staged 版本与已发布版本共用同一个版本号唯一索引，所以「忘批准」的后果是
+      # 同名版本既没上架也不能再 stage，得先 `npm stage reject`。
       - name: 发布
         if: inputs.dry_run != true
-        run: npm publish --tag "$TAG" --provenance --access public
+        run: npm stage publish --tag "$TAG" --provenance --access public
         env:
           # 只为兼容「暂时还没配 Trusted Publishing、改用 token」这一条路：secret 不存在时这里是
           # 空字符串，npm 视同未设置，转而使用 OIDC。仓库当前没有配这个 secret，也不需要。
