@@ -96,10 +96,10 @@ dry run（不提交、不打 tag）。这样排练验证的是机制 —— 认�
 trusted publisher，仓库填 `mrchenguozheng/pinyin-tone`，workflow 文件名填 `publish.yml`。之后
 这个 workflow 拿到的 OIDC token 就是凭据，没有东西需要轮换，也没有东西会泄漏。
 
-在那条登记存在之前，真发布会失败 —— workflow 的第一步就是把这件事说清楚（「既没有 OIDC 也没有
-可用 token」），而不是让 npm 回一个看不懂的 HTTP 报错。如果你暂时不想用 Trusted Publishing，退路是
-在仓库 secret 里放一个名为 `NPM_TOKEN` 的 granular automation token，发布步骤会用它。那种情况下
-长期 token 就是凭据，所以 Trusted Publishing 配好后要立刻在 npm 上吊销它。
+Github 那一侧不需要配任何 secret：没有 `NPM_TOKEN`，也不该有。信任关系已经登记并且有效时再放一个
+长期 token，等于在 staged publishing 的 2FA 闸旁边留一扇门 —— 而且没有这个 secret 时 workflow
+也不会去找它。缺的只有 OIDC 时，预检那一步会直接指出是 `id-token: write` 的问题，而不是让 npm 回
+一个看不懂的 HTTP 报错。
 
 这条 trust relationship 的权限设的是 **`npm stage publish`**，不是 `npm publish`：workflow 只能
 把版本放进 staging 区，不能让它上架 —— 所以每次发版都要以一次维护者批准加 2FA 收尾。这个权限下

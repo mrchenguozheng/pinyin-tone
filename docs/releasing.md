@@ -113,11 +113,13 @@ can stage a version but cannot put it live, which is why every release ends with
 and a 2FA prompt on npmjs.com. `npm publish` from CI is rejected by the registry under this setting,
 so the workflow deliberately calls `npm stage publish`.
 
-Until that entry exists, a real publish fails — the workflow's first job is to say so in one line
-("neither OIDC nor a token"), rather than letting npm answer with an opaque HTTP error. If you would rather
-not use Trusted Publishing yet, the fallback is a granular automation token in a repository secret
-named `NPM_TOKEN`; the publish step picks it up when present. In that case the long-lived token is the
-credential, so revoke it at npm as soon as Trusted Publishing is configured.
+so the workflow deliberately calls `npm stage publish`.
+
+**Nothing on the GitHub side is needed either.** No `NPM_TOKEN` secret, and there should not be one: once
+the trust relationship above is registered and valid, a long-lived token would just be a side door next to
+the staged-publishing 2FA gate. The workflow never looks for that secret; when only the OIDC environment
+variable is missing, the preflight step names `id-token: write` as the cause instead of leaving npm to
+answer with an opaque HTTP error.
 
 ## Verifying a release
 
