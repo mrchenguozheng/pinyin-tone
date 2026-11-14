@@ -104,7 +104,7 @@ markTones('M2 A4 N3', {skip: ['M2', 'A4']});    // 'M2 A4 Ň'
 | `import {v2} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
 | `import toPinyinTones from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
 | `import {markSinglePinyinVowel} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
-| `pinyin-tone/workaround` | `markTones`（它那 36 个输入全部覆盖） |
+| `pinyin-tone/workaround` | `markTones`（它那 42 种拼写全部覆盖：6 个元音 × 7 种写法） |
 | `toPinyinTones(x)` / `toPinyinTonesInline(x)` | `markTones(x)`——改名并合并 |
 | `convertUnspacedPinyin(x)` | `markTones(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | 每个需要冒号的 token 写一个冒号 |
@@ -126,6 +126,7 @@ README 只写大多数调用会用到的部分；边界情况在 `docs/` 的另�
 - [`strict.zh.md`](strict.zh.md) — `strict` 放行什么，挡下的 1076 个键又是什么
 - [`skip.zh.md`](skip.zh.md) — `skip` 的全部规则，以及为什么不收正则
 - [`migrating.zh.md`](migrating.zh.md) — 从 2.x 过来：改名、报错，以及变了的输出
+- [`maintenance.zh.md`](maintenance.zh.md) — 哪个分支收哪种改动，以及两个 dist-tag 各指哪
 
 每页都有英文版（文件名去掉 `.zh` 就是）。`docs/` 整个目录不随 npm 包发布。
 

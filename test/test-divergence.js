@@ -18,6 +18,7 @@
 // bucket to another fails here instead of changing the story the docs tell.
 import { expect } from 'chai';
 import v1 from 'pinyin-tone-2';
+import oldV2 from 'pinyin-tone-2/v2';
 import { markTones } from '../lib/index.js';
 import dict from '../lib/dict.js';
 
@@ -39,6 +40,20 @@ for (const input of inputs) {
 const shorter = differences.filter((d) => d.before.length < d.after.length);
 const longer = differences.filter((d) => d.before.length > d.after.length);
 const sameLength = differences.filter((d) => d.before.length === d.after.length);
+
+// The `/v2` subpath is a second baseline, and docs/migrating.md quotes it separately (259 of the
+// same 13,664 inputs, 38 keys). It is measured here for the same reason: the number is a claim in
+// the docs, so it has to break the build when it stops being true.
+const v2Differences = [];
+for (const input of inputs) {
+	const before = oldV2(input);
+	const after = markTones(input);
+	if (before !== after) {
+		v2Differences.push({ input, before, after });
+	}
+}
+
+const v2Keys = [...new Set(v2Differences.map((d) => d.input.replace(/[0-5]$/, '')))];
 
 describe('2.5.2 vs 3.0 over the whole dictionary', () => {
 	it('covers 1,952 keys × 7 spellings = 13,664 inputs', () => {
@@ -80,5 +95,37 @@ describe('2.5.2 vs 3.0 over the whole dictionary', () => {
 		expect(v1('han4yu3pin1yin1')).to.equal('han4yu3pin1yin1');
 		expect(v1('han4 yu3 pin1 yin1')).to.equal('hàn yǔ pīn yīn');
 		expect(v1('Hao3')).to.equal('Hao3');
+	});
+
+	describe('the /v2 subpath, quoted separately', () => {
+		it('differs on 259 of the same 13,664 inputs, 1.9%, over 38 keys', () => {
+			expect(v2Differences, 'differences of the /v2 entry').to.have.length(259);
+			expect(v2Keys, 'dictionary keys the /v2 entry differs on').to.have.length(38);
+			expect((v2Differences.length / inputs.length) * 100).to.be.closeTo(1.9, 0.05);
+		});
+
+		it('differs on exactly the keys the docs name', () => {
+			// docs/migrating.md says the 38 keys are ü after j/q/x/y, the vowel-less
+				// interjections, and `e^`. Anything added or removed here would make that sentence
+			// false, so the membership is asserted, not just the count.
+			expect(v2Keys).to.have.members([
+				...'jv jve jvan jvn jvr jver jvanr jvnr'.split(' '),
+				...'qv qve qvan qvn qvr qver qvanr qvnr'.split(' '),
+				...'xv xve xvan xvn xvr xver xvanr xvnr'.split(' '),
+				...'yv yve yvan yvn yvr yver yvanr yvnr'.split(' '),
+				'e^', 'm', 'n', 'ng', 'hm', 'hng',
+			]);
+		});
+
+		it('keeps the three rows the migration table quotes', () => {
+			// These are the rows in docs/migrating.md and its Chinese twin. 2.5.2's /v2 does not
+			// slice at `^` any more, which is why the table's 2.x cell for e^1 is `e^1`, not `e`.
+			expect(oldV2('jv1')).to.equal('jǖ');
+			expect(markTones('jv1')).to.equal('jū');
+			expect(oldV2('m1')).to.equal('m1');
+			expect(markTones('m1')).to.equal('m̄');
+			expect(oldV2('e^1')).to.equal('e^1');
+			expect(markTones('e^1')).to.equal('ê̄');
+		});
 	});
 });

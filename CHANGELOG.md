@@ -19,7 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 新增 `test/test-divergence.js`：把 README 与 `docs/migrating.md` 引用的「13664 个输入、
   1548 个不同、11.3%」变成每次测试都重算的断言，并拆成 966 / 509 / 73 三桶各钉一条，防止
   「差异全朝一个方向」这套说法在数据变化后继续成立。另有两条钉住文档引用的样本
-  （`biou1`、`jvn`）。
+  （`biou1`、`jvn`）。同一文件里另加一段 `/v2` 对拍：259 个不同、38 个键、三行示例
+  （`jv1`、`m1`、`e^1`）以及那 38 个键的完整成员表 —— 这几项原先只有人能核对。
+- 新增 `test/test-doc-claims.js`：文档里引用的每个数字都先登记，再与代码对账（键数 1952、
+  输入 13664、根入口差异 1548 及其三桶、`/v2` 的 259 / 38、`strict` 的 876 / 1076、
+  `workaround` 的 42 种拼写）；同时扫描正文，凡是出现未登记的、三位以上的整数就报出
+  `文件:行号`。代码片段与 URL 里的数字不计 —— 那些是输入输出与文档编号，不是对行为的断言。
+  局限写在文件头：两位数的断言（42 种拼写、32 个字面 `jv`）落在扫描阈值以下，靠单独的断言兜住。
 - 对拍基线从 2.4.1 迁到 2.5.2：根 `devDependencies` 里的别名改为
   `"pinyin-tone-2": "npm:pinyin-tone@2.5.2"`（精确版本，别名是因为被测包自己就叫
   `pinyin-tone`）。根入口的统计与 2.4.1 完全一致；变化在 `/v2` 子路径——`e^1` 由 `e` 变成
@@ -51,6 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   「`^` 标 ê」改为「这种写法 2.x 不认」；对拍脚本的 `2.4.1`、`oldpin/v2/index.js` 一并更新。
 - 本节之前 v3.0.1 与 v3.0.0 两节里仍写「2.4.1」的地方是当时发布时的记录（数字在 2.5.2 下
   依旧成立，差的是 `/v2` 的个别示例值），以上面这几条为准。
+- 新增 `docs/maintenance.md` 与 `docs/maintenance.zh.md`：3.0 在 `master`（`latest`）收功能与
+  API 改动，2.x 在 `maintain/2.x`（`legacy`，固定 2.5.2）只收回归修复；修复先进 `master`，
+  只有 2.x 自身的 bug 才回迁且只发补丁；`2.4.1` 保持弃用；回迁的改动必须在 2.x 那条分支的 CI
+  上也绿。原先两条线怎么分工只存在于作者脑子里。
+- 修正「`workaround` 是 36 个输入的超集」：那张表是 6 个元音 × 7 种写法（裸写与 `0`–`5`，
+  其中 `0` 与 `5` 是两条独立输入），共 42 种拼写；`docs/README.zh.md` 与 README 一并改，
+  `test-doc-claims.js` 逐条比对 `markTones` 与 `/workaround` 的输出，含非元音原样返回的兜底。
 
 ## v3.0.1
 

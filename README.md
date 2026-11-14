@@ -137,7 +137,7 @@ sliced the input instead of parsing it (`Hao3` came back as `ao`).
 | `import {v2} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
 | `import toPinyinTones from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
 | `import {markSinglePinyinVowel} from 'pinyin-tone'` | `import {markTones} from 'pinyin-tone'` |
-| `pinyin-tone/workaround` | `markTones` (superset of its 36 inputs) |
+| `pinyin-tone/workaround` | `markTones` (superset of its 42 spellings) |
 | `toPinyinTones(x)` / `toPinyinTonesInline(x)` | `markTones(x)` — renamed and merged |
 | `convertUnspacedPinyin(x)` | `markTones(x).replace(/ /g, '')` |
 | `toPinyinTonesVariants(x)` | one colon per token that needs it |
@@ -166,6 +166,7 @@ Edge cases live in [`docs/`](docs/); the README keeps to what most calls need.
 - [`docs/strict.md`](docs/strict.md) — what `strict` lets through, and the 1,076 keys it rejects
 - [`docs/skip.md`](docs/skip.md) — `skip` in full, including why `RegExp` is not accepted
 - [`docs/migrating.md`](docs/migrating.md) — coming from 2.x: the renames, the errors, the output that changed
+- [`docs/maintenance.md`](docs/maintenance.md) — which branch gets which fix, and where the dist-tags point
 
 Each page has a Chinese version — the same name with `.zh` before the extension. Neither
 `docs/` nor the Chinese README is published to npm; they live in the repository.
