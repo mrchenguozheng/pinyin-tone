@@ -10,7 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.3.3",
+    "astro": "^7.4.7",
     "pinyin-tone": "2.4.1",
     "pinyin-tone-v3": "npm:pinyin-tone@3.0.1"
   }
