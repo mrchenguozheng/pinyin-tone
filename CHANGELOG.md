@@ -7,8 +7,11 @@ All notable changes to this project are documented in this file.
 - 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) / [English](https://keepachangelog.com/en/1.0.0/)
 - 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/) / [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - 3.0 之前只记版本与改动；3.0 起按 `Breaking` / `Added` / `Changed` / `Fixed` 分组
-- 3.0 之前的条目保留当时的记录与原意，只统一日期写法、列表符号与中英对照的语序；每条日期取该版本
-  tag 的日期
+- 一个版本一条记录，以 registry 上真正发布过的版本为准；从来没有进过 registry 的号不留章节，
+  它们对应的改动记在紧随其后的那个版本里
+- 每条日期取该版本的发布时间（npm registry 的 `time`），不取 tag 日期 —— 仓库里的 tag 没有覆盖
+  每一个发布版本
+- 3.0 之前的条目按当时的记录与原意整理，只统一写法与语序，不改写历史
 
 ## 未发布
 
@@ -483,177 +486,217 @@ All notable changes to this project are documented in this file.
 
 2026-10-18
 
-- Fixed: the published package no longer contains `CONTRIBUTORS.svg` (455 kB, over three quarters of the tarball) or `tsconfig.json`. A `files` whitelist in package.json now decides what gets packed: tarball 386 kB -> 43 kB, unpacked 596 kB -> 141 kB, 66 -> 63 files. No runtime change.
-- Changed: the contributors image is no longer committed back to the repository. The workflow generates it with `noCommit` and publishes it to GitHub Pages; README uses the Pages URL.
+- 打包瘦身：`package.json` 的 `files` 白名单把 `CONTRIBUTORS.svg`（455 kB，占 tarball 四分之三以上）
+  与 `tsconfig.json` 挡在包外，tarball 386 kB → 43 kB，解包 596 kB → 141 kB，66 个文件 → 63 个。
+  运行时没有任何改动。
+- 贡献者图不再由 workflow 提交回仓库：`noCommit` 生成后发到 GitHub Pages，README 改引用 Pages 地址。
+  为此把 Pages workflow 一并带进了这个补丁版本。
+
+## v2.4.0-alpha.0
+
+2025-10-30
+
+- 预发布：`convertUnspacedPinyin` 与同日的正式版 2.4.0 一起发出。
 
 ## v2.4.0
 
 2025-10-30
 
-- Added: New function `convertUnspacedPinyin` to process unspaced pinyin strings into toned unspaced format.
+- 新增 `convertUnspacedPinyin`：把连写的拼音串转成带调号的连写形式。
 
 ## v2.3.5
 
 2025-07-31
 
-- chore: add sideEffects false to package.json
-- updated: add test/ & tests/ to `.npmignore`
+- `package.json` 加 `sideEffects: false`。
+- `.npmignore` 补上 `test/` 与 `tests/`。
+
+## v2.3.4
+
+2025-05-04
+
+- README 补上贡献者；删掉一个多余的 issue 模板。
 
 ## v2.3.3
 
 2025-05-03
 
-- Fixed: TypeScript type error TS2306
-- Updated: add contributors in README.md
+- 再修一次 `v2/index.d.ts`。
+
+## v2.3.2
+
+2025-05-03
+
+- 修 `v2/index.d.ts`。
+
+## v2.3.1
+
+2025-05-03
+
+- 修 TypeScript 类型定义，并加一个类型测试夹具，让 `.d.ts` 真正参与检查。
 
 ## v2.3.0
 
-2025-03-16
+2025-03-15
 
-- BREAKING: Convert this package from a CommonJS package to an ES Module
+- BREAKING：包从 CommonJS 改成纯 ES Module。此前写的 `require('pinyin-tone')` 从这一版起失效，
+  一直到 2.5.0 才恢复。
+- 每个 `index.js` 配一份 `index.d.ts`；导出改名；新增 `workaround` 入口；注释统一改成英文。
 
 ## v2.2.7
 
-2025-03-16
+2025-03-15
 
-- revert the changes: liou -> liou, yuen -> yuen
+- 回退 `liou` → `liu`、`yuen` → `yun` 的改写（issue#8 的修复保留）。
 
 ## v2.2.6
 
 2025-03-15
 
-未单独发布：下面的修复保留到了 v2.2.7，被回退的那条改写也在 v2.2.7 里撤掉。
+- 修 issue#8：正则命中了、但 `pinyin_dict_v2` 里没有这个键时，
+  `pinyin_dict_v2[match.groups.abc]` 是 `undefined`。
 
-- Fixed: strings that match the regex rule but are not present in pinyin_dict_v2 result in pinyin_dict_v2[match.groups.abc] being undefined.
-- Fixed: 修复了匹配正则表达式的字符串但不在 pinyin_dict_v2 中的问题，导致 pinyin_dict_v2[match.groups.abc] 未定义。
-- ~~Change: liou -> liu, yuen -> yun~~
-
-## v2.2.2 – v2.2.5
+## v2.2.5
 
 2025-02-18
 
-- 依赖：npm_and_yarn 组里两条升级 —— [serialize-javascript](https://github.com/yahoo/serialize-javascript)
-  与 [mocha](https://github.com/mochajs/mocha)。
-- 文档：README 去掉个人网站链接。
-- 仓库：作者 GitHub 账号改名，相关链接一并更新。
+- 更新包描述与各类链接，README 改写。
+- 依赖升级两条（`serialize-javascript`、`mocha`）。
 
-## v2.2.1
+## v2.2.4
 
-2024-04-04
+2024-09-19
 
-- 文档：修改 `README.md`。
+- 站点不再维护，`package.json` 相应调整。
+- `braces` 升级。
 
 ## v2.2.0
 
 2023-04-23
 
-- Patched: npm audit fix
-- Feature: Add a `v2` version.
+- 新增 `v2` 实现：`pinyin-tone/v2` 这条子路径。
+- `npm audit fix`。
 
 ## v2.1.2
 
 2022-01-26
 
-- Patched: bump `nanoid` from `3.1.25` to `3.2.0`
-```
-nanoid  <3.1.31
-Severity: moderate
-Exposure of Sensitive Information to an Unauthorized Actor in nanoid - https://github.com/advisories/GHSA-qrpm-p2h7-hrv2
-```
+- `nanoid` 3.1.25 → 3.2.0（GHSA-qrpm-p2h7-hrv2，信息泄露）。
 
-## v2.1.0
+## v2.1.1
 
 2021-11-02
 
-- 支持声调数字 `5`（add support for tone mark 5）。
-- 升级开发依赖：`mocha` ^7.2.0 → ^9.1.3。
+- 支持声调数字 `5`。
+- 开发依赖 `mocha` ^7.2.0 → ^9.1.3。
 
 ## v2.0.7
 
 2021-08-13
 
-- Patched: `node_modules/glob-parent` 5.1.1 → 5.1.2
-
-```
-glob-parent  <5.1.2
-Severity: moderate
-Regular expression denial of service - https://npmjs.com/advisories/1751
-```
+- `glob-parent` 5.1.1 → 5.1.2（ReDoS，advisory 1751）。
 
 ## v2.0.6
 
 2021-05-21
 
-- Added: `index.d.ts` —— 内置 TypeScript 声明。
-- Patched
-  - `node_modules/lodash`: `4.17.20` → `4.17.21`
-  - `package.json` 里的 repository url 一并修正。
+- 新增 `index.d.ts`，内置 TypeScript 声明。
+- `lodash` 4.17.20 → 4.17.21；`package.json` 里的 repository url 一并修正。
+- README 简化。
 
-## v2.0.4
+## v2.0.5
 
 2021-03-30
 
-- Fixed
-  - 升级 `y18n` 到 4.0.1：3.2.2、4.0.1、5.0.5 之前的版本存在原型污染（Prototype Pollution）。
-- Upgrade
-  - 升级 `chai` 到 4.3.4。
+- `y18n` 升到 4.0.1：更早的版本存在原型污染。
+- `chai` 升到 4.3.4。
 
-## v2.0.0
+## v2.0.3
 
-2020-11-11
+2021-01-15
 
-- Changed
-  - 重写主要代码（Rewrite main code）。
-  - 重写测试（Rewrite test）。
-- Fixed
-  - 补上 /`ui`/。
+- 去掉对 `assert` 的使用。
+- 测试补上 `ng`。
+
+## v2.0.1
+
+2020-11-10
+
+- 2.x 的第一个正式版本：主代码与测试整体重写，替换 1.x 的实现；补上 `ui`；`npm update`。
 
 ## v1.2.2
 
-- Changed
-  - 更新依赖，修复安全警告（update dependencies to fix security alerts）。
+2020-03-31
+
+- 更新依赖，修复安全警告。
+
+## v1.2.1
+
+2020-01-14
+
+- registry 记录为 2020-01-14 发布，仓库里没有对应的 tag 或提交可查。
 
 ## v1.2.0
 
-- Changed
-  - 更多的测试（more tests）。
+2019-03-05
+
+- 更多的测试。
 
 ## v1.1.0
 
 2019-03-05
 
-- Changed
-  - 为 mocha 测试增加了 `ü`/`ün`/`üe`/`üan` 韵母。
-  - 声调数字可以为 `0`。
-- Added
-  - 增加 mocha 测试。
+- 为 mocha 测试增加 `ü`/`ün`/`üe`/`üan` 韵母。
+- 声调数字可以为 `0`。
+- 增加 mocha 测试。
 
 ## v1.0.0
 
 2019-03-05
 
-- Changed
-  - 更换仓库地址（repository changed）。
-  - 更新 `README.md`。
+- 更换仓库地址，更新 README。
 
 ## v0.1.4
 
 2019-02-27
 
-- Fixed
-  - 更新 `README.md`，修正拼写。
-  - 增加简体中文描述。
+- 更新 README，修正拼写；增加简体中文描述。
 
 ## v0.1.3
 
 2019-02-20
 
-- Fixed
-  - 更新 `README.md`，修正拼写与链接。
+- 更新 README，修正拼写与链接。
+
+## v0.1.2
+
+2019-02-18
+
+- 只改 `package.json`（版本号与元数据）。
 
 ## v0.1.1
 
 2019-02-18
 
-- Fixed
-  - 缺少 `y` 与 `w`。
+- 补上缺失的 `y` 与 `w`。
+
+## v0.1.0
+
+2019-02-18
+
+- 首次发布。
+
+---
+
+### 从未发布的版本号
+
+`0.1.0` 之后的版本里，有五个号写进过 CHANGELOG、却从来没进 registry：`2.0.0`、`2.0.2`、
+`2.0.4`、`2.1.0`、`2.2.1` 至 `2.2.3`。它们对应的改动都以紧随其后的那个版本发出 ——
+2.0.0 的代码重写进了 `2.0.1`，2.0.4 的依赖升级进了 `2.0.5`，2.1.0 的声调 `5` 进了 `2.1.1`。
+这一段现在按 registry 的记录排列，不再给没发布过的号留章节。
+
+`2.4.2` 与 `2.4.3` 同样从未发布，那批工作最终以 `2.5.0` 出去。
+
+git 里的 tag 与发布版本也不是一一对应：`v2.0.3`、`v2.0.4`、`v2.3.5` 是轻量 tag，其余是
+annotated；`2.0.5`、`2.1.1`、`2.2.4`、`1.2.1` 等版本在仓库里没有 tag。所以这里的日期取
+registry 的发布时间，而不是 tag 的日期。
