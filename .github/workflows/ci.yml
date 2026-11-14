@@ -26,8 +26,8 @@ jobs:
         # 因此 20 是下界，24 是当前 LTS 之上的一档。
         node: ['20', '22', '24']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -50,8 +50,8 @@ jobs:
         # 而这一步要证明的只是「包本身在这个 Node 上能用」，与测试框架无关。
         node: ['14', '18']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
       # 打包 → 装进一个干净工程 → 让真实的 Node 分别走 require 与 import 两个条件。
@@ -61,8 +61,8 @@ jobs:
     name: package contents
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm

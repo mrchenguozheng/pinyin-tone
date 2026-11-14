@@ -49,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cannot publish over the previously published versions`，所以版本已存在时把工作副本临时改成
   `0.0.0-rehearsal` 再跑（不提交、不打 tag）。排练验证的是机制 —— 认证、文件清单、dist-tag、
   `--provenance` 参数 —— 而不是版本号本身。
+- 三个 workflow 的 action 升到 Node 24 系列，消掉 `Node.js 20 is deprecated` 警告：
+  `checkout@v4` → `v5`、`setup-node@v4` → `v5`、`configure-pages@v5` → `v6`、
+  `upload-pages-artifact@v3` → `v5`、`deploy-pages@v4` → `v5`。判断依据是各 action 的 `action.yml`
+  里 `runs.using` 是不是 node24，而不是看发布先后（`configure-pages@v5` 仍跑 node20，v6 才是 node24）。
 - 新增 `docs/releasing.md` 与 `docs/releasing.zh.md`：发版步骤、要过的六道闸、2.x 的差别、
   排练路径、npm 上 Trusted Publishing 的一次性配置（仓库里不存 token；前提是 npm 侧登记这个
   workflow；token 只是可选退路）、以及发布后怎么验证（`dist-tags`、`dist.integrity`、

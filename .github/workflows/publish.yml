@@ -30,12 +30,12 @@ jobs:
     name: publish to npm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # 要判断 tag 指向的提交是否落在发布分支上，必须拿到完整历史与远端分支。
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm

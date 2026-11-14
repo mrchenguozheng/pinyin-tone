@@ -26,12 +26,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # 站点在 site/ 里，与库本身是两套依赖。根目录的 npm ci 只装构建这个库要用的东西，
       # 不该为了一个静态页多背几百个包，所以这里单独装、单独构建。
       # Astro 5 要求 18.20.8 || ^20.3.0 || >=22.0.0，取 22。
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -67,11 +67,11 @@ jobs:
 
       # enablement: 首次运行时把 Pages 的来源自动切成 GitHub Actions，
       # 省掉在 Settings → Pages 里手点一次。需要仓库管理员权限与 pages: write。
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         with:
           enablement: true
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/dist
 
@@ -83,4 +83,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
